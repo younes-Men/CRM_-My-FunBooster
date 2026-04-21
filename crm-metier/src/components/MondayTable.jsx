@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Search, Filter, Clock, ChevronDown, Loader2, ExternalLink, LayoutGrid } from 'lucide-react';
+import { Search, Filter, Clock, ChevronDown, Loader2, ExternalLink, LayoutGrid, Copy, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import LeadDetailPanel from './LeadDetailPanel';
 
 // Status badge colors (case-insensitive match)
 const STATUS_COLORS = {
@@ -37,6 +38,12 @@ const STATUS_COLORS = {
   're-conquête':          { bg: '#fef3c7', text: '#b45309' },
   'oui':                  { bg: '#dcfce7', text: '#15803d' },
   'non':                  { bg: '#fee2e2', text: '#b91c1c' },
+  // Client OF specific colors
+  'ca conseils':          { bg: '#fff7ed', text: '#c2410c' }, // Orange
+  'tb formations':        { bg: '#eff6ff', text: '#1d4ed8' }, // Blue
+  'go conseils':          { bg: '#f0fdf4', text: '#15803d' }, // Green
+  'hors zone':            { bg: '#fdf2f8', text: '#be185d' }, // Pink
+  'it performance':       { bg: '#fefce8', text: '#a16207' }, // Yellow
   // Default fallback
   'default':              { bg: '#f1f5f9', text: '#94a3b8' }
 };
@@ -64,7 +71,7 @@ const COLUMNS = [
   { label: 'Funbooster',   key: 'funebooster',       width: 130 },
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Gérant',       key: 'gerant',            width: 150, type: 'editable' },
-  { label: 'Nº Siret',     key: 'siret',             width: 170, mono: true },
+  { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
   { label: 'Secteur Act.',  key: 'secteur_activite',  width: 180, type: 'editable' },
   { label: 'Libellé Act.',  key: 'libelle_activite',  width: 200, type: 'editable' },
   { label: 'Opco',         key: 'nom_opco',          width: 150 },
@@ -75,14 +82,19 @@ const COLUMNS = [
   { label: 'Adresse',      key: 'adresse',           width: 260, type: 'editable' },
   { label: 'Code Postal',  key: 'code_postal',       width: 100, type: 'auto' },
   { label: 'Code Dépt.',   key: 'code_departement',  width: 100, type: 'auto' },
-  { label: 'Statut',       key: 'status',            width: 140, type: 'status' },
+  { label: 'Statut',       key: 'status',            width: 180, type: 'select', options: [
+    'A TRAITER', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
+    'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
+  ]},
   { label: 'E-mail',       key: 'email',             width: 200, type: 'editable' },
   { label: 'Site Web',     key: 'site_web',          width: 180, type: 'editable' },
   { label: 'Statut Gérant', key: 'statut_gerant',     width: 150, type: 'select', options: ['TNS', '2 TNS', 'GÉRANT SALARIÉ', '2 GÉRANTS SALARIÉS'] },
   { label: 'Nb Salariés',  key: 'nb_salaries',       width: 100, type: 'number' },
   { label: 'Nb Apprentis', key: 'nb_apprentis',      width: 110, type: 'number' },
   { label: 'Date Modif',   key: 'date_modification', width: 150, type: 'date' },
-  { label: 'Client OF',    key: 'client_of',         width: 120 },
+  { label: 'Client OF',    key: 'client_of',         width: 180, type: 'select', options: [
+    'CA CONSEILS', 'HORS ZONE', 'TB FORMATIONS', 'IT PERFORMANCE', 'GO CONSEILS'
+  ]},
   { label: 'Opcosign',     key: 'opcosign',          width: 130, type: 'editable' },
   { label: 'Budget Opco',  key: 'budget_opco',       width: 120, type: 'currency' },
   { label: 'Année Budget', key: 'annee_budget',      width: 110, type: 'number' },
@@ -104,7 +116,38 @@ const COLUMNS = [
   { label: 'Pappers',      key: 'pappers',           width: 110, type: 'pappers' },
 ];
 
-const PAGE_SIZE = 500; // rows per page fetch
+const PAGE_SIZE = 100; // REDUCED for performance (was 500)
+
+const SearchInput = React.memo(({ value: externalValue, onSearch }) => {
+  const [localValue, setLocalValue] = useState(externalValue);
+
+  // Sync internal state with external value (e.g. if search cleared elsewhere)
+  useEffect(() => {
+    setLocalValue(externalValue);
+  }, [externalValue]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localValue !== externalValue) {
+        onSearch(localValue);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localValue, onSearch, externalValue]);
+
+  return (
+    <div className="relative group">
+      <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-navy/20 group-focus-within:text-primary transition-colors" />
+      <input
+        type="text"
+        value={localValue}
+        onChange={e => setLocalValue(e.target.value)}
+        placeholder="Rechercher une entreprise, SIRET..."
+        className="pl-11 pr-5 py-3.5 bg-white border border-navy/10 rounded-2xl text-sm text-navy placeholder:text-navy/20 focus:outline-none focus:ring-4 focus:ring-primary/5 w-80 transition-all shadow-sm"
+      />
+    </div>
+  );
+});
 
 const formatDate = (d) => {
   if (!d) return '—';
@@ -113,7 +156,431 @@ const formatDate = (d) => {
   });
 };
 
-const MondayTable = ({ activeTab, user }) => {
+const formatDateFr = (d) => {
+  if (!d) return '—';
+  try {
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return d;
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+  } catch (e) {
+    return d;
+  }
+};
+
+const CustomSelect = React.memo(({ value, options, onChange, colorCfg }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        style={{ backgroundColor: colorCfg.bg, color: colorCfg.text }}
+        className="w-full pl-2 pr-6 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-normal flex items-center justify-between shadow-sm group/btn transition-all active:scale-[0.98]"
+      >
+        <span className="whitespace-nowrap leading-tight">{value || 'CHOISIR'}</span>
+        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40 group-hover/btn:opacity-100 transition-all">
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+
+      {isOpen && (
+        <div 
+          className="absolute top-full left-0 mt-2 w-full min-w-[160px] z-[999] bg-white/95 backdrop-blur-xl border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(14,27,77,0.25)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="py-1 max-h-64 overflow-y-auto custom-scrollbar">
+            <button
+              onClick={() => { onChange(''); setIsOpen(false); }}
+              className="w-full px-4 py-1.5 text-left text-[9px] font-black text-navy/30 hover:bg-navy/5 hover:text-navy uppercase tracking-[0.2em] transition-colors"
+            >
+              — RÉINITIALISER —
+            </button>
+            <div className="h-px bg-navy/5 mx-2 my-1" />
+            {options.map((opt) => (
+              <button
+                key={opt}
+                onClick={() => { onChange(opt); setIsOpen(false); }}
+                className={`w-full px-4 py-1.5 text-left text-[11px] font-bold transition-all flex items-center justify-between group/opt ${
+                  value === opt 
+                    ? 'bg-navy text-white' 
+                    : 'text-navy/70 hover:bg-primary/5 hover:text-primary'
+                }`}
+              >
+                {opt}
+                {value === opt && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+const TableCell = React.memo(({ lead, col, handleUpdate, activePicker, setActivePicker, pickerRef, index }) => {
+  const raw = lead[col.key];
+  const [copied, setCopied] = useState(false);
+
+  if (col.key === 'siret' && raw) {
+    return (
+      <div className="flex items-center gap-2 group/siret min-w-0 pr-2">
+        <span className="text-sm font-bold text-navy/90 font-mono tracking-tighter whitespace-nowrap">
+          {raw}
+        </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(raw);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+          title="Copier le SIRET"
+          className="p-1 hover:bg-navy/5 rounded-md transition-all opacity-0 group-hover/siret:opacity-100 flex-shrink-0 hover:scale-110 active:scale-95"
+        >
+          {copied ? (
+            <Check className="w-3.5 h-3.5 text-green-500 animate-in zoom-in duration-200" />
+          ) : (
+            <Copy className="w-3.5 h-3.5 text-navy/20 hover:text-navy/50 transition-colors" />
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  if (col.type === 'status' || col.type === 'select') {
+    const cfg = getStatusStyle(raw);
+    return (
+      <CustomSelect 
+        value={raw} 
+        options={col.options} 
+        onChange={(val) => handleUpdate(lead.id, col.key, val)}
+        colorCfg={cfg}
+      />
+    );
+  }
+
+  if (col.type === 'date') {
+    return (
+      <span className="flex items-center gap-1.5 text-navy/40 text-xs whitespace-nowrap">
+        <Clock className="w-3 h-3 flex-shrink-0" />
+        {formatDate(raw)}
+      </span>
+    );
+  }
+
+  if (col.type === 'pappers') {
+    const slug = slugify(lead.nom_entreprise || '');
+    const siren = (lead.siret || '').substring(0, 9);
+    const url = `https://www.pappers.fr/entreprise/${slug}-${siren}`;
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg text-blue-400 text-[10px] font-bold uppercase tracking-wider transition-all group"
+        onClick={(e) => e.stopPropagation()}
+      >
+        Pappers
+        <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+      </a>
+    );
+  }
+
+  if (col.type === 'editable') {
+    return (
+      <input
+        type="text"
+        defaultValue={raw || ''}
+        onBlur={e => e.target.value !== (raw || '') && handleUpdate(lead.id, col.key, e.target.value)}
+        className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20"
+        placeholder="—"
+      />
+    );
+  }
+
+  if (col.type === 'number') {
+    return (
+      <input
+        type="number"
+        defaultValue={raw || ''}
+        onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value)}
+        className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20"
+        placeholder="0"
+      />
+    );
+  }
+
+  if (col.type === 'currency' || col.type === 'auto_currency') {
+    const isAuto = col.type === 'auto_currency';
+    let displayValue = raw;
+
+    // Fallback for auto calculation if empty
+    if (isAuto && !displayValue && lead.ca_signe_ht && lead.nb_heures_formation) {
+      const ca = parseFloat(lead.ca_signe_ht);
+      const hrs = parseFloat(lead.nb_heures_formation);
+      if (ca && hrs && hrs !== 0) {
+        displayValue = (ca / hrs).toFixed(2);
+      }
+    }
+
+    return (
+      <div className="flex items-center gap-1 group/currency">
+        <input
+          type="number"
+          readOnly={isAuto}
+          defaultValue={displayValue || ''}
+          onBlur={e => {
+            if (!isAuto && e.target.value !== String(raw || '')) {
+              handleUpdate(lead.id, col.key, e.target.value);
+            }
+          }}
+          className={`w-full px-2 py-1.5 bg-transparent ${isAuto ? '' : 'hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary'} focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''}`}
+          placeholder="0.00"
+        />
+        <span className="text-[10px] font-bold text-navy/30 pr-1">€</span>
+      </div>
+    );
+  }
+
+  if (col.type === 'select') {
+    const cfg = getStatusStyle(raw);
+    return (
+      <CustomSelect 
+        value={raw} 
+        options={col.options} 
+        onChange={(val) => handleUpdate(lead.id, col.key, val)}
+        colorCfg={cfg}
+      />
+    );
+  }
+
+  if (col.type === 'date_picker') {
+    return (
+      <div className="relative group/picker w-full flex items-center">
+        <div className="absolute inset-0 flex items-center justify-center text-navy text-[11px] font-bold pointer-events-none group-hover/picker:opacity-0 transition-opacity">
+          {formatDateFr(raw)}
+        </div>
+        <input
+          type="date"
+          defaultValue={raw || ''}
+          onChange={e => handleUpdate(lead.id, col.key, e.target.value)}
+          className="w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] hover:bg-navy/[0.06] border border-transparent hover:border-navy/10 rounded-lg text-transparent hover:text-navy text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all"
+        />
+      </div>
+    );
+  }
+
+  if (col.type === 'time') {
+    const formatTime = (t) => {
+      if (!t || t === '-' || t === ':') return '';
+      const [h, m] = t.split(/[:hH]/);
+      return `${(h || '00').padStart(2, '0')}h${(m || '00').substring(0, 2).padStart(2, '0')}`;
+    };
+
+    const displayValue = formatTime(raw);
+    
+    return (
+      <div className="flex justify-center p-1">
+        <input
+          type="text"
+          defaultValue={displayValue}
+          key={`${lead.id}-${col.key}-${displayValue}`}
+          onBlur={e => {
+            const val = e.target.value;
+            if (val !== displayValue) {
+              handleUpdate(lead.id, col.key, val);
+            }
+          }}
+          placeholder="--h--"
+          className="w-[70px] px-2 py-1.5 bg-navy/5 border border-transparent hover:border-navy/10 rounded-xl text-navy text-[11px] font-black focus:bg-white focus:border-primary focus:outline-none transition-all font-mono text-center placeholder:text-navy/20"
+        />
+      </div>
+    );
+  }
+
+  if (col.type === 'pec_dates') {
+    const parts = (raw || '').split(' AU ');
+    const start = parts[0]?.replace('DU ', '') || '';
+    const end = parts[1] || '';
+    const isActive = activePicker?.id === lead.id && activePicker?.field === col.key;
+
+    const updatePec = (newStart, newEnd) => {
+      const s = newStart || '...';
+      const e = newEnd || '...';
+      const value = `DU ${s} AU ${e}`;
+      handleUpdate(lead.id, col.key, value);
+    };
+
+    return (
+      <div className="relative">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setActivePicker(isActive ? null : { id: lead.id, field: col.key });
+          }}
+          className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg group/pec transition-all w-full"
+        >
+          <Clock className="w-3 h-3 text-primary/40 group-hover/pec:text-primary transition-colors" />
+          <span className="text-[10px] font-black text-primary uppercase tracking-tighter truncate">
+            {raw || 'DU ... AU ...'}
+          </span>
+        </button>
+
+        {isActive && (
+          <div
+            ref={pickerRef}
+            className={`absolute left-0 z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in-95 duration-200 ${
+              index < 3 ? 'top-full mt-2' : 'bottom-full mb-2'
+            }`}
+            style={{ pointerEvents: 'auto' }}
+          >
+            <div className="flex items-center justify-between border-b border-navy/5 pb-2 mb-1">
+              <span className="text-[10px] font-black text-navy uppercase tracking-widest">Échéances PEC</span>
+              <button onClick={() => setActivePicker(null)} className="text-navy/20 hover:text-navy">×</button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex flex-col gap-1">
+                <span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Début</span>
+                <input
+                  type="date"
+                  value={start}
+                  onChange={e => updatePec(e.target.value, end)}
+                  className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div className="flex-1 flex flex-col gap-1">
+                <span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Fin</span>
+                <input
+                  type="date"
+                  value={end}
+                  onChange={e => updatePec(start, e.target.value)}
+                  className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+
+            <div className="px-3 py-2 bg-primary text-white rounded-xl text-center">
+              <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                {raw || 'DU ... AU ...'}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (col.type === 'auto') {
+    let displayValue = raw;
+    
+    // Fallback extraction for display if DB is empty
+    if (!displayValue && lead.adresse) {
+      if (col.key === 'code_postal') {
+        const cpMatch = lead.adresse.match(/\b\d{5}\b/);
+        if (cpMatch) displayValue = cpMatch[0];
+      } else if (col.key === 'code_departement') {
+        const cpMatch = lead.adresse.match(/\b\d{5}\b/);
+        if (cpMatch) displayValue = cpMatch[0].substring(0, 2);
+      }
+    }
+
+    return (
+      <span className={`${!raw && displayValue ? 'text-primary' : 'text-navy/40'} text-xs italic font-medium`}>
+        {displayValue || 'auto'}
+      </span>
+    );
+  }
+
+  if (typeof raw === 'string' && raw.includes('http')) {
+    const urlMatch = raw.match(/(https?:\/\/[^\s]+)/);
+    if (urlMatch) {
+      const url = urlMatch[0];
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 hover:text-blue-300 underline truncate block text-sm"
+          title={raw}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {raw}
+        </a>
+      );
+    }
+  }
+
+  let displayRaw = raw;
+  if (col.key === 'code_naf' && !displayRaw && lead.secteur) {
+    displayRaw = lead.secteur;
+  }
+
+  return (
+    <span
+      className={[
+        (col.key === 'siret' || col.key === 'lead_id') ? 'block text-xs font-bold' : 'truncate block text-sm',
+        col.bold ? 'text-navy font-bold' : 'text-navy/70',
+        col.mono ? 'font-mono tracking-tighter text-navy/90' : '',
+      ].join(' ')}
+      title={displayRaw || ''}
+    >
+      {displayRaw || '—'}
+    </span>
+  );
+});
+
+const TableRow = React.memo(({ lead, index, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick, isClicked, onClick }) => {
+  return (
+    <div
+      style={{ zIndex: activePicker?.id === lead.id ? 100 : 1 }}
+      className={`flex items-center hover:bg-[#fff5f7] transition-colors group/row cursor-pointer ${isClicked ? 'bg-[#fff5f7]' : ''}`}
+      onClick={() => onClick(lead.id)}
+      onDoubleClick={() => onDoubleClick(lead.id)}
+    >
+      <div className="w-14 flex-shrink-0 px-5 py-3 text-[10px] font-mono font-bold text-navy/10 group-hover/row:text-primary transition-colors text-center border-r border-navy/[0.02]">
+        {String(index + 1).padStart(2, '0')}
+      </div>
+      {columns.map(col => (
+        <div
+          key={col.key}
+          style={{ width: col.width, minWidth: col.width }}
+          className={`flex-shrink-0 px-6 py-3 border-l border-navy/[0.02] ${col.type === 'pec_dates' || col.type === 'select' ? '' : 'overflow-hidden'}`}
+        >
+          <TableCell
+            lead={lead}
+            col={col}
+            handleUpdate={handleUpdate}
+            activePicker={activePicker}
+            setActivePicker={setActivePicker}
+            pickerRef={pickerRef}
+            index={index}
+          />
+        </div>
+      ))}
+    </div>
+  );
+});
+
+const MondayTable = React.memo(({ activeTab, user }) => {
   const [leads, setLeads] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -122,6 +589,8 @@ const MondayTable = ({ activeTab, user }) => {
   const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState('');
   const [activePicker, setActivePicker] = useState(null); // { id, field }
+  const [selectedLeadId, setSelectedLeadId] = useState(null);
+  const [clickedRowId, setClickedRowId] = useState(null);
   const pickerRef = useRef(null);
 
   // Close picker on outside click
@@ -159,7 +628,6 @@ const MondayTable = ({ activeTab, user }) => {
     } else if (activeTab === 'mes-rappel') {
       query = query.ilike('status', 'rappel').ilike('funebooster', user?.name);
     }
-    // Note: 'leads' tab has no funebooster filter as requested (everyone sees everything)
 
     const { data, error, count } = await query
       .order('date_modification', { ascending: false })
@@ -180,22 +648,29 @@ const MondayTable = ({ activeTab, user }) => {
     const timer = setTimeout(() => {
       setPage(0);
       fetchPage(0, true, search);
-    }, search ? 500 : 0); // No delay for initial load or clear
+    }, search ? 500 : 0);
 
     return () => clearTimeout(timer);
   }, [search, fetchPage, activeTab]);
 
-  // Realtime subscription
+  // Realtime subscription with debounce to avoid excessive refreshes
   useEffect(() => {
     if (supabase) {
+      let timeoutId;
       const ch = supabase
         .channel('crm_leads_rt')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_leads' }, () => {
-          fetchPage(0, true, search);
-          setPage(0);
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            fetchPage(0, true, search);
+            setPage(0);
+          }, 2000); // 2 seconds debounce for RT
         })
         .subscribe();
-      return () => supabase.removeChannel(ch);
+      return () => {
+        supabase.removeChannel(ch);
+        clearTimeout(timeoutId);
+      };
     }
   }, [fetchPage, search, activeTab]);
 
@@ -205,12 +680,23 @@ const MondayTable = ({ activeTab, user }) => {
     fetchPage(next, false, search);
   };
 
-  const handleUpdate = async (id, field, value) => {
+  const handleUpdate = useCallback(async (id, field, value) => {
     // Lead object to update
     const lead = leads.find(l => l.id === id);
     if (!lead) return;
 
-    let updates = { [field]: value, date_modification: new Date().toISOString() };
+    // Convert empty string to null for database compatibility
+    let dbValue = value === '' ? null : value;
+
+    // Normalize time format for the database (HHhMM -> HH:mm:00)
+    if (field === 'heure_rdv' && dbValue) {
+      const parts = dbValue.split(/[:hH]/);
+      const h = parts[0]?.padStart(2, '0') || '00';
+      const m = (parts[1] || '00').substring(0, 2).padStart(2, '0');
+      dbValue = `${h}:${m}:00`;
+    }
+
+    let updates = { [field]: dbValue, date_modification: new Date().toISOString() };
 
     // Automatic extractions
     if (field === 'adresse' && value) {
@@ -234,286 +720,37 @@ const MondayTable = ({ activeTab, user }) => {
     setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
 
     if (supabase) {
-      await supabase
+      console.log(`[Sync] Mise à jour du lead ${id}...`);
+      const { error: updateError } = await supabase
         .from('crm_leads')
         .update(updates)
         .eq('id', id);
+      
+      if (updateError) console.error('[Sync] Erreur mise à jour lead:', updateError);
+
+      // Log observation history if field is observation
+      if (field === 'observation' && value) {
+        console.log(`[History] Enregistrement d'une nouvelle observation pour ${id} par ${user?.name || 'Inconnu'}...`);
+        const { error: historyError } = await supabase
+          .from('crm_observations_history')
+          .insert({
+            lead_id: id,
+            observation_text: value,
+            created_by: user?.name || 'Inconnu'
+          });
+        
+        if (historyError) {
+          console.error('[History] Erreur enregistrement historique:', historyError);
+        } else {
+          console.log('[History] Observation enregistrée avec succès.');
+        }
+      }
     }
-  };
+  }, [leads, user]);
 
   const filtered = useMemo(() => {
     return leads;
   }, [leads]);
-
-  const renderCell = (lead, col) => {
-    const raw = lead[col.key];
-
-    if (col.type === 'status') {
-      const cfg = getStatusStyle(raw);
-      return (
-        <span
-          style={{ background: cfg.bg, color: cfg.text }}
-          className="inline-block px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wide whitespace-nowrap"
-        >
-          {raw || '—'}
-        </span>
-      );
-    }
-
-    if (col.type === 'date') {
-      return (
-        <span className="flex items-center gap-1.5 text-navy/40 text-xs whitespace-nowrap">
-          <Clock className="w-3 h-3 flex-shrink-0" />
-          {formatDate(raw)}
-        </span>
-      );
-    }
-
-    if (col.type === 'pappers') {
-      const slug = slugify(lead.nom_entreprise || '');
-      const siren = (lead.siret || '').substring(0, 9);
-      const url = `https://www.pappers.fr/entreprise/${slug}-${siren}`;
-      return (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg text-blue-400 text-[10px] font-bold uppercase tracking-wider transition-all group"
-          onClick={(e) => e.stopPropagation()}
-        >
-          Pappers
-          <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-        </a>
-      );
-    }
-
-    if (col.type === 'editable') {
-      return (
-        <input
-          type="text"
-          defaultValue={raw || ''}
-          onBlur={e => e.target.value !== (raw || '') && handleUpdate(lead.id, col.key, e.target.value)}
-          className="w-full bg-transparent text-navy/60 text-sm focus:text-navy focus:outline-none placeholder:text-navy/20"
-          placeholder="—"
-        />
-      );
-    }
-
-    if (col.type === 'number') {
-      return (
-        <input
-          type="number"
-          defaultValue={raw || ''}
-          onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value)}
-          className="w-full bg-transparent text-navy/60 text-sm focus:text-navy focus:outline-none placeholder:text-navy/20"
-          placeholder="0"
-        />
-      );
-    }
-
-    if (col.type === 'currency' || col.type === 'auto_currency') {
-      const isAuto = col.type === 'auto_currency';
-      let displayValue = raw;
-
-      // Fallback for auto calculation if empty
-      if (isAuto && !displayValue && lead.ca_signe_ht && lead.nb_heures_formation) {
-        const ca = parseFloat(lead.ca_signe_ht);
-        const hrs = parseFloat(lead.nb_heures_formation);
-        if (ca && hrs && hrs !== 0) {
-          displayValue = (ca / hrs).toFixed(2);
-        }
-      }
-
-      return (
-        <div className="flex items-center gap-1">
-          <input
-            type="number"
-            readOnly={isAuto}
-            value={displayValue || ''}
-            onChange={e => isAuto ? null : handleUpdate(lead.id, col.key, e.target.value)}
-            className={`w-full bg-transparent text-navy/60 text-sm focus:text-navy focus:outline-none placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''}`}
-            placeholder="0.00"
-          />
-          <span className="text-[10px] font-bold text-navy/30">€</span>
-        </div>
-      );
-    }
-
-    if (col.type === 'select') {
-      const cfg = getStatusStyle(raw);
-      return (
-        <div className="relative group/select">
-          <select
-            value={raw || ''}
-            onChange={e => handleUpdate(lead.id, col.key, e.target.value)}
-            style={{ backgroundColor: cfg.bg, color: cfg.text }}
-            className="w-full pl-3 pr-8 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest focus:outline-none appearance-none cursor-pointer transition-all border-none shadow-sm"
-          >
-            <option value="" className="bg-white text-navy/40">À RENSEIGNER</option>
-            {col.options.map(opt => (
-              <option key={opt} value={opt} className="bg-white text-navy font-sans normal-case tracking-normal text-sm">{opt}</option>
-            ))}
-          </select>
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-40 group-hover/select:opacity-100 transition-opacity" style={{ color: cfg.text }}>
-            <ChevronDown className="w-3 h-3" />
-          </div>
-        </div>
-      );
-    }
-
-    if (col.type === 'date_picker') {
-      return (
-        <div className="relative group/picker">
-          <input
-            type="date"
-            defaultValue={raw || ''}
-            onChange={e => handleUpdate(lead.id, col.key, e.target.value)}
-            className="w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] hover:bg-navy/[0.06] border border-transparent hover:border-navy/10 rounded-lg text-navy/60 hover:text-navy text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all"
-          />
-        </div>
-      );
-    }
-
-    if (col.type === 'time') {
-      const displayValue = (raw === '-' || raw === ':') ? '' : raw;
-      return (
-        <div className="relative group/picker">
-          <input
-            type="text"
-            defaultValue={displayValue || ''}
-            key={displayValue} // Force re-render if cleaned up
-            onBlur={e => e.target.value !== (raw || '') && handleUpdate(lead.id, col.key, e.target.value)}
-            placeholder="--h--min"
-            className="w-full px-2 py-1.5 bg-navy/[0.03] hover:bg-navy/[0.06] border border-transparent hover:border-navy/10 rounded-lg text-navy text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono text-center placeholder:text-navy/20"
-          />
-        </div>
-      );
-    }
-
-    if (col.type === 'pec_dates') {
-      const parts = (raw || '').split(' AU ');
-      const start = parts[0]?.replace('DU ', '') || '';
-      const end = parts[1] || '';
-      const isActive = activePicker?.id === lead.id && activePicker?.field === col.key;
-
-      const updatePec = (newStart, newEnd) => {
-        const s = newStart || '...';
-        const e = newEnd || '...';
-        const value = `DU ${s} AU ${e}`;
-        handleUpdate(lead.id, col.key, value);
-      };
-
-      return (
-        <div className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setActivePicker(isActive ? null : { id: lead.id, field: col.key });
-            }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg group/pec transition-all w-full"
-          >
-            <Clock className="w-3 h-3 text-primary/40 group-hover/pec:text-primary transition-colors" />
-            <span className="text-[10px] font-black text-primary uppercase tracking-tighter truncate">
-              {raw || 'DU ... AU ...'}
-            </span>
-          </button>
-
-          {isActive && (
-            <div
-              ref={pickerRef}
-              className="absolute bottom-full left-0 mb-2 z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in-95 duration-200"
-              style={{ pointerEvents: 'auto' }}
-            >
-              <div className="flex items-center justify-between border-b border-navy/5 pb-2 mb-1">
-                <span className="text-[10px] font-black text-navy uppercase tracking-widest">Échéances PEC</span>
-                <button onClick={() => setActivePicker(null)} className="text-navy/20 hover:text-navy">×</button>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <div className="flex-1 flex flex-col gap-1">
-                  <span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Début</span>
-                  <input
-                    type="date"
-                    value={start}
-                    onChange={e => updatePec(e.target.value, end)}
-                    className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="flex-1 flex flex-col gap-1">
-                  <span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Fin</span>
-                  <input
-                    type="date"
-                    value={end}
-                    onChange={e => updatePec(start, e.target.value)}
-                    className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-              </div>
-
-              <div className="px-3 py-2 bg-primary text-white rounded-xl text-center">
-                <span className="text-[10px] font-black uppercase tracking-widest leading-none">
-                  {raw || 'DU ... AU ...'}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (col.type === 'auto') {
-      let displayValue = raw;
-      
-      // Fallback extraction for display if DB is empty
-      if (!displayValue && lead.adresse) {
-        if (col.key === 'code_postal') {
-          const cpMatch = lead.adresse.match(/\b\d{5}\b/);
-          if (cpMatch) displayValue = cpMatch[0];
-        } else if (col.key === 'code_departement') {
-          const cpMatch = lead.adresse.match(/\b\d{5}\b/);
-          if (cpMatch) displayValue = cpMatch[0].substring(0, 2);
-        }
-      }
-
-      return (
-        <span className={`${!raw && displayValue ? 'text-primary' : 'text-navy/40'} text-xs italic font-medium`}>
-          {displayValue || 'auto'}
-        </span>
-      );
-    }
-
-    if (typeof raw === 'string' && raw.includes('http')) {
-      const urlMatch = raw.match(/(https?:\/\/[^\s]+)/);
-      if (urlMatch) {
-        const url = urlMatch[0];
-        return (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 hover:text-blue-300 underline truncate block text-sm"
-            title={raw}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {raw}
-          </a>
-        );
-      }
-    }
-
-    return (
-      <span
-        className={[
-          (col.key === 'siret' || col.key === 'lead_id') ? 'block text-xs font-bold' : 'truncate block text-sm',
-          col.bold ? 'text-navy font-bold' : 'text-navy/70',
-          col.mono ? 'font-mono tracking-tighter text-navy/90' : '',
-        ].join(' ')}
-        title={raw || ''}
-      >
-        {raw || '—'}
-      </span>
-    );
-  };
 
   const tableMinWidth = COLUMNS.reduce((a, c) => a + c.width, 48);
 
@@ -543,16 +780,10 @@ const MondayTable = ({ activeTab, user }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="relative group">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-navy/20 group-focus-within:text-primary transition-colors" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher une entreprise, SIRET..."
-              className="pl-11 pr-5 py-3.5 bg-white border border-navy/10 rounded-2xl text-sm text-navy placeholder:text-navy/20 focus:outline-none focus:ring-4 focus:ring-primary/5 w-80 transition-all shadow-sm"
-            />
-          </div>
+          <SearchInput
+            value={search}
+            onSearch={setSearch}
+          />
           
           <button className="p-3.5 rounded-2xl border border-navy/10 bg-white hover:bg-navy/5 text-navy/30 hover:text-navy transition-all shadow-sm group">
             <Filter className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
@@ -580,7 +811,7 @@ const MondayTable = ({ activeTab, user }) => {
             {/* Header row */}
             <div
               className="flex items-center border-b border-navy/5"
-              style={{ background: '#FDFDFF', position: 'sticky', top: 0, zIndex: 20 }}
+              style={{ background: '#FDFDFF' }}
             >
               <div className="w-14 flex-shrink-0 px-5 py-4 text-[10px] font-black text-navy/20 uppercase tracking-widest text-center italic">#</div>
               {COLUMNS.map(col => (
@@ -613,24 +844,19 @@ const MondayTable = ({ activeTab, user }) => {
             ) : (
               <div className="divide-y divide-navy/[0.03]">
                 {filtered.map((lead, i) => (
-                  <div
+                  <TableRow
                     key={lead.id}
-                    style={{ zIndex: activePicker?.id === lead.id ? 100 : 1 }}
-                    className="flex items-center hover:bg-navy/[0.01] transition-colors group/row"
-                  >
-                    <div className="w-14 flex-shrink-0 px-5 py-3 text-[10px] font-mono font-bold text-navy/10 group-hover/row:text-primary transition-colors text-center border-r border-navy/[0.02]">
-                      {String(i + 1).padStart(2, '0')}
-                    </div>
-                    {COLUMNS.map(col => (
-                      <div
-                        key={col.key}
-                        style={{ width: col.width, minWidth: col.width }}
-                        className={`flex-shrink-0 px-6 py-3 border-l border-navy/[0.02] ${col.type === 'pec_dates' || col.type === 'select' ? '' : 'overflow-hidden'}`}
-                      >
-                        {renderCell(lead, col)}
-                      </div>
-                    ))}
-                  </div>
+                    lead={lead}
+                    index={i}
+                    columns={COLUMNS}
+                    handleUpdate={handleUpdate}
+                    activePicker={activePicker}
+                    setActivePicker={setActivePicker}
+                    pickerRef={pickerRef}
+                    onDoubleClick={setSelectedLeadId}
+                    isClicked={clickedRowId === lead.id}
+                    onClick={setClickedRowId}
+                  />
                 ))}
 
                 {/* Load More button */}
@@ -644,7 +870,7 @@ const MondayTable = ({ activeTab, user }) => {
                       {loadingMore ? (
                         <><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</>
                       ) : (
-                        <><ChevronDown className="w-4 h-4" /> Voir les 500 suivants ({(totalCount - leads.length).toLocaleString()} restants)</>
+                        <><ChevronDown className="w-4 h-4" /> Voir les 100 suivants ({(totalCount - leads.length).toLocaleString()} restants)</>
                       )}
                     </button>
                   </div>
@@ -654,8 +880,17 @@ const MondayTable = ({ activeTab, user }) => {
           </div>
         </div>
       </div>
+
+      {selectedLeadId && (
+        <LeadDetailPanel 
+          leadId={selectedLeadId}
+          lead={leads.find(l => l.id === selectedLeadId)}
+          onClose={() => setSelectedLeadId(null)}
+          userName={user?.name}
+        />
+      )}
     </div>
   );
-};
+});
 
 export default MondayTable;

@@ -63,3 +63,17 @@ body {
 .mask-fade-right {
   mask-image: linear-gradient(to right, black 80%, transparent 100%);
 }
+
+/* Hide native date picker icon to avoid overlap with custom display */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  background: transparent;
+  bottom: 0;
+  color: transparent;
+  cursor: pointer;
+  height: auto;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: auto;
+}

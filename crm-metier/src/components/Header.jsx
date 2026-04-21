@@ -10,8 +10,8 @@ const Header = ({ activeTab, user }) => {
         {/* Logo Text / Branding Section */}
         <div className="flex items-center gap-4">
           <div className="glass-panel px-6 py-3 rounded-2xl flex items-center gap-3 shadow-xl border-white/40">
-            <span className="text-xl font-black text-navy tracking-tighter leading-none italic">
-              My <span className="text-primary not-italic">FunBooster</span>
+            <span className="text-xl font-bold text-navy tracking-tight leading-none font-outfit uppercase">
+              My <span className="text-primary">FunBooster</span>
             </span>
             <div className="h-4 w-px bg-navy/10 mx-1" />
             <span className="text-[10px] font-bold text-navy/40 uppercase tracking-[0.25em]">By DOCENDIA</span>

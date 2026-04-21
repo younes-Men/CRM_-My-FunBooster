@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import logo2 from '../assets/Logo2.jpeg';
 
-const Sidebar = ({ user, activeTab, setActiveTab, isExpanded, setIsExpanded, onLogout }) => {
+const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsExpanded, onLogout }) => {
   const isAdmin = user?.role === 'admin';
 
   const menuItems = [
@@ -129,6 +129,6 @@ const Sidebar = ({ user, activeTab, setActiveTab, isExpanded, setIsExpanded, onL
       </aside>
     </div>
   );
-};
+});
 
 export default Sidebar;

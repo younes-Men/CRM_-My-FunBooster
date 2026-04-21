@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import MondayTable from './components/MondayTable';
 import TeamList from './components/TeamList';
+import CalendarView from './components/CalendarView';
 import { getUser } from './lib/authConfig';
 
 function App() {
@@ -50,7 +51,9 @@ function App() {
         
         <form onSubmit={handleLogin} className="glass-pill p-10 rounded-[3rem] w-full max-w-md flex flex-col gap-6 relative z-10 shadow-2xl border-white ring-1 ring-navy/5">
           <div className="text-center mb-4">
-            <h1 className="text-4xl font-black tracking-tighter italic text-navy mb-2">My <span className="text-primary italic">FunBooster</span></h1>
+            <h1 className="text-4xl font-bold tracking-tight text-navy mb-2 font-outfit uppercase">
+              My <span className="text-primary">FunBooster</span>
+            </h1>
             <p className="text-[10px] font-bold text-navy/40 uppercase tracking-[0.2em]">Espace Collaborateur</p>
           </div>
           
@@ -103,26 +106,30 @@ function App() {
           user={user} 
         />
 
-        <main className="flex-1 min-w-0 pt-4 px-10 pb-12 overflow-x-auto">
-          {/* Section Header */}
-          <div className="mb-10 pt-2 flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-black text-navy tracking-tighter leading-tight">
-                {activeTab === 'users' ? 'Équipe' : 'Gestion des '}
-                {activeTab !== 'users' && <span className="text-primary italic">Leads</span>}
-              </h1>
-              <p className="text-[11px] font-bold text-navy/30 uppercase tracking-[0.25em] mt-1">
-                {activeTab === 'users' ? 'Liste globale des collaborateurs CRM' : 'Base de données centralisée'}
-              </p>
+        <main className={`flex-1 min-w-0 overflow-x-auto ${activeTab === 'calendar' ? 'pt-0 px-4 pb-4' : 'pt-4 px-10 pb-12'}`}>
+          {/* Section Header - Hidden for Calendar to save space */}
+          {activeTab !== 'calendar' && (
+            <div className="mb-10 pt-2 flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold text-navy tracking-tight leading-tight font-outfit uppercase">
+                  {activeTab === 'users' ? 'Équipe' : 'Gestion des '}
+                  {activeTab !== 'users' && <span className="text-primary">Leads</span>}
+                </h1>
+                <p className="text-[11px] font-bold text-navy/30 uppercase tracking-[0.25em] mt-1">
+                  {activeTab === 'users' ? 'Liste globale des collaborateurs CRM' : 'Base de données centralisée'}
+                </p>
+              </div>
+              
+              <div className="h-10 w-px bg-navy/5" />
             </div>
-            
-            <div className="h-10 w-px bg-navy/5" />
-          </div>
+          )}
 
           {/* Dynamic Content */}
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             {activeTab === 'users' ? (
               <TeamList />
+            ) : activeTab === 'calendar' ? (
+              <CalendarView user={user} />
             ) : (
               <MondayTable activeTab={activeTab} user={user} />
             )}
