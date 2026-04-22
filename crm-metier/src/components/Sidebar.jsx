@@ -69,8 +69,10 @@ const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsEx
           </div>
           {isExpanded && (
             <div className="flex flex-col whitespace-nowrap animate-in fade-in slide-in-from-left-4 duration-500">
-              <span className="text-lg font-black text-navy tracking-tighter leading-tight">My FunBooster</span>
-              <span className="text-[10px] text-primary font-bold uppercase tracking-[0.2em] opacity-80">BY DOCENDIA</span>
+              <span className="text-lg font-bold text-navy tracking-tight leading-tight font-outfit uppercase">
+                My <span className="text-primary">FunBooster</span>
+              </span>
+              <span className="text-[10px] text-navy/30 font-bold uppercase tracking-[0.25em] mt-0.5">BY DOCENDIA</span>
             </div>
           )}
         </div>

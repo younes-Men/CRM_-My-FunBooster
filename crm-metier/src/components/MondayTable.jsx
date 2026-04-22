@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { FixedSizeList as List } from 'react-window';
 import { Search, Filter, Clock, ChevronDown, Loader2, ExternalLink, LayoutGrid, Copy, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LeadDetailPanel from './LeadDetailPanel';
@@ -171,6 +173,7 @@ const formatDateFr = (d) => {
 
 const CustomSelect = React.memo(({ value, options, onChange, colorCfg }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [rect, setRect] = useState(null);
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -190,6 +193,9 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg }) => {
       <button
         onClick={(e) => {
           e.stopPropagation();
+          if (!isOpen) {
+            setRect(containerRef.current.getBoundingClientRect());
+          }
           setIsOpen(!isOpen);
         }}
         style={{ backgroundColor: colorCfg.bg, color: colorCfg.text }}
@@ -202,11 +208,12 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg }) => {
       </button>
 
       {isOpen && (
-        <div 
-          className="absolute top-full left-0 mt-2 w-full min-w-[160px] z-[999] bg-white/95 backdrop-blur-xl border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(14,27,77,0.25)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="py-1 max-h-64 overflow-y-auto custom-scrollbar">
+        <DropdownPortal targetRect={rect}>
+          <div 
+            className="absolute top-0 left-0 w-full min-w-[200px] z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(14,27,77,0.3)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="py-1 max-h-64 overflow-y-auto custom-scrollbar">
             <button
               onClick={() => { onChange(''); setIsOpen(false); }}
               className="w-full px-4 py-1.5 text-left text-[9px] font-black text-navy/30 hover:bg-navy/5 hover:text-navy uppercase tracking-[0.2em] transition-colors"
@@ -230,14 +237,34 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg }) => {
             ))}
           </div>
         </div>
+      </DropdownPortal>
       )}
     </div>
   );
 });
 
-const TableCell = React.memo(({ lead, col, handleUpdate, activePicker, setActivePicker, pickerRef, index }) => {
+// ── Dropdown Portal to prevent clipping in virtual list ──
+const DropdownPortal = ({ children, targetRect }) => {
+  if (!targetRect) return null;
+  return createPortal(
+    <div 
+      className="fixed z-[9999]"
+      style={{ 
+        top: targetRect.top, 
+        left: targetRect.left, 
+        width: targetRect.width 
+      }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+};
+
+const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker, setActivePicker, pickerRef, index }) => {
   const raw = lead[col.key];
   const [copied, setCopied] = useState(false);
+  const containerRef = useRef(null);
 
   if (col.key === 'siret' && raw) {
     return (
@@ -430,11 +457,12 @@ const TableCell = React.memo(({ lead, col, handleUpdate, activePicker, setActive
     };
 
     return (
-      <div className="relative">
+      <div className="relative" ref={containerRef}>
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setActivePicker(isActive ? null : { id: lead.id, field: col.key });
+            const rect = containerRef.current.getBoundingClientRect();
+            setActivePicker(isActive ? null : { id: lead.id, field: col.key, rect });
           }}
           className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg group/pec transition-all w-full"
         >
@@ -445,13 +473,13 @@ const TableCell = React.memo(({ lead, col, handleUpdate, activePicker, setActive
         </button>
 
         {isActive && (
-          <div
-            ref={pickerRef}
-            className={`absolute left-0 z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in-95 duration-200 ${
-              index < 3 ? 'top-full mt-2' : 'bottom-full mb-2'
-            }`}
-            style={{ pointerEvents: 'auto' }}
-          >
+          <DropdownPortal targetRect={activePicker?.rect}>
+            <div
+              ref={pickerRef}
+              className={`absolute left-0 z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in-95 duration-200 ${
+                index < 3 ? 'top-0' : 'bottom-0'
+              }`}
+            >
             <div className="flex items-center justify-between border-b border-navy/5 pb-2 mb-1">
               <span className="text-[10px] font-black text-navy uppercase tracking-widest">Échéances PEC</span>
               <button onClick={() => setActivePicker(null)} className="text-navy/20 hover:text-navy">×</button>
@@ -484,7 +512,8 @@ const TableCell = React.memo(({ lead, col, handleUpdate, activePicker, setActive
               </span>
             </div>
           </div>
-        )}
+        </DropdownPortal>
+      )}
       </div>
     );
   }
@@ -548,10 +577,22 @@ const TableCell = React.memo(({ lead, col, handleUpdate, activePicker, setActive
   );
 });
 
-const TableRow = React.memo(({ lead, index, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick, isClicked, onClick }) => {
+const TableRow = React.memo(({ data, index, style }) => {
+  const { 
+    leads, columns, handleUpdate, activePicker, setActivePicker, 
+    pickerRef, onDoubleClick, clickedRowId, onClick 
+  } = data;
+  
+  const lead = leads[index];
+  const isClicked = clickedRowId === lead.id;
+  const isActive = activePicker?.id === lead.id;
+
   return (
     <div
-      style={{ zIndex: activePicker?.id === lead.id ? 100 : 1 }}
+      style={{ 
+        ...style,
+        zIndex: isActive ? 100 : 1 
+      }}
       className={`flex items-center hover:bg-[#fff5f7] transition-colors group/row cursor-pointer ${isClicked ? 'bg-[#fff5f7]' : ''}`}
       onClick={() => onClick(lead.id)}
       onDoubleClick={() => onDoubleClick(lead.id)}
@@ -569,6 +610,7 @@ const TableRow = React.memo(({ lead, index, columns, handleUpdate, activePicker,
             lead={lead}
             col={col}
             handleUpdate={handleUpdate}
+            isActive={isActive && activePicker?.field === col.key}
             activePicker={activePicker}
             setActivePicker={setActivePicker}
             pickerRef={pickerRef}
@@ -579,6 +621,12 @@ const TableRow = React.memo(({ lead, index, columns, handleUpdate, activePicker,
     </div>
   );
 });
+
+const InnerTable = React.forwardRef(({ children, ...rest }, ref) => (
+  <div ref={ref} {...rest} style={{ ...rest.style, minWidth: 1600 }}>
+    {children}
+  </div>
+));
 
 const MondayTable = React.memo(({ activeTab, user }) => {
   const [leads, setLeads] = useState([]);
@@ -592,6 +640,9 @@ const MondayTable = React.memo(({ activeTab, user }) => {
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [clickedRowId, setClickedRowId] = useState(null);
   const pickerRef = useRef(null);
+  const listRef = useRef(null);
+
+  const tableTotalWidth = useMemo(() => COLUMNS.reduce((acc, col) => acc + col.width, 48), []);
 
   // Close picker on outside click
   useEffect(() => {
@@ -754,8 +805,20 @@ const MondayTable = React.memo(({ activeTab, user }) => {
 
   const tableMinWidth = COLUMNS.reduce((a, c) => a + c.width, 48);
 
+  const itemData = useMemo(() => ({
+    leads: filtered,
+    columns: COLUMNS,
+    handleUpdate,
+    activePicker,
+    setActivePicker,
+    pickerRef,
+    onDoubleClick: setSelectedLeadId,
+    clickedRowId,
+    onClick: setClickedRowId
+  }), [filtered, handleUpdate, activePicker, setActivePicker, clickedRowId]);
+
   return (
-    <div className="flex flex-col gap-6 select-none animate-in fade-in duration-700">
+    <div className="flex flex-col gap-6 w-full h-full animate-in fade-in duration-700">
 
       {/* ── Top bar ── */}
       <div className="flex items-center justify-between gap-4 flex-wrap px-1">
@@ -801,31 +864,28 @@ const MondayTable = React.memo(({ activeTab, user }) => {
         </div>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Table Container (Unified Scroll) ── */}
       <div
-        className="rounded-[2rem] border border-navy/5 overflow-hidden shadow-2xl shadow-navy/5 bg-white"
+        className="rounded-[2rem] border border-navy/5 shadow-2xl bg-white overflow-x-auto custom-scrollbar"
+        style={{ height: 'calc(100vh - 180px)' }}
       >
-        <div className="overflow-x-auto custom-scrollbar">
-          <div style={{ minWidth: tableMinWidth + 'px' }}>
+        <div style={{ width: tableTotalWidth }}>
+          {/* Header Row (Sticky) */}
+          <div className="sticky top-0 z-[60] flex items-center bg-[#f8f9ff] border-b border-navy/5 shadow-sm">
+            <div className="w-14 flex-shrink-0 px-5 py-4 text-[10px] font-black text-navy/20 uppercase tracking-widest text-center italic border-r border-navy/5">#</div>
+            {COLUMNS.map(col => (
+              <div
+                key={col.key}
+                style={{ width: col.width, minWidth: col.width }}
+                className="flex-shrink-0 px-6 py-4 text-[11px] font-black text-navy/60 uppercase tracking-[0.15em] border-l border-navy/[0.03]"
+              >
+                {col.label}
+              </div>
+            ))}
+          </div>
 
-            {/* Header row */}
-            <div
-              className="flex items-center border-b border-navy/5"
-              style={{ background: '#FDFDFF' }}
-            >
-              <div className="w-14 flex-shrink-0 px-5 py-4 text-[10px] font-black text-navy/20 uppercase tracking-widest text-center italic">#</div>
-              {COLUMNS.map(col => (
-                <div
-                  key={col.key}
-                  style={{ width: col.width, minWidth: col.width }}
-                  className="flex-shrink-0 px-6 py-4 text-[11px] font-black text-navy/60 uppercase tracking-[0.15em] border-l border-navy/[0.03]"
-                >
-                  {col.label}
-                </div>
-              ))}
-            </div>
-
-            {/* Body */}
+          {/* Virtualized Body */}
+          <div className="relative">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-32 gap-4">
                 <div className="w-10 h-10 border-4 border-navy/10 border-t-primary rounded-full animate-spin" />
@@ -842,40 +902,22 @@ const MondayTable = React.memo(({ activeTab, user }) => {
                 </div>
               </div>
             ) : (
-              <div className="divide-y divide-navy/[0.03]">
-                {filtered.map((lead, i) => (
-                  <TableRow
-                    key={lead.id}
-                    lead={lead}
-                    index={i}
-                    columns={COLUMNS}
-                    handleUpdate={handleUpdate}
-                    activePicker={activePicker}
-                    setActivePicker={setActivePicker}
-                    pickerRef={pickerRef}
-                    onDoubleClick={setSelectedLeadId}
-                    isClicked={clickedRowId === lead.id}
-                    onClick={setClickedRowId}
-                  />
-                ))}
-
-                {/* Load More button */}
-                {hasMore && !search && (
-                  <div className="flex items-center justify-center py-10 bg-navy/[0.01]">
-                    <button
-                      onClick={loadMore}
-                      disabled={loadingMore}
-                      className="flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-white border border-navy/10 text-navy text-sm font-black hover:bg-navy hover:text-white transition-all shadow-lg active:scale-95 disabled:opacity-50"
-                    >
-                      {loadingMore ? (
-                        <><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</>
-                      ) : (
-                        <><ChevronDown className="w-4 h-4" /> Voir les 100 suivants ({(totalCount - leads.length).toLocaleString()} restants)</>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
+              <List
+                ref={listRef}
+                height={550}
+                width={tableTotalWidth}
+                itemCount={filtered.length}
+                itemSize={48}
+                itemData={itemData}
+                style={{ overflowY: 'auto', overflowX: 'hidden' }}
+                onItemsRendered={({ visibleStopIndex }) => {
+                  if (hasMore && !search && !loadingMore && visibleStopIndex >= filtered.length - 10) {
+                    loadMore();
+                  }
+                }}
+              >
+                {TableRow}
+              </List>
             )}
           </div>
         </div>
