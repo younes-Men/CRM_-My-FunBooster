@@ -4,6 +4,7 @@ import Header from './components/Header';
 import MondayTable from './components/MondayTable';
 import TeamList from './components/TeamList';
 import CalendarView from './components/CalendarView';
+import Pipeline from './components/Pipeline';
 import { getUser } from './lib/authConfig';
 
 function App() {
@@ -18,9 +19,19 @@ function App() {
     const savedEmail = localStorage.getItem('crm_user_email');
     if (savedEmail) {
       const userData = getUser(savedEmail);
-      if (userData) setUser({ ...userData, email: savedEmail });
+      if (userData) {
+        setUser({ ...userData, email: savedEmail });
+        // Set default tab for commercial users
+        if (userData.role === 'commercial') setActiveTab('pipeline');
+      }
     }
   }, []);
+
+  useEffect(() => {
+    if (user?.role === 'commercial' && activeTab === 'leads') {
+      setActiveTab('pipeline');
+    }
+  }, [user, activeTab]);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -112,11 +123,17 @@ function App() {
             <div className="mb-10 pt-2 flex items-center justify-between">
               <div>
                 <h1 className="text-4xl font-bold text-navy tracking-tight leading-tight font-outfit uppercase">
-                  {activeTab === 'users' ? 'Équipe' : 'Gestion des '}
-                  {activeTab !== 'users' && <span className="text-primary">Leads</span>}
+                  {activeTab === 'users' ? 'Équipe' : 
+                   activeTab === 'mes-rdv' ? 'Liste des ' : 'Gestion des '}
+                  {activeTab !== 'users' && (
+                    <span className="text-primary">
+                      {activeTab === 'mes-rdv' ? 'RDV' : 'Leads'}
+                    </span>
+                  )}
                 </h1>
                 <p className="text-[11px] font-bold text-navy/30 uppercase tracking-[0.25em] mt-1">
-                  {activeTab === 'users' ? 'Liste globale des collaborateurs CRM' : 'Base de données centralisée'}
+                  {activeTab === 'users' ? 'Liste globale des collaborateurs CRM' : 
+                   activeTab === 'mes-rdv' ? 'Vos rendez-vous qualifiés' : 'Base de données centralisée'}
                 </p>
               </div>
               
@@ -130,6 +147,8 @@ function App() {
               <TeamList />
             ) : activeTab === 'calendar' ? (
               <CalendarView user={user} />
+            ) : activeTab === 'pipeline' ? (
+              <Pipeline user={user} />
             ) : (
               <MondayTable activeTab={activeTab} user={user} />
             )}

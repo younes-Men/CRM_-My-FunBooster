@@ -21,16 +21,29 @@ import logo2 from '../assets/Logo2.jpeg';
 const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsExpanded, onLogout }) => {
   const isAdmin = user?.role === 'admin';
 
-  const menuItems = [
-    { id: 'leads', icon: Layers, label: 'Gestion Leads' },
-  ];
+  const menuItems = [];
 
-  if (!isAdmin) {
-    menuItems.push({ id: 'mes-rdv', icon: UserCheck, label: 'Mes RDV' });
+  if (isAdmin || user?.role === 'funebooster') {
+    menuItems.push({ id: 'leads', icon: Layers, label: 'Gestion Leads' });
+  }
+
+  if (user?.role === 'funebooster' || user?.role === 'commercial') {
+    menuItems.push({ 
+      id: 'mes-rdv', 
+      icon: UserCheck, 
+      label: user?.role === 'commercial' ? 'Liste des RDV' : 'Mes RDV' 
+    });
+  }
+
+  if (user?.role === 'funebooster') {
     menuItems.push({ id: 'mes-rappel', icon: ClipboardList, label: 'Mes Rappels' });
   }
 
   menuItems.push({ id: 'calendar', icon: Calendar, label: 'Calendrier' });
+
+  if (isAdmin || user?.role === 'commercial') {
+    menuItems.push({ id: 'pipeline', icon: LayoutGrid, label: 'Pipeline' });
+  }
 
   if (isAdmin) {
     menuItems.push({ id: 'users', icon: Users, label: 'Équipe' });

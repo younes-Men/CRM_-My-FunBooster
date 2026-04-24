@@ -1,0 +1,630 @@
+{
+  "16": {
+    "activite": "Transports routiers de marchandises et activités auxiliaires",
+    "sous_activite": "4939A - Transports routiers réguliers de voyageurs\r\n4939B - Autres transports routiers de voyageurs\r\n4941A - Transports routiers de fret interurbains\r\n4941B - Transports routiers de fret de proximité\r\n4941C - Location de camions avec chauffeur\r\n4942Z - Services de déménagement\r\n5210B - Entreposage et stockage non frigorifique\r\n5229A - Messagerie, fret express\r\n5320Z - Autres activités de poste et de courrier\r\n7490B - Activités spécialisées, scientifiques et techniques diverses\r\n7712Z - Location et location-bail de camions\r\n7739Z - Location et location-bail d'autres machines, équipements et biens matériels n.c.a.\r\n8010Z - Activités de sécurité privée\r\n8020Z - Activités liées aux systèmes de sécurité\r\n8690A - Ambulances"
+  },
+  "18": {
+    "activite": "Textile",
+    "sous_activite": "1310Z - Préparation de fibres textiles et filature\r\n1320Z - Tissage\r\n1330Z - Ennoblissement textile\r\n1391Z - Fabrication d'étoffes à mailles\r\n1392Z - Fabrication d'articles textiles, sauf habillement\r\n1393Z - Fabrication de tapis et moquettes\r\n1394Z - Fabrication de ficelles, cordes et filets\r\n1395Z - Fabrication de non-tissés, sauf habillement\r\n1396Z - Fabrication d'autres textiles techniques et industriels\r\n1399Z - Fabrication d'autres textiles n.c.a.\r\n1413Z - Couture\r\n1414Z - Fabrication de vêtements de dessous\r\n1419Z - Fabrication d'autres vêtements et accessoires\r\n1431Z - Fabrication d'articles chaussants à mailles\r\n1439Z - Fabrication d'autres articles à mailles\r\n2060Z - Fabrication de fibres artificielles ou synthétiques\r\n3299Z - Autres activités manufacturières n.c.a.\r\n3319Z - Réparation d'autres équipements\r\n4676Z - Commerce de gros (commerce interentreprises) d'autres produits intermédiaires\r\n7721Z - Location et location-bail d'articles de loisirs et de sport"
+  },
+  "43": {
+    "activite": "Import-Export et Commerce international",
+    "sous_activite": "4611Z - Intermédiaires du commerce en matières premières agricoles, animaux vivants, matières premières textiles et produits semi-finis\r\n4612A - Centrales d'achat de carburant\r\n4612B - Autres intermédiaires du commerce en combustibles, métaux, minéraux et produits chimiques\r\n4613Z - Intermédiaires du commerce en bois et matériaux de construction\r\n4614Z - Intermédiaires du commerce en machines, équipements industriels, navires et avions\r\n4615Z - Intermédiaires du commerce en meubles, articles de ménage et quincaillerie\r\n4616Z - Intermédiaires du commerce en textiles, habillement, fourrures, chaussures et articles en cuir\r\n4617A - Centrales d'achat alimentaires\r\n4617B - Autres intermédiaires du commerce en denrées, boissons et tabac\r\n4618Z - Intermédiaires spécialisés dans le commerce d'autres produits spécifiques\r\n4619A - Centrales d'achat non alimentaires\r\n4619B - Autres intermédiaires du commerce en produits divers\r\n4643Z - Commerce de gros (commerce interentreprises) d'appareils électroménagers\r\n4647Z - Commerce de gros (commerce interentreprises) de meubles, de tapis et d'appareils d'éclairage\r\n4649Z - Commerce de gros (commerce interentreprises) d'autres biens domestiques\r\n4651Z - Commerce de gros (commerce interentreprises) d'ordinateurs, d'équipements informatiques périphériques et de logiciels\r\n4652Z - Commerce de gros (commerce interentreprises) de composants et d'équipements électroniques et de télécommunication\r\n4661Z - Commerce de gros (commerce interentreprises) de matériel agricole\r\n4662Z - Commerce de gros (commerce interentreprises) de machines-outils\r\n4663Z - Commerce de gros (commerce interentreprises) de machines pour l'extraction, la construction et le génie civil\r\n4664Z - Commerce de gros (commerce interentreprises) de machines pour l'industrie textile et l'habillement\r\n4665Z - Commerce de gros (commerce interentreprises) de mobilier de bureau\r\n4666Z - Commerce de gros (commerce interentreprises) d'autres machines et équipements de bureau\r\n4669A - Commerce de gros (commerce interentreprises) de matériel électrique\r\n4669B - Commerce de gros (commerce interentreprises) de fournitures et équipements industriels divers\r\n4669C - Commerce de gros (commerce interentreprises) de fournitures et équipements divers pour le commerce et les services\r\n4672Z - Commerce de gros (commerce interentreprises) de minerais et métaux\r\n4675Z - Commerce de gros (commerce interentreprises) de produits chimiques"
+  },
+  "44": {
+    "activite": "Chimie",
+    "sous_activite": "0891Z - Extraction des minéraux chimiques et d'engrais minéraux\r\n1011Z - Transformation et conservation de la viande de boucherie\r\n1041A/1041B - Fabrication d'huiles et graisses brutes\r\n1042Z - Fabrication de margarine et graisses comestibles similaires\r\n1062Z - Fabrication de produits amylacés\r\n1085Z - Fabrication de plats préparés\r\n1101Z - Production de boissons alcooliques distillées\r\n1396Z - Fabrication d'autres textiles techniques et industriels\r\n1722Z - Fabrication d'articles en papier à usage sanitaire ou domestique\r\n1910Z - Cokéfaction\r\n2011Z - Fabrication de gaz industriels\r\n2012Z - Fabrication de colorants et de pigments\r\n2013A - Enrichissement et retraitement de matières nucléaires\r\n2013B - Fabrication d'autres produits chimiques inorganiques de base n.c.a.\r\n2014Z - Fabrication d'autres produits chimiques organiques de base\r\n2015Z - Fabrication de produits azotés et d'engrais\r\n2016Z - Fabrication de matières plastiques de base\r\n2017Z - Fabrication de caoutchouc synthétique\r\n2020Z - Fabrication de pesticides et d'autres produits agrochimiques\r\n2030Z - Fabrication de peintures, vernis, encres et mastics\r\n2041Z - Fabrication de savons, détergents et produits d'entretien\r\n2042Z - Fabrication de parfums et de produits pour la toilette\r\n2051Z - Fabrication de produits explosifs\r\n2052Z - Fabrication de colles\r\n2053Z - Fabrication d'huiles essentielles\r\n2059Z - Fabrication d'autres produits chimiques n.c.a.\r\n2120Z - Fabrication de préparations pharmaceutiques\r\n2219Z - Fabrication d'autres articles en caoutchouc\r\n2223Z - Fabrication d'éléments en matières plastiques pour la construction\r\n2391Z - Fabrication de produits abrasifs\r\n2399Z - Fabrication d'autres produits minéraux non métalliques n.c.a.\r\n2442Z - Métallurgie de l'aluminium\r\n2445Z - Métallurgie des autres métaux non ferreux\r\n2446Z - Élaboration et transformation de matières nucléaires\r\n3320D - Installation d'équipements électriques, de matériels électroniques et optiques ou d'autres matériels\r\n3811Z - Collecte des déchets non dangereux\r\n3831Z - Démantèlement d'épaves\r\n3832Z - Récupération de déchets triés\r\n3900Z - Dépollution et autres services de gestion des déchets\r\n4645Z - Commerce de gros (commerce interentreprises) de parfumerie et de produits de beauté\r\n4671Z - Commerce de gros (commerce interentreprises) de combustibles et de produits annexes\r\n4675Z - Commerce de gros (commerce interentreprises) de produits chimiques\r\n4676Z - Commerce de gros (commerce interentreprises) d'autres produits intermédiaires\r\n4950Z - Transports par conduites\r\n6420Z - Activités des sociétés holding\r\n7120B - Analyses, essais et inspections techniques\r\n7211Z - Recherche-développement en biotechnologie\r\n7219Z - Recherche-développement en autres sciences physiques et naturelles\r\n7220Z - Recherche-développement en sciences humaines et sociales\r\n7420Z - Photographe\r\n8129B - Autres activités de nettoyage n.c.a."
+  },
+  "45": {
+    "activite": "Caoutchouc",
+    "sous_activite": "4677Z - Commerce de gros (commerce interentreprises) de déchets et débris"
+  },
+  "86": {
+    "activite": "Publicité",
+    "sous_activite": "7311Z - Activités des agences de publicité\r\n7312Z - Régie publicitaire de médias"
+  },
+  "135": {
+    "activite": "Carrières et matériaux",
+    "sous_activite": "0811Z - Extraction de pierres ornementales et de construction, de calcaire industriel, de gypse, de craie et d'ardoise\r\n0812Z - Exploitation de gravières et sablières, extraction d'argiles et de kaolin\r\n0891Z - Extraction des minéraux chimiques et d'engrais minéraux\r\n0899Z - Autres activités extractives n.c.a.\r\n0990Z - Activités de soutien aux autres industries extractives\r\n2352Z - Fabrication de chaux et plâtre\r\n2361Z - Fabrication d'éléments en béton pour la construction\r\n2362Z - Fabrication d'éléments en plâtre pour la construction\r\n2365Z - Fabrication d'ouvrages en fibre-ciment\r\n2369Z - Fabrication d'autres ouvrages en béton, en ciment ou en plâtre\r\n2370Z - Taille, façonnage et finissage de pierres\r\n2391Z - Fabrication de produits abrasifs\r\n2399Z - Fabrication d'autres produits minéraux non métalliques n.c.a.\r\n3319Z - Réparation d'autres équipements\r\n6420Z - Activités des sociétés holding\r\n7010Z - Activités des sièges sociaux"
+  },
+  "158": {
+    "activite": "Travail mécanique du Bois",
+    "sous_activite": "1610A - Sciage et rabotage du bois, hors imprégnation\r\n1610B - Imprégnation du bois\r\n1622Z - Fabrication de parquets assemblés\r\n1623Z - Fabrication de charpentes et d'autres menuiseries\r\n1624Z - Fabrication d'emballages en bois\r\n1629Z - Fabrication d'objets divers en bois ; fabrication d'objets en liège, vannerie et sparterie\r\n3230Z - Fabrication d'articles de sport\r\n3291Z - Fabrication d'articles de brosserie"
+  },
+  "176": {
+    "activite": "Industrie pharmaceutique",
+    "sous_activite": "2110Z - Fabrication de produits pharmaceutiques de base \r\n2120Z - Fabrication de préparations pharmaceutiques \r\n4618Z - Intermédiaires spécialisés dans le commerce d'autres produits spécifiques \r\n4646Z - Commerce de gros (commerce interentreprises) de produits pharmaceutiques \r\n6420Z - Activités des sociétés holding \r\n7010Z - Activités des sièges sociaux \r\n7120B - Analyses, essais et inspections techniques \r\n7211Z - Recherche-développement en biotechnologie \r\n7219Z - Recherche-développement en autres sciences physiques et naturelles"
+  },
+  "184": {
+    "activite": "Imprimerie",
+    "sous_activite": "1812Z - Autre imprimerie (labeur)\r\n1813Z - Activités de pré-presse\r\n1814Z - Reliure et activités connexes\r\n5819Z - Autres activités d'édition"
+  },
+  "240": {
+    "activite": "Greffes des tribunaux de commerce",
+    "sous_activite": ""
+  },
+  "292": {
+    "activite": "Plasturgie et composites",
+    "sous_activite": "2221Z - Fabrication de plaques, feuilles, tubes et profilés en matières plastiques\r\n2222Z - Fabrication d'emballages en matières plastiques\r\n2223Z - Fabrication d'éléments en matières plastiques pour la construction\r\n2229A - Fabrication de pièces techniques à base de matières plastiques\r\n2229B - Fabrication de produits de consommation courante en matières plastiques\r\n2640Z - Fabrication de produits électroniques grand public\r\n2823Z - Fabrication de machines et d'équipements de bureau (à l'exception des ordinateurs et équipements périphériques)\r\n2899B - Fabrication d'autres machines spécialisées\r\n2932Z - Fabrication d'autres équipements automobiles\r\n3011Z - Construction de navires et de structures flottantes\r\n3020Z - Construction de locomotives et d'autre matériel ferroviaire roulant\r\n3030Z - Construction aéronautique et spatiale\r\n3101Z - Fabrication de meubles de bureau et de magasin\r\n3102Z - Fabrication de meubles de cuisine\r\n3103Z - Fabrication de matelas\r\n3109A - Fabrication de sièges d'ameublement d'intérieur\r\n3109B - Fabrication d'autres meubles et industries connexes de l'ameublement\r\n3230Z - Fabrication d'articles de sport\r\n3240Z - Fabrication de jeux et jouets\r\n3299Z - Autres activités manufacturières n.c.a.\r\n3319Z - Réparation d'autres équipements\r\n4332A - Menuiserie bois et PVC\r\n9524Z - Réparation de meubles et d'équipements du foyer\r\n9529Z - Réparation d'autres biens personnels et domestiques"
+  },
+  "303": {
+    "activite": "Couture parisienne",
+    "sous_activite": "413Z - Couture\r\n4779Z - Commerce de détail de biens d'occasion en magasin\r\n4791A - Vente à distance sur catalogue général\r\n4791B - Vente à distance sur catalogue spécialisé\r\n7410Z - Activités spécialisées de design"
+  },
+  "454": {
+    "activite": "Remontées mécaniques et domaines skiables",
+    "sous_activite": "4931Z - Transports urbains et suburbains de voyageurs\r\n4939C - Téléphériques et remontées mécaniques"
+  },
+  "468": {
+    "activite": "Commerce succursaliste de la chaussure",
+    "sous_activite": "4772A - Commerce de détail de la chaussure"
+  },
+  "478": {
+    "activite": "SOCIÉTÉS FINANCIÈRES",
+    "sous_activite": "6420Z - Activités des sociétés holding\r\n6430Z - Fonds de placement et entités financières similaires\r\n6491Z - Crédit-bail \r\n6492Z - Autre distribution de crédit\r\n6499Z - Autres activités des services financiers, hors assurance et caisses de retraite, n.c.a.\r\n6612Z - Courtage de valeurs mobilières et de marchandises\r\n6630Z - Gestion de fonds"
+  },
+  "500": {
+    "activite": "Entreprises de distribution, importation, exportation en chaussures, jouets, textiles et mercerie",
+    "sous_activite": "4641Z - Commerce de gros (commerce interentreprises) de textiles\r\n4642Z - Commerce de gros (commerce interentreprises) d'habillement et de chaussures"
+  },
+  "538": {
+    "activite": "Manutention ferroviaire et travaux connexes",
+    "sous_activite": "3317Z - Réparation et maintenance d'autres équipements de transport"
+  },
+  "567": {
+    "activite": "Bijouterie, joaillerie, orfèvrerie, horlogerie",
+    "sous_activite": "1629Z - Fabrication d'objets divers en bois ; fabrication d'objets en liège, vannerie et sparterie\r\n2593Z - Fabrication d'articles en fils métalliques, de chaînes et de ressorts\r\n2899B - Fabrication d'autres machines spécialisées\r\n3211Z - Frappe de monnaie\r\n3212Z - Fabrication d'articles de joaillerie et bijouterie\r\n3213Z - Fabrication d'articles de bijouterie fantaisie et articles similaires\r\n3299Z - Autres activités manufacturières n.c.a.\r\n3311Z - Réparation d'ouvrages en métaux\r\n3320A - Installation de structures métalliques, chaudronnées et de tuyauterie\r\n4647Z - Commerce de gros (commerce interentreprises) de meubles, de tapis et d'appareils d'éclairage\r\n4648Z - Commerce de gros (commerce interentreprises) d'articles d'horlogerie et de bijouterie\r\n4673B - Commerce de gros (commerce interentreprises) d'appareils sanitaires et de produits de décoration\r\n4677Z - Commerce de gros (commerce interentreprises) de déchets et débris\r\n9525Z - Réparation d'articles d'horlogerie et de bijouterie"
+  },
+  "573": {
+    "activite": "Commerces de gros",
+    "sous_activite": "4531Z - Commerce de gros d'équipements automobiles\r\n4540Z - Commerce et réparation de motocycles\r\n4622Z - Commerce de gros (commerce interentreprises) de fleurs et plantes\r\n4631Z - Commerce de gros (commerce interentreprises) de fruits et légumes\r\n4632A - Commerce de gros (commerce interentreprises) de viandes de boucherie\r\n4632C - Commerce de gros (commerce interentreprises) de volailles et gibier\r\n4633Z - Commerce de gros (commerce interentreprises) de produits laitiers, œufs, huiles et matières grasses comestibles\r\n4639A - Commerce de gros (commerce interentreprises) de produits surgelés\r\n4643Z - Commerce de gros (commerce interentreprises) d'appareils électroménagers\r\n4644Z - Commerce de gros (commerce interentreprises) de vaisselle, verrerie et produits d'entretien\r\n4645Z - Commerce de gros (commerce interentreprises) de parfumerie et de produits de beauté\r\n4647Z - Commerce de gros (commerce interentreprises) de meubles, de tapis et d'appareils d'éclairage\r\n4648Z - Commerce de gros (commerce interentreprises) d'articles d'horlogerie et de bijouterie\r\n4649Z - Commerce de gros (commerce interentreprises) d'autres biens domestiques\r\n4651Z - Commerce de gros (commerce interentreprises) d'ordinateurs, d'équipements informatiques périphériques et de logiciels\r\n4652Z - Commerce de gros (commerce interentreprises) de composants et d'équipements électroniques et de télécommunication\r\n4665Z - Commerce de gros (commerce interentreprises) de mobilier de bureau\r\n4666Z - Commerce de gros (commerce interentreprises) d'autres machines et équipements de bureau\r\n4669A - Commerce de gros (commerce interentreprises) de matériel électrique\r\n4669B - Commerce de gros (commerce interentreprises) de fournitures et équipements industriels divers\r\n4669C - Commerce de gros (commerce interentreprises) de fournitures et équipements divers pour le commerce et les services\r\n4673A - Commerce de gros (commerce interentreprises) de bois et de matériaux de construction\r\n4673B - Commerce de gros (commerce interentreprises) d'appareils sanitaires et de produits de décoration\r\n4674B - Commerce de gros (commerce interentreprises) de fournitures pour la plomberie et le chauffage\r\n4675Z - Commerce de gros (commerce interentreprises) de produits chimiques\r\n4676Z - Commerce de gros (commerce interentreprises) d'autres produits intermédiaires\r\n4690Z - Commerce de gros (commerce interentreprises) non spécialisé\r\n4711A - Commerce de détail de produits surgelés\r\n4799B - Vente par automates et autres commerces de détail hors magasin, éventaires ou marchés n.c.a."
+  },
+  "614": {
+    "activite": "Sérigraphie et activité connexes",
+    "sous_activite": "1812Z - Autre imprimerie (labeur)\r\n1813Z - Activités de pré-presse\r\n5819Z - Autres activités d'édition"
+  },
+  "637": {
+    "activite": "Recyclage",
+    "sous_activite": "3831Z - Démantèlement d'épaves\r\n3832Z - Récupération de déchets triés\r\n4677Z - Commerce de gros (commerce interentreprises) de déchets et débris"
+  },
+  "669": {
+    "activite": "Fabrication mécanique du verre",
+    "sous_activite": "2311Z - Fabrication de verre plat\r\n2312Z - Façonnage et transformation du verre plat\r\n2313Z - Fabrication de verre creux\r\n2314Z - Fabrication de fibres de verre\r\n2319Z - Fabrication et façonnage d'autres articles en verre, y compris verre technique\r\n3319Z - Réparation d'autres équipements"
+  },
+  "675": {
+    "activite": "Commerce succursaliste de l'habillement",
+    "sous_activite": "4751Z - Commerce de détail de textiles en magasin spécialisé\r\n4753Z - Commerce de détail de tapis, moquettes et revêtements de murs et de sols en magasin spécialisé\r\n4759B - Commerce de détail d'autres équipements du foyer\r\n4771Z - Commerce de détail d'habillement en magasin spécialisé"
+  },
+  "733": {
+    "activite": "Détaillants en chaussures",
+    "sous_activite": "4772A - Commerce de détail de la chaussure"
+  },
+  "759": {
+    "activite": "Services funéraires",
+    "sous_activite": "9603Z - Services funéraires"
+  },
+  "787": {
+    "activite": "EXPERTS-COMPTABLES ET COMMISSAIRES AUX COMPTES",
+    "sous_activite": "6920Z - Activités comptables"
+  },
+  "843": {
+    "activite": "Boulangerie",
+    "sous_activite": "1071C - Boulangerie et boulangerie-pâtisserie"
+  },
+  "915": {
+    "activite": "Sociétés d’expertises et d’évaluations",
+    "sous_activite": "4779Z - Commerce de détail de biens d'occasion en magasin\r\n4791A - Vente à distance sur catalogue général\r\n4791B - Vente à distance sur catalogue spécialisé\r\n6399Z - Autres services d'information n.c.a.\r\n6621Z - Évaluation des risques et dommages\r\n6622Z - Activités des agents et courtiers d'assurances\r\n6629Z - Autres activités auxiliaires d'assurance et de caisses de retraite\r\n7112B - Bureau d'étude\r\n7120B - Analyses, essais et inspections techniques\r\n7410Z - Activités spécialisées de design\r\n7490B - Activités spécialisées, scientifiques et techniques diverses\r\n8291Z - Activités des agences de recouvrement de factures et des sociétés d'information financière sur la clientèle\r\n8299Z - Autres activités de soutien aux entreprises n.c.a."
+  },
+  "953": {
+    "activite": "Charcuterie de détail",
+    "sous_activite": "1013B - Charcuterie\r\n4722Z - Commerce de détail de viandes et de produits à base de viande en magasin spécialisé\r\n4781Z - Commerce de détail alimentaire sur éventaires et marchés\r\n5621Z - Services des traiteurs"
+  },
+  "959": {
+    "activite": "Laboratoires de biologie médicale extrahospitaliers",
+    "sous_activite": "8690B - Laboratoires d'analyses médicales"
+  },
+  "992": {
+    "activite": "Boucherie",
+    "sous_activite": "1013B - Charcuterie\r\n4722Z - Commerce de détail de viandes et de produits à base de viande en magasin spécialisé\r\n4781Z - Commerce de détail alimentaire sur éventaires et marchés\r\n5621Z - Services des traiteurs"
+  },
+  "993": {
+    "activite": "Prothésistes dentaires et personnels des laboratoires de prothèse dentaire",
+    "sous_activite": "2660Z - Fabrication d'équipements d'irradiation médicale, d'équipements électromédicaux et électrothérapeutiques\r\n3250A - Fabrication de matériel médico-chirurgical et dentaire\r\n3314Z - Réparation d'équipements électriques"
+  },
+  "1000": {
+    "activite": "Personnel salarié des cabinets d’avocats",
+    "sous_activite": "6910Z - Activités juridiques"
+  },
+  "1043": {
+    "activite": "Gardiens, concierges et employés d’immeubles",
+    "sous_activite": "8110Z - Activités combinées de soutien lié aux bâtiments"
+  },
+  "1090": {
+    "activite": "Services de l'automobile (hors cible pour SOMED ET CA CONSEILS)",
+    "sous_activite": "4511Z - Commerce de voitures et de véhicules automobiles légers\r\n4519Z - Commerce d'autres véhicules automobiles\r\n4520A/4520B - Entretien et réparation de véhicules automobiles légers\r\n4532Z - Commerce de détail d'équipements automobiles\r\n4540Z - Commerce et réparation de motocycles\r\n4677Z - Commerce de gros (commerce interentreprises) de déchets et débris\r\n4730Z - Commerce de détail de carburants en magasin spécialisé\r\n5221Z - Services auxiliaires des transports terrestres\r\n7120A - Contrôle technique automobile\r\n7711A/ 7711B - Location de courte durée de voitures et de véhicules automobiles légers\r\n7739Z - Location et location-bail d'autres machines, équipements et biens matériels n.c.a.\r\n8553Z - Enseignement de la conduite\r\n9529Z - Réparation d'autres biens personnels et domestiques"
+  },
+  "1147": {
+    "activite": "Cabinets médicaux",
+    "sous_activite": "8621Z - Activité des médecins généralistes\r\n8622A - Activités de radiodiagnostic et de radiothérapie\r\n8622B - Activités chirurgicales\r\n8622C - Autres activités des médecins spécialistes"
+  },
+  "1170": {
+    "activite": "Tuiles et briques",
+    "sous_activite": "4791A - Vente à distance sur catalogue général"
+  },
+  "1182": {
+    "activite": "Ports de plaisance",
+    "sous_activite": "7990Z - Autres services de réservation et activités connexes\r\n8551Z - Enseignement de disciplines sportives et d'activités de loisirs\r\n9319Z - Autres activités liées au sport\r\n9329Z - Autres activités récréatives et de loisirs"
+  },
+  "1266": {
+    "activite": "Restauration collective",
+    "sous_activite": "5629A - Restauration collective sous contrat\r\n5629B - Autres services de restauration n.c.a."
+  },
+  "1267": {
+    "activite": "Pâtisserie",
+    "sous_activite": "1071D - Pâtisserie"
+  },
+  "1307": {
+    "activite": "Exploitation cinématographique",
+    "sous_activite": "5914Z - Projection de films cinématographiques"
+  },
+  "1351": {
+    "activite": "Prévention-Sécurité",
+    "sous_activite": "7490B - Activités spécialisées, scientifiques et techniques diverses\r\n8010Z - Activités de sécurité privée\r\n8020Z - Activités liées aux systèmes de sécurité"
+  },
+  "1388": {
+    "activite": "Pétrole",
+    "sous_activite": "1920Z - Raffinage du pétrole\r\n4671Z - Commerce de gros (commerce interentreprises) de combustibles et de produits annexes\r\n4730Z - Commerce de détail de carburants en magasin spécialisé\r\n4950Z - Transports par conduites\r\n5210B - Entreposage et stockage non frigorifique\r\n5223Z - Services auxiliaires des transports aériens"
+  },
+  "1404": {
+    "activite": "Maintenance, distribution et location de matériels agricoles, de travaux publics, de bâtiment, de manutention, de motoculture de plaisance et activités connexes (SDLM)",
+    "sous_activite": "0162Z - Activités de soutien à la production animale\r\n2830Z - Fabrication de machines agricoles et forestières\r\n3312Z - Réparation de machines et équipements mécaniques\r\n4399E - Location avec opérateur de matériel de construction\r\n4661Z - Commerce de gros (commerce interentreprises) de matériel agricole\r\n4662Z - Commerce de gros (commerce interentreprises) de machines-outils\r\n4663Z - Commerce de gros (commerce interentreprises) de machines pour l'extraction, la construction et le génie civil\r\n4669B - Commerce de gros (commerce interentreprises) de fournitures et équipements industriels divers\r\n7729Z - Location et location-bail d'autres biens personnels et domestiques\r\n7731Z - Location et location-bail de machines et équipements agricoles\r\n7732Z - Location et location-bail de machines et équipements pour la construction\r\n7739Z - Location et location-bail d'autres machines, équipements et biens matériels n.c.a.\r\n9522Z - Réparation d'appareils électroménagers et d'équipements pour la maison et le jardin"
+  },
+  "1408": {
+    "activite": "Négoce et distribution de combustibles solides, liquides, gazeux et produits pétroliers",
+    "sous_activite": "3522Z - Distribution de combustibles gazeux par conduites\r\n4671Z - Commerce de gros (commerce interentreprises) de combustibles et de produits annexes\r\n4730Z - Commerce de détail de carburants en magasin spécialisé\r\n4778B - Commerces de détail de charbons et combustibles"
+  },
+  "1411": {
+    "activite": "Fabrication de l'ameublement",
+    "sous_activite": "1392Z - Fabrication d'articles textiles, sauf habillement\r\n1629Z - Fabrication d'objets divers en bois ; fabrication d'objets en liège, vannerie et sparterie\r\n2640Z - Fabrication de produits électroniques grand public\r\n3101Z - Fabrication de meubles de bureau et de magasin\r\n3102Z - Fabrication de meubles de cuisine\r\n3103Z - Fabrication de matelas\r\n3109A - Fabrication de sièges d'ameublement d'intérieur\r\n3109B - Fabrication d'autres meubles et industries connexes de l'ameublement\r\n3240Z - Fabrication de jeux et jouets\r\n3299Z - Autres activités manufacturières n.c.a.\r\n3319Z - Réparation d'autres équipements\r\n9003A - Création artistique relevant des arts plastiques"
+  },
+  "1412": {
+    "activite": "Entreprises du froid, des cuisines professionnelles et du conditionnement de l’air",
+    "sous_activite": "2825Z - Fabrication d'équipements aérauliques et frigorifiques industriels\r\n3312Z - Réparation de machines et équipements mécaniques\r\n3320B - Installation de machines et équipements mécaniques"
+  },
+  "1423": {
+    "activite": "Industrie et services nautiques",
+    "sous_activite": "5010Z - Transports maritimes et côtiers de passagers"
+  },
+  "1424": {
+    "activite": "Transports urbains",
+    "sous_activite": "4931Z - Transports urbains et suburbains de voyageurs"
+  },
+  "1431": {
+    "activite": "Optique-lunetterie de détail",
+    "sous_activite": "4778A - Commerces de détail d'optique"
+  },
+  "1483": {
+    "activite": "Commerce de détail de l’habillement et des articles textiles",
+    "sous_activite": "4751Z - Commerce de détail de textiles en magasin spécialisé\r\n4753Z - Commerce de détail de tapis, moquettes et revêtements de murs et de sols en magasin spécialisé\r\n4759B - Commerce de détail d'autres équipements du foyer\r\n4771Z - Commerce de détail d'habillement en magasin spécialisé"
+  },
+  "1486": {
+    "activite": "BUREAUX D'ÉTUDES TECHNIQUES INGÉNIEURS ET CONSEILS",
+    "sous_activite": "https://www.opco-atlas.fr/criteres-financement.html?branche=214"
+  },
+  "1487": {
+    "activite": "Commerce de détail de l'horlogerie-bijouterie",
+    "sous_activite": "2652Z - Horlogerie\r\n4777Z - Commerce de détail d'articles d'horlogerie et de bijouterie en magasin spécialisé\r\n4778C - Autres commerces de détail spécialisés divers"
+  },
+  "1495": {
+    "activite": "Intersecteur Papier Carton",
+    "sous_activite": "1729Z - Fabrication d'autres articles en papier ou en carton"
+  },
+  "1499": {
+    "activite": "Miroiterie, transformation et négoce du verre",
+    "sous_activite": "2312Z - Façonnage et transformation du verre plat\r\n2319Z - Fabrication et façonnage d'autres articles en verre, y compris verre technique\r\n3319Z - Réparation d'autres équipements\r\n3320D - Installation d'équipements électriques, de matériels électroniques et optiques ou d'autres matériels\r\n4753Z - Commerce de détail de tapis, moquettes et revêtements de murs et de sols en magasin spécialisé\r\n4759B - Commerce de détail d'autres équipements du foyer"
+  },
+  "1501": {
+    "activite": "Restauration rapide",
+    "sous_activite": "1071B - Cuisson de produits de boulangerie\r\n5610C - Restauration de type rapide\r\n5621Z - Services des traiteurs"
+  },
+  "1504": {
+    "activite": "Poissonnerie",
+    "sous_activite": "4638A - Commerce de gros (commerce interentreprises) de poissons, crustacés et mollusques\r\n4723Z - Commerce de détail de poissons, crustacés et mollusques en magasin spécialisé\r\n4781Z - Commerce de détail alimentaire sur éventaires et marchés"
+  },
+  "1505": {
+    "activite": "Commerce de détail alimentaire non spécialisé",
+    "sous_activite": "4711B - Commerce d'alimentation générale\r\n4711C - Supérettes\r\n4721Z - Commerce de détail de fruits et légumes en magasin spécialisé\r\n4724Z - Commerce de détail de pain, pâtisserie et confiserie en magasin spécialisé\r\n4725Z - Commerce de détail de boissons en magasin spécialisé\r\n4729Z - Autres commerces de détail alimentaires en magasin spécialisé\r\n4781Z - Commerce de détail alimentaire sur éventaires et marchés"
+  },
+  "1512": {
+    "activite": "Promotion immobilière",
+    "sous_activite": "4110A - Promotion immobilière de logements\r\n4110B - Promotion immobilière de bureaux\r\n4110C - Promotion immobilière d'autres bâtiments\r\n4110D - Supports juridiques de programmes\r\n4120A - Construction de maisons individuelles\r\n4120B - Construction d'autres bâtiments\r\n4299Z - Construction d'autres ouvrages de génie civil n.c.a.\r\n4399C - Maçonnerie"
+  },
+  "1516": {
+    "activite": "Organisme de formation",
+    "sous_activite": "8532Z - Enseignement secondaire technique ou professionnel\r\n8541Z - Enseignement post-secondaire non supérieur\r\n8542Z - Enseignement supérieur\r\n8551Z - Enseignement de disciplines sportives et d'activités de loisirs\r\n8552Z - Enseignement culturel\r\n8559A - Formation continue d'adultes\r\n8559B - Autres enseignements\\\r\n9499Z - Autres organisations fonctionnant par adhésion volontaire"
+  },
+  "1517": {
+    "activite": "Commerces de détail non alimentaires",
+    "sous_activite": "4719B - Autres commerces de détail en magasin non spécialisé\r\n4741Z - Commerce de détail d'ordinateurs, d'unités périphériques et de logiciels en magasin spécialisé\r\n4742Z - Commerce de détail de matériels de télécommunication en magasin spécialisé\r\n4743Z - Commerce de détail de matériels audio et vidéo en magasin spécialisé\r\n4752A/4752B - Commerce de détail de quincaillerie, peintures et verres en petites surfaces (moins de 400 m²)\r\n4753Z - Commerce de détail de tapis, moquettes et revêtements de murs et de sols en magasin spécialisé\r\n4754Z - Commerce de détail d'appareils électroménagers en magasin spécialisé\r\n4759A - Commerce de détail de meubles\r\n4759B - Commerce de détail d'autres équipements du foyer\r\n4763Z - Commerce de détail d'enregistrements musicaux et vidéo en magasin spécialisé\r\n4765Z - Commerce de détail de jeux et jouets en magasin spécialisé\r\n4772B - Commerce de détail de maroquinerie et d'articles de voyage\r\n4776Z - Commerce de détail de fleurs, plantes, graines, engrais, animaux de compagnie et aliments pour ces animaux en magasin spécialisé\r\n4778C - Autres commerces de détail spécialisés divers\r\n4779Z - Commerce de détail de biens d'occasion en magasin\r\n4789Z - Autres commerces de détail sur éventaires et marchés"
+  },
+  "1527": {
+    "activite": "Immobilier",
+    "sous_activite": "5520Z - Hébergement touristique et autre hébergement de courte durée\r\n6420Z - Activités des sociétés holding\r\n6810Z - Marchands de biens immobiliers\r\n6820A - Location de logements\r\n6820B - Location de terrains et d'autres biens immobiliers\r\n6831Z - Agences immobilières\r\n6832A - Administration d'immeubles et autres biens immobiliers\r\n6832B - Supports juridiques de gestion de patrimoine immobilier\r\n7010Z - Activités des sièges sociaux\r\n8110Z - Activités combinées de soutien lié aux bâtiments"
+  },
+  "1536": {
+    "activite": "Distributeurs conseils hors domicile - grossistes en boissons",
+    "sous_activite": "1101Z - Production de boissons alcooliques distillées\r\n1102A - Fabrication de vins effervescents\r\n1102B - Vinification\r\n4634Z - Commerce de gros (commerce interentreprises) de boissons"
+  },
+  "1539": {
+    "activite": "Entreprises du bureau et du numérique (commerces et services)",
+    "sous_activite": "4651Z - Commerce de gros (commerce interentreprises) d'ordinateurs, d'équipements informatiques périphériques et de logiciels\r\n4665Z - Commerce de gros (commerce interentreprises) de mobilier de bureau\r\n4666Z - Commerce de gros (commerce interentreprises) d'autres machines et équipements de bureau\r\n4741Z - Commerce de détail d'ordinateurs, d'unités périphériques et de logiciels en magasin spécialisé\r\n4762Z - Commerce de détail de journaux et papeterie en magasin spécialisé\r\n4778C - Autres commerces de détail spécialisés divers"
+  },
+  "1555": {
+    "activite": "Fabrication et commerce des produits à usage pharmaceutique, parapharmaceutique et vétérinaire",
+    "sous_activite": "2110Z - Fabrication de produits pharmaceutiques de base\r\n2120Z - Fabrication de préparations pharmaceutiques\r\n3250A - Fabrication de matériel médico-chirurgical et dentaire\r\n4618Z - Intermédiaires spécialisés dans le commerce d'autres produits spécifiques\r\n4646Z - Commerce de gros (commerce interentreprises) de produits pharmaceutiques\r\n7120B - Analyses, essais et inspections techniques\r\n7211Z - Recherche-développement en biotechnologie\r\n7219Z - Recherche-développement en autres sciences physiques et naturelles\r\n7220Z - Recherche-développement en sciences humaines et sociales\r\n8292Z - Activités de conditionnement"
+  },
+  "1557": {
+    "activite": "Entreprises de la filière Sports-Loisirs",
+    "sous_activite": "4511Z - Commerce de voitures et de véhicules automobiles légers\r\n4519Z - Commerce d'autres véhicules automobiles\r\n4764Z - Commerce de détail d'articles de sport en magasin spécialisé\r\n4778C - Autres commerces de détail spécialisés divers"
+  },
+  "1558": {
+    "activite": "Industries céramiques",
+    "sous_activite": "0812Z - Exploitation de gravières et sablières, extraction d'argiles et de kaolin\r\n0899Z - Autres activités extractives n.c.a.\r\n0990Z - Activités de soutien aux autres industries extractives\r\n2320Z - Fabrication de produits réfractaires\r\n2331Z - Fabrication de carreaux en céramique\r\n2332Z - Fabrication de briques, tuiles et produits de construction, en terre cuite\r\n2341Z - Fabrication d'articles céramiques à usage domestique ou ornemental\r\n2342Z - Fabrication d'appareils sanitaires en céramique\r\n2343Z - Fabrication d'isolateurs et pièces isolantes en céramique\r\n2344Z - Fabrication d'autres produits céramiques à usage technique\r\n2349Z - Fabrication d'autres produits céramiques\r\n3319Z - Réparation d'autres équipements"
+  },
+  "1580": {
+    "activite": "Chaussure et articles chaussants",
+    "sous_activite": "1520Z - Fabrication de chaussures\r\n1629Z - Fabrication d'objets divers en bois ; fabrication d'objets en liège, vannerie et sparterie\r\n3230Z - Fabrication d'articles de sport\r\n3299Z - Autres activités manufacturières n.c.a"
+  },
+  "1589": {
+    "activite": "Mareyage",
+    "sous_activite": "1020Z - Transformation et conservation de poisson, de crustacés et de mollusques\r\n1085Z - Fabrication de plats préparés\r\n4638A - Commerce de gros (commerce interentreprises) de poissons, crustacés et mollusques"
+  },
+  "1605": {
+    "activite": "3D (désinfection, désinsectisation, dératisation)",
+    "sous_activite": "8129A - Désinfection, désinsectisation, dératisation"
+  },
+  "1606": {
+    "activite": "Bricolage",
+    "sous_activite": "4752B : Commerce de détail de quincaillerie, peintures et verres en grandes surfaces (400 m² et plus)"
+  },
+  "1607": {
+    "activite": "Jeux, jouets et puériculture",
+    "sous_activite": "1399Z - Fabrication d'autres textiles n.c.a.\r\n1629Z - Fabrication d'objets divers en bois ; fabrication d'objets en liège, vannerie et sparterie\r\n2640Z - Fabrication de produits électroniques grand public\r\n2899B - Fabrication d'autres machines spécialisées\r\n3230Z - Fabrication d'articles de sport\r\n3240Z - Fabrication de jeux et jouets\r\n3299Z - Autres activités manufacturières n.c.a.\r\n3319Z - Réparation d'autres équipements\r\n9529Z - Réparation d'autres biens personnels et domestiques"
+  },
+  "1611": {
+    "activite": "Entreprises de logistique de communication écrite directe",
+    "sous_activite": "4779Z - Commerce de détail de biens d'occasion en magasin\r\n4791A - Vente à distance sur catalogue général\r\n5320Z - Autres activités de poste et de courrier\r\n6203Z - Gestion d'installations informatiques\r\n6399Z - Autres services d'information n.c.a.\r\n7410Z - Activités spécialisées de design\r\n7740Z - Location-bail de propriété intellectuelle et de produits similaires, à l'exception des œuvres soumises à copyright\r\n8219Z - Photocopie, préparation de documents et autres activités spécialisées de soutien de bureau\r\n8299Z - Autres activités de soutien aux entreprises n.c.a."
+  },
+  "1619": {
+    "activite": "Cabinets dentaires",
+    "sous_activite": "8623Z - Dentiste"
+  },
+  "1621": {
+    "activite": "Répartition pharmaceutique",
+    "sous_activite": "4646Z - Commerce de gros (commerce interentreprises) de produits pharmaceutiques"
+  },
+  "1631": {
+    "activite": "Hôtellerie de Plein Air (HPA)",
+    "sous_activite": "5530Z - Terrains de camping et parcs pour caravanes ou véhicules de loisirs"
+  },
+  "1672": {
+    "activite": "SOCIÉTÉS D'ASSURANCES",
+    "sous_activite": "6511Z - Assurance vie\r\n6512Z - Autres assurances\r\n6520Z - Réassurance"
+  },
+  "1686": {
+    "activite": "Commerces et services de l'audiovisuel, de l'électronique et de l'équipement ménager",
+    "sous_activite": "4321A - Travaux d'installation électrique dans tous locaux\r\n4741Z - Commerce de détail d'ordinateurs, d'unités périphériques et de logiciels en magasin spécialisé\r\n4742Z - Commerce de détail de matériels de télécommunication en magasin spécialisé\r\n4743Z - Commerce de détail de matériels audio et vidéo en magasin spécialisé\r\n4754Z - Commerce de détail d'appareils électroménagers en magasin spécialisé\r\n4763Z - Commerce de détail d'enregistrements musicaux et vidéo en magasin spécialisé\r\n7722Z - Location de vidéocassettes et disques vidéo\r\n7729Z - Location et location-bail d'autres biens personnels et domestiques\r\n9511Z - Réparation d'ordinateurs et d'équipements périphériques\r\n9512Z - Réparation d'équipements de communication\r\n9521Z - Réparation de produits électroniques grand public\r\n9522Z - Réparation d'appareils électroménagers et d'équipements pour la maison et le jardin"
+  },
+  "1760": {
+    "activite": "Jardineries et graineteries",
+    "sous_activite": "4776Z - Commerce de détail de fleurs, plantes, graines, engrais, animaux de compagnie et aliments pour ces animaux en magasin spécialisé"
+  },
+  "1790": {
+    "activite": "Espaces de loisirs, d’attraction et culturels",
+    "sous_activite": "9102Z - Gestion des musées\r\n9103Z - Gestion des sites et monuments historiques et des attractions touristiques similaires\r\n9104Z - Gestion des jardins botaniques et zoologiques et des réserves naturelles\r\n9321Z - Activités des parcs d'attractions et parcs à thèmes\r\n9329Z - Autres activités récréatives et de loisirs"
+  },
+  "1801": {
+    "activite": "SOCIÉTÉS D'ASSISTANCE",
+    "sous_activite": "6512Z - Autres assurances"
+  },
+  "1821": {
+    "activite": "Cristal, verre et vitrail",
+    "sous_activite": "2313Z - Fabrication de verre creux\r\n2319Z - Fabrication et façonnage d'autres articles en verre, y compris verre technique\r\n3319Z - Réparation d'autres équipements\r\n3320D - Installation d'équipements électriques, de matériels électroniques et optiques ou d'autres matériels"
+  },
+  "1850": {
+    "activite": "Avocats salariés",
+    "sous_activite": "6910Z - Activités juridiques"
+  },
+  "1875": {
+    "activite": "Personnel salarié des cabinets et cliniques vétérinaires",
+    "sous_activite": "7500Z -- Vétérinaire"
+  },
+  "1880": {
+    "activite": "Négoce de l'ameublement",
+    "sous_activite": "4615Z - Intermédiaires du commerce en meubles, articles de ménage et quincaillerie\r\n4619A - Centrales d'achat non alimentaires \r\n4647Z - Commerce de gros (commerce interentreprises) de meubles, de tapis et d'appareils d'éclairage\r\n4647Z - Commerce de détail de tapis, moquettes et revêtements de murs et de sols en magasin spécialisé\r\n4759A - Commerce de détail de meubles\r\n4759B - Commerce de détail d'autres équipements du foyer\r\n5210B - Entreposage et stockage non frigorifique\r\n7729Z - Location et location-bail d'autres biens personnels et domestiques"
+  },
+  "1895": {
+    "activite": "Presse Quotidienne Nationale (PQN)",
+    "sous_activite": ""
+  },
+  "1909": {
+    "activite": "Organismes de tourisme",
+    "sous_activite": "7911Z - Agences de voyage\r\n7912Z - Activités des voyagistes\r\n7990Z - Autres services de réservation et activités connexes"
+  },
+  "1921": {
+    "activite": "Etudes d’huissiers de justice",
+    "sous_activite": "6910Z - Activités juridiques"
+  },
+  "1951": {
+    "activite": "Cabinets ou entreprises d’expertises en automobile",
+    "sous_activite": "6621Z - Évaluation des risques et dommages\r\n6622Z - Activités des agents et courtiers d'assurances\r\n6629Z - Autres activités auxiliaires d'assurance et de caisses de retraite\r\n7112B - Bureau d'étude\r\n7120B - Analyses, essais et inspections techniques\r\n7490B - Activités spécialisées, scientifiques et techniques diverses"
+  },
+  "1978": {
+    "activite": "Fleuristes, vente et services des animaux familiers",
+    "sous_activite": "4776Z - Commerce de détail de fleurs, plantes, graines, engrais, animaux de compagnie et aliments pour ces animaux en magasin spécialisé\r\n4778C - Autres commerces de détail spécialisés divers\r\n4789Z - Autres commerces de détail sur éventaires et marchés\r\n4791B - Vente à distance sur catalogue spécialisé\r\n9609Z - Autres services personnels n.c.a."
+  },
+  "1979": {
+    "activite": "Hôtels, cafés, restaurants",
+    "sous_activite": "5510Z - Hôtels et hébergement similaire\r\n5610A - Restauration traditionnelle\r\n5610B - Cafétérias et autres libres-services\r\n5621Z - Services des traiteurs\r\n5630Z - Débits de boissons - Bar\r\n9311Z - Gestion d'installations sportives"
+  },
+  "1982": {
+    "activite": "Négoce et prestations de services dans les domaines médico-techniques",
+    "sous_activite": "4774Z - Commerce de détail d'articles médicaux et orthopédiques en magasin spécialisé"
+  },
+  "1996": {
+    "activite": "Pharmacie d’officine",
+    "sous_activite": "4773Z - Pharmacie"
+  },
+  "2002": {
+    "activite": "Entretien et location textile",
+    "sous_activite": "9529Z - Réparation d'autres biens personnels et domestiques\r\n9601A - Blanchisserie-teinturerie de gros\r\n9601B - Blanchisserie-teinturerie de détail"
+  },
+  "2021": {
+    "activite": "Golf",
+    "sous_activite": "4778C - Autres commerces de détail spécialisés divers\r\n7721Z - Location et location-bail d'articles de loisirs et de sport\r\n7990Z - Autres services de réservation et activités connexes\r\n8551Z - Enseignement de disciplines sportives et d'activités de loisirs\r\n9311Z - Gestion d'installations sportives\r\n9312Z - Activités de clubs de sports\r\n9319Z - Autres activités liées au sport\r\n9329Z - Autres activités récréatives et de loisirs"
+  },
+  "2060": {
+    "activite": "Cafétérias – Restauration commerciale libre service",
+    "sous_activite": "5610A - Restauration traditionnelle\r\n5610B - Cafétérias et autres libres-services"
+  },
+  "2089": {
+    "activite": "Industries des panneaux à base de bois",
+    "sous_activite": "1621Z - Fabrication de placage et de panneaux de bois"
+  },
+  "2098": {
+    "activite": "Prestataires de services du secteur tertiaire",
+    "sous_activite": "0240Z - Services de soutien à l'exploitation forestière\r\n4110A - Promotion immobilière de logements\r\n4651Z - Commerce de gros (commerce interentreprises) d'ordinateurs, d'équipements informatiques périphériques et de logiciels\r\n4666Z - Commerce de gros (commerce interentreprises) d'autres machines et équipements de bureau\r\n4779Z - Commerce de détail de biens d'occasion en magasin\r\n4791A - Vente à distance sur catalogue général\r\n4791B - Vente à distance sur catalogue spécialisé\r\n5811Z - Édition de livres\r\n5812Z - Édition de répertoires et de fichiers d'adresses\r\n5813Z - Édition de journaux\r\n5814Z - Édition de revues et périodiques\r\n5819Z - Autres activités d'édition\r\n5821Z - Édition de jeux électroniques\r\n5829A - Édition de logiciels système et de réseau\r\n5829B - Edition de logiciels outils de développement et de langages\r\n5829C - Editeur de logiciels\r\n5911C - Production de films pour le cinéma\r\n5912Z - Post-production de films cinématographiques, de vidéo et de programmes de télévision\r\n5920Z - Enregistrement sonore et édition musicale\r\n6010Z - Édition et diffusion de programmes radio\r\n6020A - Edition de chaînes généralistes\r\n6020B - Edition de chaînes thématiques\r\n6110Z - Télécommunications filaires\r\n6120Z - Télécommunications sans fil\r\n6130Z - Télécommunications par satellite\r\n6190Z - Autres activités de télécommunication\r\n6201Z - Programmation informatique\r\n6202A - Conseil en systèmes et logiciels informatiques\r\n6203Z - Gestion d'installations informatiques\r\n6311Z - Traitement de données, hébergement et activités connexes\r\n6399Z - Autres services d'information n.c.a.\r\n6420Z - Activités des sociétés holding\r\n6820B - Location de terrains et d'autres biens immobiliers\r\n6910Z - Activités juridiques\r\n7010Z - Activités des sièges sociaux\r\n7021Z - Conseil en relations publiques et communication\r\n7022Z - Conseil pour les affaires et autres conseils de gestion\r\n7311Z - Activités des agences de publicité\r\n7312Z - Régie publicitaire de médias\r\n7410Z - Activités spécialisées de design\r\n7430Z - Traduction et interprétation\r\n7490B - Activités spécialisées, scientifiques et techniques diverses\r\n7740Z - Location-bail de propriété intellectuelle et de produits similaires, à l'exception des œuvres soumises à copyright\r\n7911Z - Agences de voyage\r\n7912Z - Activités des voyagistes\r\n7990Z - Autres services de réservation et activités connexes\r\n8030Z - Activités d'enquête\r\n8211Z - Services administratifs combinés de bureau\r\n8219Z - Photocopie, préparation de documents et autres activités spécialisées de soutien de bureau\r\n8220Z - Activités de centres d'appels\r\n8230Z - Organisation de foires, salons professionnels et congrès\r\n8291Z - Activités des agences de recouvrement de factures et des sociétés d'information financière sur la clientèle\r\n8299Z - Autres activités de soutien aux entreprises n.c.a.\r\n9001Z - Arts du spectacle vivant\r\n9002Z - Activités de soutien au spectacle vivant\r\n9003A - Création artistique relevant des arts plastiques\r\n9003B - Autre création artistique\r\n9004Z - Gestion de salles de spectacles\r\n9102Z - Gestion des musées\r\n9103Z - Gestion des sites et monuments historiques et des attractions touristiques similaires\r\n9311Z - Gestion d'installations sportives\r\n9499Z - Autres organisations fonctionnant par adhésion volontaire"
+  },
+  "2120": {
+    "activite": "BANQUE",
+    "sous_activite": ""
+  },
+  "2147": {
+    "activite": "Services de l'eau et d'assainissement",
+    "sous_activite": "3600Z - Captage, traitement et distribution d'eau\r\n3700Z - Collecte et traitement des eaux usées"
+  },
+  "2148": {
+    "activite": "Télécommunications",
+    "sous_activite": "6110Z - Télécommunications filaires\r\n6120Z - Télécommunications sans fil\r\n6130Z - Télécommunications par satellite\r\n6190Z - Autres activités de télécommunication\r\n8220Z - Activités de centres d'appels"
+  },
+  "2149": {
+    "activite": "Activités du déchet",
+    "sous_activite": "3700Z - Collecte et traitement des eaux usées\r\n3811Z - Collecte des déchets non dangereux\r\n3812Z - Collecte des déchets dangereux\r\n3821Z - Traitement et élimination des déchets non dangereux\r\n3822Z - Traitement et élimination des déchets dangereux\r\n3900Z - Dépollution et autres services de gestion des déchets\r\n8129B - Autres activités de nettoyage n.c.a."
+  },
+  "2156": {
+    "activite": "Grands magasins et Magasins populaires",
+    "sous_activite": "4612A - Centrales d'achat de carburant\r\n4617A - Centrales d'achat alimentaires\r\n4619A - Centrales d'achat non alimentaires\r\n4711E - Magasins multi-commerces\r\nNAF 4719A - Grands magasins"
+  },
+  "2198": {
+    "activite": "Commerce à distance",
+    "sous_activite": "4791A/ 4791B : Vente à distance sur catalogue général"
+  },
+  "2205": {
+    "activite": "Offices notariaux",
+    "sous_activite": "6910Z - Activités juridiques"
+  },
+  "2216": {
+    "activite": "Commerce à prédominance alimentaire (détail et gros)",
+    "sous_activite": "4617A - Centrales d'achat alimentaires\r\n4617B - Autres intermédiaires du commerce en denrées, boissons et tabac\r\n4638B - Commerce de gros (commerce interentreprises) alimentaire spécialisé divers\r\n4711B - Commerce d'alimentation générale\r\n4711C - Supérettes\r\n4711D - Supermarchés\r\n4711E - Magasins multi-commerces\r\n4725Z - Commerce de détail de boissons en magasin spécialisé"
+  },
+  "2219": {
+    "activite": "Taxis",
+    "sous_activite": ""
+  },
+  "2232": {
+    "activite": "Entreprises d’architecture",
+    "sous_activite": "7111Z - Architecte\r\n7112B - Bureau d'étude"
+  },
+  "2247": {
+    "activite": "COURTAGE D'ASSURANCES ET DE RÉASSURANCES",
+    "sous_activite": "6621Z - Évaluation des risques et dommages\r\n6622Z - Activités des agents et courtiers d'assurances\r\n6629Z - Autres activités auxiliaires d'assurance et de caisses de retraite"
+  },
+  "2272": {
+    "activite": "Assainissement et maintenance industrielle",
+    "sous_activite": "3700Z - Collecte et traitement des eaux usées\r\n3812Z - Collecte des déchets dangereux\r\n8122Z - Autres activités de nettoyage des bâtiments et nettoyage industriel"
+  },
+  "2335": {
+    "activite": "AGENTS GÉNÉRAUX D'ASSURANCE",
+    "sous_activite": "6621Z - Évaluation des risques et dommages\r\n6622Z - Activités des agents et courtiers d'assurances\r\n6629Z - Autres activités auxiliaires d'assurance et de caisses de retraite"
+  },
+  "2372": {
+    "activite": "Distribution directe",
+    "sous_activite": "7311Z - Activités des agences de publicité\r\n7312Z - Régie publicitaire de médias"
+  },
+  "2528": {
+    "activite": "Maroquinerie",
+    "sous_activite": "1512Z - Fabrication d'articles de voyage, de maroquinerie et de sellerie"
+  },
+  "2564": {
+    "activite": "Vétérinaires praticiens salariés",
+    "sous_activite": "7500Z - Vétérinaire"
+  },
+  "2583": {
+    "activite": "Autoroutes",
+    "sous_activite": "5221Z - Services auxiliaires des transports terrestres"
+  },
+  "2596": {
+    "activite": "Coiffure et professions connexes",
+    "sous_activite": "9602A - Coiffure"
+  },
+  "2642": {
+    "activite": "Audiovisuel et production cinématographique",
+    "sous_activite": "5911A - Production de films et de programmes pour la télévision\r\n5911B - Production de films institutionnels et publicitaires"
+  },
+  "2691": {
+    "activite": "Enseignement Privé Indépendant",
+    "sous_activite": "8510Z - Enseignement pré-primaire\r\n8520Z - Enseignement primaire\r\n8531Z - Enseignement secondaire général\r\n8532Z - Enseignement secondaire technique ou professionnel\r\n8541Z - Enseignement post-secondaire non supérieur\r\n8542Z - Enseignement supérieur\r\n8552Z - Enseignement culturel\r\n8559B - Autres enseignements"
+  },
+  "2697": {
+    "activite": "Personnel des structures associatives cynégétiques",
+    "sous_activite": ""
+  },
+  "2706": {
+    "activite": "Administrateurs et mandataires judiciaires",
+    "sous_activite": "6910Z - Activités juridiques"
+  },
+  "2785": {
+    "activite": "Commissaires-priseurs judiciaires et Sociétés de vente volontaire",
+    "sous_activite": "4779Z - Commerce de détail de biens d'occasion en magasin\r\n4791A - Vente à distance sur catalogue général\r\n4791B - Vente à distance sur catalogue spécialisé\r\n4799B - Vente par automates et autres commerces de détail hors magasin, éventaires ou marchés n.c.a.\r\n6910Z - Activités juridiques\r\n8299Z - Autres activités de soutien aux entreprises n.c.a."
+  },
+  "2931": {
+    "activite": "MARCHÉS FINANCIERS",
+    "sous_activite": "6611Z - Administration de marchés financiers\r\n6612Z - Courtage de valeurs mobilières et de marchandises\r\n6619B - Autres activités auxiliaires de services financiers, hors assurance et caisses de retraite, n.c.a.\r\n6630Z - Gestion de fonds"
+  },
+  "3013": {
+    "activite": "Librairie",
+    "sous_activite": "4761Z - Commerce de détail de livres en magasin spécialisé\r\n4779Z - Commerce de détail de biens d'occasion en magasin"
+  },
+  "3017": {
+    "activite": "Ports et manutention portuaire",
+    "sous_activite": "5222Z - Services auxiliaires des transports par eau\r\n5224A - Manutention portuaire"
+  },
+  "3032": {
+    "activite": "Esthétique, cosmétique",
+    "sous_activite": "6420Z - Activités des sociétés holding\r\n7010Z - Activités des sièges sociaux\r\n8532Z - Enseignement secondaire technique ou professionnel\r\n8541Z - Enseignement post-secondaire non supérieur\r\n8542Z - Enseignement supérieur\r\n8559A - Formation continue d'adultes\r\n8559B - Autres enseignements\r\n9602B - Cosmétique\r\n4775Z-Commerce de détail de parfumerie et de produits de beauté en magasin spécialisé"
+  },
+  "3043": {
+    "activite": "Propreté & Services",
+    "sous_activite": "8122Z - Autres activités de nettoyage des bâtiments et nettoyage industriel \r\n8129B - Autres activités de nettoyage n.c.a.\r\n9601A - Blanchisserie-teinturerie de gros\r\n8129A - Désinfection, désinsectisation, dératisation\r\n8121Z - Nettoyage courant des bâtiments"
+  },
+  "3090": {
+    "activite": "Spectacle vivant",
+    "sous_activite": "1820Z - Reproduction d'enregistrements\r\n5911A - Production de films et de programmes pour la télévision\r\n5911B - Production de films institutionnels et publicitaires\r\n5911C - Production de films pour le cinéma\r\n5920Z - Enregistrement sonore et édition musicale\r\n6010Z - Édition et diffusion de programmes radio\r\n6020A - Edition de chaînes généralistes\r\n6020B - Edition de chaînes thématiques"
+  },
+  "3127": {
+    "activite": "Entreprises de services à la personne",
+    "sous_activite": "8810A - Aide à domicile\r\n8810B - Accueil ou accompagnement sans hébergement d'adultes handicapés ou de personnes âgées\r\n8891A - Crèche\r\n8899A - Autre accueil ou accompagnement sans hébergement d'enfants et d'adolescents\r\n8899B - Action sociale sans hébergement n.c.a."
+  },
+  "3168": {
+    "activite": "Professions de la photographie",
+    "sous_activite": "7420Z - Photographe"
+  },
+  "3205": {
+    "activite": "Coopératives de consommateurs",
+    "sous_activite": "?"
+  },
+  "3217": {
+    "activite": "Transport ferroviaire",
+    "sous_activite": ""
+  },
+  "3218": {
+    "activite": "Enseignement Privé non lucratif",
+    "sous_activite": ""
+  },
+  "3219": {
+    "activite": "Portage salarial",
+    "sous_activite": ""
+  },
+  "3222": {
+    "activite": "Menuiseries, charpentes et constructions industrialisées et portes planes",
+    "sous_activite": "1623Z - Fabrication de charpentes et d'autres menuiseries"
+  },
+  "3223": {
+    "activite": "Transports maritimes",
+    "sous_activite": ""
+  },
+  "3225": {
+    "activite": "Presse magazine",
+    "sous_activite": "5814Z - Édition de revues et périodiques"
+  },
+  "3227": {
+    "activite": "Chaux",
+    "sous_activite": "2352Z - Fabrication de chaux et plâtre"
+  },
+  "3229": {
+    "activite": "Transport fluvial",
+    "sous_activite": "5030Z - Transports fluviaux de passagers\r\n5040Z - Transports fluviaux de fret"
+  },
+  "3233": {
+    "activite": "Ciments",
+    "sous_activite": "2351Z - Fabrication de ciment"
+  },
+  "3237": {
+    "activite": "Métiers du commerce de détail alimentaire spécialisé",
+    "sous_activite": "4721Z - Commerce de détail de fruits et légumes en magasin spécialisé\r\n4724Z - Commerce de détail de pain, pâtisserie et confiserie en magasin spécialisé\r\n4725Z - Commerce de détail de boissons en magasin spécialisé\r\n4729Z - Autres commerces de détail alimentaires en magasin spécialisé\r\n4781Z - Commerce de détail alimentaire sur éventaires et marchés"
+  },
+  "3242": {
+    "activite": "Presse Quotidienne Régionale (PQR), Presse Hebdomadaire Régionale (PHR) et Presse Quotidienne Départementale (PQD)",
+    "sous_activite": ""
+  },
+  "3243": {
+    "activite": "Commerces de quincaillerie, fournitures industrielles, fers-métaux et équipement de la maison",
+    "sous_activite": "4612A - Centrales d'achat de carburant\r\n4612B - Autres intermédiaires du commerce en combustibles, métaux, minéraux et produits chimiques\r\n4615Z - Intermédiaires du commerce en meubles, articles de ménage et quincaillerie\r\n4619A - Centrales d'achat non alimentaires\r\n4644Z - Commerce de gros (commerce interentreprises) de vaisselle, verrerie et produits d'entretien\r\n4647Z - Commerce de gros (commerce interentreprises) de meubles, de tapis et d'appareils d'éclairage\r\n4649Z - Commerce de gros (commerce interentreprises) d'autres biens domestiques\r\n4669B - Commerce de gros (commerce interentreprises) de fournitures et équipements industriels divers\r\n4669C - Commerce de gros (commerce interentreprises) de fournitures et équipements divers pour le commerce et les services\r\n4672Z - Commerce de gros (commerce interentreprises) de minerais et métaux\r\n4673B - Commerce de gros (commerce interentreprises) d'appareils sanitaires et de produits de décoration\r\n4674A - Commerce de gros (commerce interentreprises) de quincaillerie\r\n4674B - Commerce de gros (commerce interentreprises) de fournitures pour la plomberie et le chauffage\r\n4752A - Commerce de détail de quincaillerie, peintures et verres en petites surfaces (moins de 400 m²)\r\n4752B - Commerce de détail de quincaillerie, peintures et verres en grandes surfaces (400 m² et plus)\r\n4759B - Commerce de détail d'autres équipements du foyer\r\n7729Z - Location et location-bail d'autres biens personnels et domestiques"
+  },
+  "3245": {
+    "activite": "Agences de voyages et guides accompagnateurs",
+    "sous_activite": "7911Z - Agences de voyage\r\n7912Z - Activités des voyagistes"
+  },
+  "3248": {
+    "activite": "Métallurgie",
+    "sous_activite": ""
+  },
+  "5001": {
+    "activite": "Industries électriques et gazières",
+    "sous_activite": "-"
+  },
+  "5005": {
+    "activite": "CAISSE D’ÉPARGNE",
+    "sous_activite": ""
+  },
+  "5014": {
+    "activite": "Régie Autonome des Transports Parisiens",
+    "sous_activite": ""
+  },
+  "5017": {
+    "activite": "Autres entreprises ressortissantes d'AKTO – Interprofession",
+    "sous_activite": ""
+  },
+  "5560": {
+    "activite": "BANQUE POPULAIRE",
+    "sous_activite": ""
+  },
+  "8241": {
+    "activite": "Exploitations forestières et scieries agricoles",
+    "sous_activite": ""
+  },
+  "9999": {
+    "activite": "Entreprise sans convention collective nationale (CCN)",
+    "sous_activite": "-"
+  },
+  "?": {
+    "activite": "FIIAC - GÉOMÈTRES ET ÉCONOMISTES DE LA CONSTRUCTION",
+    "sous_activite": "7112A - Activité des géomètres/géomètres-topographes\r\n7490A - Activité des économistes de la construction"
+  },
+  "1944 - 0275": {
+    "activite": "Transport et travail aérien",
+    "sous_activite": "5110Z - Transports aériens de passagers\r\n5121Z - Transports aériens de fret"
+  },
+  "1413 – 2378": {
+    "activite": "Travail temporaire",
+    "sous_activite": ""
+  },
+  "0998 - 1256": {
+    "activite": "Services d'efficacité énergétique",
+    "sous_activite": "3530Z - Production et distribution de vapeur et d'air conditionné\r\n3811Z - Collecte des déchets non dangereux\r\n4322B - Travaux d'installation d'équipements thermiques et de climatisation"
+  },
+  "2511 - 3328": {
+    "activite": "Sport",
+    "sous_activite": "8551Z - Enseignement de disciplines sportives et d'activités de loisirs\r\n9311Z - Gestion d'installations sportives\r\n9312Z - Activités de clubs de sports\r\n9313Z - Activités des centres de culture physique\r\n9319Z - Autres activités liées au sport\r\n9329Z - Autres activités récréatives et de loisirs"
+  }
+}

@@ -24,10 +24,15 @@ const CALENDAR_COLORS = {
 const CLIENTS = Object.keys(CALENDAR_COLORS);
 
 const CalendarView = ({ user }) => {
+  const isCommercial = user?.role === 'commercial';
+  const initialFilters = isCommercial && user.client 
+    ? [user.client.toLowerCase()] 
+    : CLIENTS;
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilters, setActiveFilters] = useState(CLIENTS);
+  const [activeFilters, setActiveFilters] = useState(initialFilters);
   const [selectedLeadId, setSelectedLeadId] = useState(null);
 
   // Fetch RDV data
@@ -37,10 +42,16 @@ const CalendarView = ({ user }) => {
 
   const fetchRDVs = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from('crm_leads')
       .select('*')
       .not('date_rdv', 'is', null);
+
+    if (isCommercial && user.client) {
+      query = query.eq('client_of', user.client);
+    }
+
+    const { data, error } = await query;
 
     if (!error && data) {
       // Filter out clients not requested by user (like IT PERFORMANCE)
@@ -117,28 +128,30 @@ const CalendarView = ({ user }) => {
           {/* Vertical Divider */}
           <div className="h-6 w-px bg-navy/10" />
 
-          {/* Filters Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            {CLIENTS.map(client => (
-              <button
-                key={client}
-                onClick={() => toggleFilter(client)}
-                className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all whitespace-nowrap ${
-                  activeFilters.includes(client)
-                    ? 'bg-white border-navy/10 shadow-sm'
-                    : 'bg-transparent border-transparent opacity-30 grayscale'
-                }`}
-              >
-                <div 
-                  className="w-2.5 h-2.5 rounded-full" 
-                  style={{ backgroundColor: CALENDAR_COLORS[client].dot }}
-                />
-                <span className="text-[10px] font-bold text-navy uppercase tracking-wider">
-                  {client}
-                </span>
-              </button>
-            ))}
-          </div>
+          {/* Filters Bar - Hidden for Commercials */}
+          {!isCommercial && (
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              {CLIENTS.map(client => (
+                <button
+                  key={client}
+                  onClick={() => toggleFilter(client)}
+                  className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all whitespace-nowrap ${
+                    activeFilters.includes(client)
+                      ? 'bg-white border-navy/10 shadow-sm'
+                      : 'bg-transparent border-transparent opacity-30 grayscale'
+                  }`}
+                >
+                  <div 
+                    className="w-2.5 h-2.5 rounded-full" 
+                    style={{ backgroundColor: CALENDAR_COLORS[client].dot }}
+                  />
+                  <span className="text-[10px] font-bold text-navy uppercase tracking-wider">
+                    {client}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {loading && (

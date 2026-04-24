@@ -1,9 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FixedSizeList as List } from 'react-window';
-import { Search, Filter, Clock, ChevronDown, Loader2, ExternalLink, LayoutGrid, Copy, Check } from 'lucide-react';
+import { 
+  Search, Filter, ChevronDown, ChevronUp, Download, Eye, Plus, 
+  Trash2, X, Check, Save, Calendar, Phone, Mail, User, 
+  AlertCircle, MoreVertical, LayoutGrid, RefreshCw, 
+  MapPin, Hash, Briefcase, FileText, ArrowRight, ArrowLeft, Clock, ExternalLink, Copy
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LeadDetailPanel from './LeadDetailPanel';
+import opcoMapping from '../data/opco_mapping.json';
+import nafMapping from '../data/naf_mapping.json';
+
 
 // Status badge colors (case-insensitive match)
 const STATUS_COLORS = {
@@ -70,15 +78,21 @@ const slugify = (text) => {
 
 const COLUMNS = [
   { label: 'ID',           key: 'lead_id',           width: 100, mono: true },
-  { label: 'Funbooster',   key: 'funebooster',       width: 130 },
+  { label: 'Funbooster',   key: 'funebooster',       width: 160, type: 'select', options: [
+    'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN'
+  ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Gérant',       key: 'gerant',            width: 150, type: 'editable' },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
   { label: 'Secteur Act.',  key: 'secteur_activite',  width: 180, type: 'editable' },
   { label: 'Libellé Act.',  key: 'libelle_activite',  width: 200, type: 'editable' },
-  { label: 'Opco',         key: 'nom_opco',          width: 150 },
+  { label: 'Opco',         key: 'nom_opco',          width: 150, type: 'select', options: [
+    'OPCOMMERCE', 'OPCO EP', 'OPCO AKTO', 'OPCO ATLAS', 'AFDAS', 'CONSTRUCTYS', 
+    'MOBILITÉ', 'OPCO 2i', 'UNIFORMATION', 'OPCO SANTÉ', 'OCAPIAT'
+  ]},
   { label: 'IDCC',         key: 'idcc',              width: 100, type: 'editable' },
-  { label: 'Code NAF',     key: 'code_naf',          width: 100 },
+  { label: 'Code NAF',     key: 'code_naf',          width: 130, type: 'editable' },
+  { label: 'Pappers',      key: 'pappers',           width: 130, type: 'pappers' },
   { label: 'Téléphone',    key: 'tel',               width: 140 },
   { label: 'Mobile',       key: 'mobile',            width: 140, type: 'editable' },
   { label: 'Adresse',      key: 'adresse',           width: 260, type: 'editable' },
@@ -111,32 +125,21 @@ const COLUMNS = [
   { label: 'Nb Heures',    key: 'nb_heures_formation', width: 100, type: 'number' },
   { label: 'TX Horaire',   key: 'tx_horaire_ca',     width: 120, type: 'auto_currency' },
   { label: 'Campagne',     key: 'campagne_act',      width: 150, type: 'select', options: ['CONQUÊTE', 'FIDÉLISATION', 'RE-CONQUÊTE'] },
-  { label: 'PEC',          key: 'pec',               width: 100, type: 'select', options: ['OUI', 'NON'] },
+  { label: 'PEC',          key: 'pec',               width: 120, type: 'select', options: ['OUI', 'NON'] },
   { label: 'Échéances PEC', key: 'echeances_pec',     width: 200, type: 'pec_dates' },
   { label: 'Suivi Form.',  key: 'suivi_formation',   width: 150, type: 'select', options: ['PLANIFIÉE', 'ORGANISÉE', 'EN COURS', 'TERMINÉE'] },
   { label: 'Commentaires', key: 'observation',       width: 260, type: 'editable' },
-  { label: 'Pappers',      key: 'pappers',           width: 110, type: 'pappers' },
 ];
 
-const PAGE_SIZE = 100; // REDUCED for performance (was 500)
+const PAGE_SIZE = 100;
 
 const SearchInput = React.memo(({ value: externalValue, onSearch }) => {
   const [localValue, setLocalValue] = useState(externalValue);
-
-  // Sync internal state with external value (e.g. if search cleared elsewhere)
+  useEffect(() => { setLocalValue(externalValue); }, [externalValue]);
   useEffect(() => {
-    setLocalValue(externalValue);
-  }, [externalValue]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localValue !== externalValue) {
-        onSearch(localValue);
-      }
-    }, 500);
+    const timer = setTimeout(() => { if (localValue !== externalValue) onSearch(localValue); }, 500);
     return () => clearTimeout(timer);
   }, [localValue, onSearch, externalValue]);
-
   return (
     <div className="relative group">
       <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-navy/20 group-focus-within:text-primary transition-colors" />
@@ -153,9 +156,7 @@ const SearchInput = React.memo(({ value: externalValue, onSearch }) => {
 
 const formatDate = (d) => {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('fr-FR', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-  });
+  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 };
 
 const formatDateFr = (d) => {
@@ -163,41 +164,33 @@ const formatDateFr = (d) => {
   try {
     const date = new Date(d);
     if (isNaN(date.getTime())) return d;
-    return date.toLocaleDateString('fr-FR', {
-      day: '2-digit', month: '2-digit', year: 'numeric'
-    });
-  } catch (e) {
-    return d;
-  }
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch (e) { return d; }
 };
 
 const CustomSelect = React.memo(({ value, options, onChange, colorCfg }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [rect, setRect] = useState(null);
   const containerRef = useRef(null);
-
+  const dropdownRef = useRef(null);
+  
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
+    const handleClickOutside = (e) => { 
+      if (
+        containerRef.current && !containerRef.current.contains(e.target) &&
+        (!dropdownRef.current || !dropdownRef.current.contains(e.target))
+      ) {
+         setIsOpen(false); 
       }
     };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
-
+  
   return (
     <div ref={containerRef} className="relative w-full">
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!isOpen) {
-            setRect(containerRef.current.getBoundingClientRect());
-          }
-          setIsOpen(!isOpen);
-        }}
+        onClick={(e) => { e.stopPropagation(); if (!isOpen) setRect(containerRef.current.getBoundingClientRect()); setIsOpen(!isOpen); }}
         style={{ backgroundColor: colorCfg.bg, color: colorCfg.text }}
         className="w-full pl-2 pr-6 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-normal flex items-center justify-between shadow-sm group/btn transition-all active:scale-[0.98]"
       >
@@ -206,59 +199,52 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg }) => {
           <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
-
       {isOpen && (
         <DropdownPortal targetRect={rect}>
-          <div 
-            className="absolute top-0 left-0 w-full min-w-[200px] z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(14,27,77,0.3)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div ref={dropdownRef} className="absolute top-0 left-0 w-full min-w-[200px] z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(14,27,77,0.3)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top" onClick={(e) => e.stopPropagation()}>
             <div className="py-1 max-h-64 overflow-y-auto custom-scrollbar">
-            <button
-              onClick={() => { onChange(''); setIsOpen(false); }}
-              className="w-full px-4 py-1.5 text-left text-[9px] font-black text-navy/30 hover:bg-navy/5 hover:text-navy uppercase tracking-[0.2em] transition-colors"
-            >
-              — RÉINITIALISER —
-            </button>
-            <div className="h-px bg-navy/5 mx-2 my-1" />
-            {options.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => { onChange(opt); setIsOpen(false); }}
-                className={`w-full px-4 py-1.5 text-left text-[11px] font-bold transition-all flex items-center justify-between group/opt ${
-                  value === opt 
-                    ? 'bg-navy text-white' 
-                    : 'text-navy/70 hover:bg-primary/5 hover:text-primary'
-                }`}
-              >
-                {opt}
-                {value === opt && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-              </button>
-            ))}
+              <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onChange(''); setIsOpen(false); }} className="w-full px-4 py-1.5 text-left text-[9px] font-black text-navy/30 hover:bg-navy/5 hover:text-navy uppercase tracking-[0.2em] transition-colors">— RÉINITIALISER —</button>
+              <div className="h-px bg-navy/5 mx-2 my-1" />
+              {options.map((opt) => (
+                <button key={opt} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onChange(opt); setIsOpen(false); }} className={`w-full px-4 py-1.5 text-left text-[11px] font-bold transition-all flex items-center justify-between group/opt ${value === opt ? 'bg-navy text-white' : 'text-navy/70 hover:bg-primary/5 hover:text-primary'}`}>
+                  {opt}
+                  {value === opt && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </DropdownPortal>
+        </DropdownPortal>
       )}
     </div>
   );
 });
 
-// ── Dropdown Portal to prevent clipping in virtual list ──
 const DropdownPortal = ({ children, targetRect }) => {
   if (!targetRect) return null;
-  return createPortal(
-    <div 
-      className="fixed z-[9999]"
-      style={{ 
-        top: targetRect.top, 
-        left: targetRect.left, 
-        width: targetRect.width 
-      }}
-    >
-      {children}
-    </div>,
-    document.body
-  );
+  return createPortal(<div className="fixed z-[9999]" style={{ top: targetRect.top, left: targetRect.left, width: targetRect.width }}>{children}</div>, document.body);
+};
+
+const formatNaf = (val) => {
+  if (!val) return val;
+  const clean = String(val).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  
+  // If we have 5 characters, format as XX.XXY
+  if (clean.length === 5) {
+    return `${clean.substring(0, 2)}.${clean.substring(2, 4)}${clean.substring(4)}`;
+  }
+  
+  // If we have 4 characters, try to find the letter in the mapping
+  if (clean.length === 4) {
+    const keys = Object.keys(nafMapping);
+    const matches = keys.filter(k => k.startsWith(clean));
+    if (matches.length === 1) {
+      const full = matches[0];
+      return `${full.substring(0, 2)}.${full.substring(2, 4)}${full.substring(4)}`;
+    }
+    return `${clean.substring(0, 2)}.${clean.substring(2)}`;
+  }
+  
+  return val;
 };
 
 const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker, setActivePicker, pickerRef, index }) => {
@@ -266,367 +252,294 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
   const [copied, setCopied] = useState(false);
   const containerRef = useRef(null);
 
+  // Robust NAF mapping fallback
+  let displayRaw = raw;
+  if (col.key === 'code_naf' && !displayRaw && lead.secteur) displayRaw = lead.secteur;
+  
+  if (col.key === 'code_naf' && displayRaw) {
+    displayRaw = formatNaf(displayRaw);
+  }
+
+  if (col.key === 'libelle_activite' && !displayRaw && (lead.code_naf || lead.secteur)) {
+    const nafValue = lead.code_naf || lead.secteur;
+    const cleanNaf = String(nafValue).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let description = nafMapping[cleanNaf];
+    
+    // Fuzzy match if incomplete (4 digits)
+    if (!description && cleanNaf.length === 4) {
+      const matches = Object.keys(nafMapping).filter(k => k.startsWith(cleanNaf));
+      if (matches.length === 1) description = nafMapping[matches[0]];
+    }
+
+    if (description) {
+      displayRaw = description;
+    }
+  }
+
   if (col.key === 'siret' && raw) {
     return (
       <div className="flex items-center gap-2 group/siret min-w-0 pr-2">
-        <span className="text-sm font-bold text-navy/90 font-mono tracking-tighter whitespace-nowrap">
-          {raw}
-        </span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            navigator.clipboard.writeText(raw);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }}
-          title="Copier le SIRET"
-          className="p-1 hover:bg-navy/5 rounded-md transition-all opacity-0 group-hover/siret:opacity-100 flex-shrink-0 hover:scale-110 active:scale-95"
-        >
-          {copied ? (
-            <Check className="w-3.5 h-3.5 text-green-500 animate-in zoom-in duration-200" />
-          ) : (
-            <Copy className="w-3.5 h-3.5 text-navy/20 hover:text-navy/50 transition-colors" />
-          )}
+        <span className="text-sm font-bold text-navy/90 font-mono tracking-tighter whitespace-nowrap">{raw}</span>
+        <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(raw); setCopied(true); setTimeout(() => setCopied(false), 2000); }} title="Copier le SIRET" className="p-1 hover:bg-navy/5 rounded-md transition-all opacity-0 group-hover/siret:opacity-100 flex-shrink-0 hover:scale-110 active:scale-95">
+          {copied ? <Check className="w-3.5 h-3.5 text-green-500 animate-in zoom-in duration-200" /> : <Copy className="w-3.5 h-3.5 text-navy/20 hover:text-navy/50 transition-colors" />}
         </button>
       </div>
     );
   }
-
   if (col.type === 'status' || col.type === 'select') {
     const cfg = getStatusStyle(raw);
-    return (
-      <CustomSelect 
-        value={raw} 
-        options={col.options} 
-        onChange={(val) => handleUpdate(lead.id, col.key, val)}
-        colorCfg={cfg}
-      />
-    );
+    return <CustomSelect value={raw} options={col.options} onChange={(val) => handleUpdate(lead.id, col.key, val)} colorCfg={cfg} />;
   }
-
-  if (col.type === 'date') {
-    return (
-      <span className="flex items-center gap-1.5 text-navy/40 text-xs whitespace-nowrap">
-        <Clock className="w-3 h-3 flex-shrink-0" />
-        {formatDate(raw)}
-      </span>
-    );
-  }
-
+  if (col.type === 'date') return <span className="flex items-center gap-1.5 text-navy/40 text-xs whitespace-nowrap"><Clock className="w-3 h-3 flex-shrink-0" />{formatDate(raw)}</span>;
   if (col.type === 'pappers') {
     const slug = slugify(lead.nom_entreprise || '');
     const siren = (lead.siret || '').substring(0, 9);
     const url = `https://www.pappers.fr/entreprise/${slug}-${siren}`;
-    return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg text-blue-400 text-[10px] font-bold uppercase tracking-wider transition-all group"
-        onClick={(e) => e.stopPropagation()}
-      >
-        Pappers
-        <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-      </a>
-    );
+    return <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-blue-400 text-[10px] font-bold uppercase tracking-wider transition-all group shadow-sm active:scale-95" onClick={(e) => e.stopPropagation()}>Pappers<ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>;
   }
-
-  if (col.type === 'editable') {
-    return (
-      <input
-        type="text"
-        defaultValue={raw || ''}
-        onBlur={e => e.target.value !== (raw || '') && handleUpdate(lead.id, col.key, e.target.value)}
-        className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20"
-        placeholder="—"
-      />
-    );
-  }
-
-  if (col.type === 'number') {
-    return (
-      <input
-        type="number"
-        defaultValue={raw || ''}
-        onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value)}
-        className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20"
-        placeholder="0"
-      />
-    );
-  }
-
+  if (col.type === 'editable') return <input type="text" key={`${lead.id}-${col.key}-${displayRaw}`} defaultValue={displayRaw || ''} onBlur={e => e.target.value !== (displayRaw || '') && handleUpdate(lead.id, col.key, e.target.value)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="—" />;
+  if (col.type === 'number') return <input type="number" defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="0" />;
   if (col.type === 'currency' || col.type === 'auto_currency') {
     const isAuto = col.type === 'auto_currency';
     let displayValue = raw;
-
-    // Fallback for auto calculation if empty
     if (isAuto && !displayValue && lead.ca_signe_ht && lead.nb_heures_formation) {
       const ca = parseFloat(lead.ca_signe_ht);
       const hrs = parseFloat(lead.nb_heures_formation);
-      if (ca && hrs && hrs !== 0) {
-        displayValue = (ca / hrs).toFixed(2);
-      }
+      if (ca && hrs && hrs !== 0) displayValue = (ca / hrs).toFixed(2);
     }
-
     return (
       <div className="flex items-center gap-1 group/currency">
-        <input
-          type="number"
-          readOnly={isAuto}
-          defaultValue={displayValue || ''}
-          onBlur={e => {
-            if (!isAuto && e.target.value !== String(raw || '')) {
-              handleUpdate(lead.id, col.key, e.target.value);
-            }
-          }}
-          className={`w-full px-2 py-1.5 bg-transparent ${isAuto ? '' : 'hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary'} focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''}`}
-          placeholder="0.00"
-        />
+        <input type="number" readOnly={isAuto} defaultValue={displayValue || ''} onBlur={e => { if (!isAuto && e.target.value !== String(raw || '')) handleUpdate(lead.id, col.key, e.target.value); }} className={`w-full px-2 py-1.5 bg-transparent ${isAuto ? '' : 'hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary'} focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''}`} placeholder="0.00" />
         <span className="text-[10px] font-bold text-navy/30 pr-1">€</span>
       </div>
     );
   }
-
-  if (col.type === 'select') {
-    const cfg = getStatusStyle(raw);
-    return (
-      <CustomSelect 
-        value={raw} 
-        options={col.options} 
-        onChange={(val) => handleUpdate(lead.id, col.key, val)}
-        colorCfg={cfg}
-      />
-    );
-  }
-
   if (col.type === 'date_picker') {
     return (
       <div className="relative group/picker w-full flex items-center">
-        <div className="absolute inset-0 flex items-center justify-center text-navy text-[11px] font-bold pointer-events-none group-hover/picker:opacity-0 transition-opacity">
-          {formatDateFr(raw)}
-        </div>
-        <input
-          type="date"
-          defaultValue={raw || ''}
-          onChange={e => handleUpdate(lead.id, col.key, e.target.value)}
-          className="w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] hover:bg-navy/[0.06] border border-transparent hover:border-navy/10 rounded-lg text-transparent hover:text-navy text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all"
-        />
+        <div className="absolute inset-0 flex items-center justify-center text-navy text-[11px] font-bold pointer-events-none group-hover/picker:opacity-0 transition-opacity">{formatDateFr(raw)}</div>
+        <input type="date" defaultValue={raw || ''} onChange={e => handleUpdate(lead.id, col.key, e.target.value)} className="w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] hover:bg-navy/[0.06] border border-transparent hover:border-navy/10 rounded-lg text-transparent hover:text-navy text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all" />
       </div>
     );
   }
-
   if (col.type === 'time') {
-    const formatTime = (t) => {
-      if (!t || t === '-' || t === ':') return '';
-      const [h, m] = t.split(/[:hH]/);
-      return `${(h || '00').padStart(2, '0')}h${(m || '00').substring(0, 2).padStart(2, '0')}`;
-    };
-
+    const formatTime = (t) => { if (!t || t === '-' || t === ':') return ''; const [h, m] = t.split(/[:hH]/); return `${(h || '00').padStart(2, '0')}h${(m || '00').substring(0, 2).padStart(2, '0')}`; };
     const displayValue = formatTime(raw);
-    
     return (
       <div className="flex justify-center p-1">
-        <input
-          type="text"
-          defaultValue={displayValue}
-          key={`${lead.id}-${col.key}-${displayValue}`}
-          onBlur={e => {
-            const val = e.target.value;
-            if (val !== displayValue) {
-              handleUpdate(lead.id, col.key, val);
-            }
-          }}
-          placeholder="--h--"
-          className="w-[70px] px-2 py-1.5 bg-navy/5 border border-transparent hover:border-navy/10 rounded-xl text-navy text-[11px] font-black focus:bg-white focus:border-primary focus:outline-none transition-all font-mono text-center placeholder:text-navy/20"
-        />
+        <input type="text" defaultValue={displayValue} key={`${lead.id}-${col.key}-${displayValue}`} onBlur={e => { const val = e.target.value; if (val !== displayValue) handleUpdate(lead.id, col.key, val); }} placeholder="--h--" className="w-[70px] px-2 py-1.5 bg-navy/5 border border-transparent hover:border-navy/10 rounded-xl text-navy text-[11px] font-black focus:bg-white focus:border-primary focus:outline-none transition-all font-mono text-center placeholder:text-navy/20" />
       </div>
     );
   }
-
   if (col.type === 'pec_dates') {
     const parts = (raw || '').split(' AU ');
     const start = parts[0]?.replace('DU ', '') || '';
     const end = parts[1] || '';
     const isActive = activePicker?.id === lead.id && activePicker?.field === col.key;
-
-    const updatePec = (newStart, newEnd) => {
-      const s = newStart || '...';
-      const e = newEnd || '...';
-      const value = `DU ${s} AU ${e}`;
-      handleUpdate(lead.id, col.key, value);
-    };
-
+    const updatePec = (newStart, newEnd) => { const s = newStart || '...'; const e = newEnd || '...'; handleUpdate(lead.id, col.key, `DU ${s} AU ${e}`); };
     return (
       <div className="relative" ref={containerRef}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            const rect = containerRef.current.getBoundingClientRect();
-            setActivePicker(isActive ? null : { id: lead.id, field: col.key, rect });
-          }}
-          className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg group/pec transition-all w-full"
-        >
+        <button onClick={(e) => { e.stopPropagation(); const rect = containerRef.current.getBoundingClientRect(); setActivePicker(isActive ? null : { id: lead.id, field: col.key, rect }); }} className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg group/pec transition-all w-full">
           <Clock className="w-3 h-3 text-primary/40 group-hover/pec:text-primary transition-colors" />
-          <span className="text-[10px] font-black text-primary uppercase tracking-tighter truncate">
-            {raw || 'DU ... AU ...'}
-          </span>
+          <span className="text-[10px] font-black text-primary uppercase tracking-tighter truncate">{raw || 'DU ... AU ...'}</span>
         </button>
-
         {isActive && (
           <DropdownPortal targetRect={activePicker?.rect}>
-            <div
-              ref={pickerRef}
-              className={`absolute left-0 z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in-95 duration-200 ${
-                index < 3 ? 'top-0' : 'bottom-0'
-              }`}
-            >
-            <div className="flex items-center justify-between border-b border-navy/5 pb-2 mb-1">
-              <span className="text-[10px] font-black text-navy uppercase tracking-widest">Échéances PEC</span>
-              <button onClick={() => setActivePicker(null)} className="text-navy/20 hover:text-navy">×</button>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <div className="flex-1 flex flex-col gap-1">
-                <span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Début</span>
-                <input
-                  type="date"
-                  value={start}
-                  onChange={e => updatePec(e.target.value, end)}
-                  className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20"
-                />
+            <div ref={pickerRef} className={`absolute left-0 z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in-95 duration-200 ${index < 3 ? 'top-0' : 'bottom-0'}`}>
+              <div className="flex items-center justify-between border-b border-navy/5 pb-2 mb-1"><span className="text-[10px] font-black text-navy uppercase tracking-widest">Échéances PEC</span><button onClick={() => setActivePicker(null)} className="text-navy/20 hover:text-navy">×</button></div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex flex-col gap-1"><span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Début</span><input type="date" value={start} onChange={e => updatePec(e.target.value, end)} className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20" /></div>
+                <div className="flex-1 flex flex-col gap-1"><span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Fin</span><input type="date" value={end} onChange={e => updatePec(start, e.target.value)} className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20" /></div>
               </div>
-              <div className="flex-1 flex flex-col gap-1">
-                <span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Fin</span>
-                <input
-                  type="date"
-                  value={end}
-                  onChange={e => updatePec(start, e.target.value)}
-                  className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
+              <div className="px-3 py-2 bg-primary text-white rounded-xl text-center"><span className="text-[10px] font-black uppercase tracking-widest leading-none">{raw || 'DU ... AU ...'}</span></div>
             </div>
-
-            <div className="px-3 py-2 bg-primary text-white rounded-xl text-center">
-              <span className="text-[10px] font-black uppercase tracking-widest leading-none">
-                {raw || 'DU ... AU ...'}
-              </span>
-            </div>
-          </div>
-        </DropdownPortal>
-      )}
+          </DropdownPortal>
+        )}
       </div>
     );
   }
-
   if (col.type === 'auto') {
     let displayValue = raw;
-    
-    // Fallback extraction for display if DB is empty
     if (!displayValue && lead.adresse) {
-      if (col.key === 'code_postal') {
-        const cpMatch = lead.adresse.match(/\b\d{5}\b/);
-        if (cpMatch) displayValue = cpMatch[0];
-      } else if (col.key === 'code_departement') {
-        const cpMatch = lead.adresse.match(/\b\d{5}\b/);
-        if (cpMatch) displayValue = cpMatch[0].substring(0, 2);
-      }
+      if (col.key === 'code_postal') { const cpMatch = lead.adresse.match(/\b\d{5}\b/); if (cpMatch) displayValue = cpMatch[0]; }
+      else if (col.key === 'code_departement') { const cpMatch = lead.adresse.match(/\b\d{5}\b/); if (cpMatch) displayValue = cpMatch[0].substring(0, 2); }
     }
-
-    return (
-      <span className={`${!raw && displayValue ? 'text-primary' : 'text-navy/40'} text-xs italic font-medium`}>
-        {displayValue || 'auto'}
-      </span>
-    );
+    return <span className={`${!raw && displayValue ? 'text-primary' : 'text-navy/40'} text-xs italic font-medium`}>{displayValue || 'auto'}</span>;
   }
-
-  if (typeof raw === 'string' && raw.includes('http')) {
-    const urlMatch = raw.match(/(https?:\/\/[^\s]+)/);
-    if (urlMatch) {
-      const url = urlMatch[0];
-      return (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-400 hover:text-blue-300 underline truncate block text-sm"
-          title={raw}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {raw}
-        </a>
-      );
-    }
-  }
-
-  let displayRaw = raw;
-  if (col.key === 'code_naf' && !displayRaw && lead.secteur) {
-    displayRaw = lead.secteur;
-  }
-
-  return (
-    <span
-      className={[
-        (col.key === 'siret' || col.key === 'lead_id') ? 'block text-xs font-bold' : 'truncate block text-sm',
-        col.bold ? 'text-navy font-bold' : 'text-navy/70',
-        col.mono ? 'font-mono tracking-tighter text-navy/90' : '',
-      ].join(' ')}
-      title={displayRaw || ''}
-    >
-      {displayRaw || '—'}
-    </span>
-  );
+  let displayVal = displayRaw;
+  if (col.key === 'lead_id') displayVal = (lead.status?.toLowerCase() === 'rdv' && raw) ? `D-${String(raw).padStart(5, '0')}` : '—';
+  return <span className={[(col.key === 'siret' || col.key === 'lead_id') ? 'block text-xs font-bold' : 'truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy/70', col.mono ? 'font-mono tracking-tighter text-navy/90' : ''].join(' ')} title={displayVal || ''}>{displayVal}</span>;
 });
 
 const TableRow = React.memo(({ data, index, style }) => {
-  const { 
-    leads, columns, handleUpdate, activePicker, setActivePicker, 
-    pickerRef, onDoubleClick, clickedRowId, onClick 
-  } = data;
-  
+  const { leads, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick, clickedRowId, onClick } = data;
   const lead = leads[index];
   const isClicked = clickedRowId === lead.id;
   const isActive = activePicker?.id === lead.id;
-
   return (
-    <div
-      style={{ 
-        ...style,
-        zIndex: isActive ? 100 : 1 
-      }}
-      className={`flex items-center hover:bg-[#fff5f7] transition-colors group/row cursor-pointer ${isClicked ? 'bg-[#fff5f7]' : ''}`}
-      onClick={() => onClick(lead.id)}
-      onDoubleClick={() => onDoubleClick(lead.id)}
-    >
-      <div className="w-14 flex-shrink-0 px-5 py-3 text-[10px] font-mono font-bold text-navy/10 group-hover/row:text-primary transition-colors text-center border-r border-navy/[0.02]">
-        {String(index + 1).padStart(2, '0')}
-      </div>
+    <div style={{ ...style, zIndex: isActive ? 100 : 1 }} className={`flex items-center hover:bg-[#fff5f7] transition-colors group/row cursor-pointer ${isClicked ? 'bg-[#fff5f7]' : ''}`} onClick={() => onClick(lead.id)} onDoubleClick={() => onDoubleClick(lead.id)}>
       {columns.map(col => (
-        <div
-          key={col.key}
-          style={{ width: col.width, minWidth: col.width }}
-          className={`flex-shrink-0 px-6 py-3 border-l border-navy/[0.02] ${col.type === 'pec_dates' || col.type === 'select' ? '' : 'overflow-hidden'}`}
-        >
-          <TableCell
-            lead={lead}
-            col={col}
-            handleUpdate={handleUpdate}
-            isActive={isActive && activePicker?.field === col.key}
-            activePicker={activePicker}
-            setActivePicker={setActivePicker}
-            pickerRef={pickerRef}
-            index={index}
-          />
+        <div key={col.key} style={{ width: col.width, minWidth: col.width }} className={`flex-shrink-0 px-6 py-3 border-l border-navy/[0.02] ${col.type === 'pec_dates' || col.type === 'select' ? '' : 'overflow-hidden'}`}>
+          <TableCell lead={lead} col={col} handleUpdate={handleUpdate} isActive={isActive && activePicker?.field === col.key} activePicker={activePicker} setActivePicker={setActivePicker} pickerRef={pickerRef} index={index} />
         </div>
       ))}
     </div>
   );
 });
 
-const InnerTable = React.forwardRef(({ children, ...rest }, ref) => (
-  <div ref={ref} {...rest} style={{ ...rest.style, minWidth: 1600 }}>
-    {children}
-  </div>
-));
+const FILTERABLE_COLUMNS = ['funebooster', 'nom_opco', 'idcc', 'code_naf', 'tel', 'mobile', 'code_departement', 'status', 'client_of', 'date_rdv', 'date_signe'];
+const uniqueValuesCache = {};
+
+const useUniqueValues = (field, initialSearch = '') => {
+  const [values, setValues] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchValues = useCallback(async (searchTerm = '') => {
+    // Check cache for empty search (initial load)
+    if (!searchTerm && uniqueValuesCache[field]) {
+      setValues(uniqueValuesCache[field]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('crm_leads')
+        .select(field)
+        .not(field, 'is', null);
+
+      if (searchTerm) {
+        query = query.ilike(field, `%${searchTerm}%`);
+      }
+
+      const { data, error } = await query.limit(2000); 
+
+      if (!error && data) {
+        const colDef = COLUMNS.find(c => c.key === field);
+        const options = colDef?.options || [];
+        
+        const rawUnique = [...new Set(data.map(item => String(item[field]).toUpperCase().trim()))].filter(Boolean);
+
+        // Helper to match broken data to correct labels
+        const getCanonicalLabel = (val) => {
+          const fuzzy = val.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/g, "");
+          
+          // Hard fixes for the user's specific errors
+          if (fuzzy === "HORSCIBLESALARIS") return "HORS CIBLE SALARIÉS";
+          if (fuzzy === "HORSCIBLESIGE") return "HORS CIBLE SIÈGE";
+          if (fuzzy === "OCCUP") return "OCCUPÉ";
+          
+          // Try to match against predefined options
+          for (const opt of options) {
+            const cleanOpt = opt.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/g, "");
+            if (fuzzy === cleanOpt) return opt;
+          }
+          return val;
+        };
+
+        const deduplicated = [];
+        const seen = new Set();
+        
+        // Process DB values through canonical filter
+        rawUnique.forEach(val => {
+          const canonical = getCanonicalLabel(val);
+          if (!seen.has(canonical)) {
+            deduplicated.push(canonical);
+            seen.add(canonical);
+          }
+        });
+
+        const finalSorted = deduplicated.sort((a, b) => a.localeCompare(b));
+        
+        if (!searchTerm) {
+          uniqueValuesCache[field] = finalSorted;
+        }
+        
+        setValues(prev => {
+          const merged = [...new Set([...prev, ...finalSorted])];
+          return merged.sort((a, b) => a.localeCompare(b));
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching unique values:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [field]);
+
+  return { values, loading, fetchValues };
+};
+
+const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anchorRect }) => {
+  const { values: allValues, loading, fetchValues } = useUniqueValues(field);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selected, setSelected] = useState(activeValues || []);
+  
+  // Also include predefined options if available in COLUMNS for this field
+  const colDef = COLUMNS.find(c => c.key === field);
+  const combinedValues = useMemo(() => {
+    const fromDB = allValues || [];
+    const fromDef = (colDef?.options || []).map(o => String(o).toUpperCase().trim());
+    const fromSelected = (selected || []).map(s => String(s).toUpperCase().trim());
+    return [...new Set([...fromDB, ...fromDef, ...fromSelected])].sort((a, b) => a.localeCompare(b));
+  }, [allValues, colDef, selected]);
+
+  useEffect(() => {
+    fetchValues();
+  }, [fetchValues]);
+
+  // Server-side search debounce
+  useEffect(() => {
+    if (!searchTerm) return;
+    const timer = setTimeout(() => {
+      fetchValues(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm, fetchValues]);
+
+  const filtered = combinedValues.filter(v => 
+    String(v).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const handleToggle = (val) => setSelected(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  const menuStyle = { position: 'fixed', top: anchorRect.bottom + 8, left: Math.min(anchorRect.left, window.innerWidth - 280), width: 260, zIndex: 9999 };
+  return (
+    <div style={menuStyle} className="bg-white rounded-2xl shadow-2xl border border-navy/10 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200" onClick={(e) => e.stopPropagation()}>
+      <div className="p-4 border-b border-navy/5 bg-navy/[0.02]">
+        <div className="flex items-center justify-between mb-3 text-[10px] font-black text-navy/40 uppercase tracking-widest">
+          <span>Filtrer {label}</span>
+          <div className="flex gap-3">
+            <button onClick={() => setSelected(combinedValues)} className="text-primary hover:text-primary-dark transition-colors">Tous</button>
+            <button onClick={() => setSelected([])} className="text-secondary hover:text-secondary-dark transition-colors">Aucun</button>
+          </div>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy/30" />
+          <input autoFocus type="text" placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white border border-navy/10 rounded-xl text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
+        </div>
+      </div>
+      <div className="flex-1 max-h-64 overflow-y-auto custom-scrollbar p-2">
+        {loading && combinedValues.length === 0 ? (
+          <div className="py-8 flex flex-col items-center justify-center text-navy/30"><RefreshCw className="w-5 h-5 animate-spin mb-2" /><span className="text-[10px] uppercase tracking-wider font-bold">Chargement...</span></div>
+        ) : filtered.length === 0 ? (
+          <div className="py-8 text-center text-navy/30 text-[10px] uppercase font-bold tracking-widest">Aucun résultat</div>
+        ) : (
+          <div className="space-y-0.5">
+            {filtered.map(val => (
+              <button key={val} onClick={() => handleToggle(val)} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy/5 transition-colors group text-left">
+                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${selected.includes(val) ? 'bg-primary border-primary' : 'bg-white border-navy/20 group-hover:border-navy/40'}`}>{selected.includes(val) && <Check className="w-2.5 h-2.5 text-white stroke-[4]" />}</div>
+                <span className={`text-xs truncate ${selected.includes(val) ? 'text-navy font-bold' : 'text-navy/60'}`}>{val || '(Vide)'}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="p-3 bg-navy/[0.02] border-t border-navy/5 flex gap-2">
+        <button onClick={onClose} className="flex-1 px-4 py-2 text-[10px] font-black text-navy/40 uppercase tracking-widest hover:bg-navy/5 rounded-xl transition-all">Annuler</button>
+        <button onClick={() => onApply(selected)} className="flex-1 px-4 py-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 transition-all">Appliquer</button>
+      </div>
+    </div>
+  );
+};
 
 const MondayTable = React.memo(({ activeTab, user }) => {
   const [leads, setLeads] = useState([]);
@@ -636,73 +549,64 @@ const MondayTable = React.memo(({ activeTab, user }) => {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState('');
-  const [activePicker, setActivePicker] = useState(null); // { id, field }
+  const [activeFilters, setActiveFilters] = useState({});
+  const [activePicker, setActivePicker] = useState(null);
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [clickedRowId, setClickedRowId] = useState(null);
-  const pickerRef = useRef(null);
+  const [filterMenu, setFilterMenu] = useState(null);
   const listRef = useRef(null);
+  const pickerRef = useRef(null);
+  const tableTotalWidth = useMemo(() => COLUMNS.reduce((acc, col) => acc + col.width, 0), []);
 
-  const tableTotalWidth = useMemo(() => COLUMNS.reduce((acc, col) => acc + col.width, 48), []);
-
-  // Close picker on outside click
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
-        setActivePicker(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Initial fetch + count
-  const fetchPage = useCallback(async (pageIndex, replace = false, searchQuery = '') => {
+  const fetchPage = useCallback(async (pageIndex, replace = false, searchQuery = '', filters = activeFilters) => {
     if (!supabase) return;
-    if (pageIndex === 0) setLoading(true);
-    else setLoadingMore(true);
-
+    if (pageIndex === 0) setLoading(true); else setLoadingMore(true);
     const from = pageIndex * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-
-    let query = supabase
-      .from('crm_leads')
-      .select('*', { count: pageIndex === 0 ? 'exact' : 'estimated' });
-
-    if (searchQuery) {
-      // Filter by name, siret, or project
-      query = query.or(`nom_entreprise.ilike.%${searchQuery}%,siret.ilike.%${searchQuery}%,projet.ilike.%${searchQuery}%`);
-    }
-
-    // Role-based and View-based filtering
+    let query = supabase.from('crm_leads').select('*', { count: pageIndex === 0 ? 'exact' : 'estimated' });
+    if (searchQuery) query = query.or(`nom_entreprise.ilike.%${searchQuery}%,siret.ilike.%${searchQuery}%,projet.ilike.%${searchQuery}%`);
+    // Column Filters - Case-Insensitive + Wildcard matching to handle broken accents
+    Object.entries(filters).forEach(([field, values]) => {
+      if (values && values.length > 0) {
+        // Replace non-ASCII (accents, broken ) with '%' wildcards to match all variations in DB
+        const ilikeConditions = values.map(v => {
+          const safeVal = String(v).replace(/[^\x00-\x7F]/g, '%');
+          return `${field}.ilike.${safeVal}`;
+        }).join(',');
+        query = query.or(ilikeConditions);
+      }
+    });
     if (activeTab === 'mes-rdv') {
-      query = query.ilike('status', 'rdv').ilike('funebooster', user?.name);
-    } else if (activeTab === 'mes-rappel') {
-      query = query.ilike('status', 'rappel').ilike('funebooster', user?.name);
+      query = query.ilike('status', 'rdv');
+      if (user?.role === 'commercial') {
+        query = query.eq('client_of', user.client);
+      } else {
+        query = query.ilike('funebooster', user?.name);
+      }
     }
-
-    const { data, error, count } = await query
-      .order('date_modification', { ascending: false })
-      .range(from, to);
-
+    else if (activeTab === 'mes-rappel') query = query.ilike('status', 'rappel').ilike('funebooster', user?.name);
+    const { data, error, count } = await query.order('date_modification', { ascending: false }).range(from, to);
     if (!error && data) {
       if (pageIndex === 0 && count !== null) setTotalCount(count);
       setLeads(prev => replace ? data : [...prev, ...data]);
       setHasMore(data.length === PAGE_SIZE);
     }
-
-    setLoading(false);
-    setLoadingMore(false);
+    setLoading(false); setLoadingMore(false);
   }, [activeTab, user]);
 
-  // Debounced search effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(0);
-      fetchPage(0, true, search);
-    }, search ? 500 : 0);
+  const handleApplyFilter = useCallback((field, values) => {
+    const newFilters = { ...activeFilters, [field]: values };
+    if (!values || values.length === 0) delete newFilters[field];
+    setActiveFilters(newFilters);
+    setFilterMenu(null);
+    setPage(0);
+    fetchPage(0, true, search, newFilters);
+  }, [activeFilters, fetchPage, search]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => { setPage(0); fetchPage(0, true, search, activeFilters); }, search ? 500 : 0);
     return () => clearTimeout(timer);
-  }, [search, fetchPage, activeTab]);
+  }, [search, fetchPage, activeTab, activeFilters]);
 
   // Realtime subscription with debounce to avoid excessive refreshes
   useEffect(() => {
@@ -710,12 +614,18 @@ const MondayTable = React.memo(({ activeTab, user }) => {
       let timeoutId;
       const ch = supabase
         .channel('crm_leads_rt')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_leads' }, () => {
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            fetchPage(0, true, search);
-            setPage(0);
-          }, 2000); // 2 seconds debounce for RT
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_leads' }, (payload) => {
+          if (payload.eventType === 'UPDATE') {
+            const updatedLead = payload.new;
+            setLeads(prev => prev.map(l => l.id === updatedLead.id ? { ...l, ...updatedLead } : l));
+          } else if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
+            // Only re-fetch for structural changes to avoid excessive jumping
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+              fetchPage(0, true, search, activeFilters);
+              setPage(0);
+            }, 2000);
+          }
         })
         .subscribe();
       return () => {
@@ -723,175 +633,138 @@ const MondayTable = React.memo(({ activeTab, user }) => {
         clearTimeout(timeoutId);
       };
     }
-  }, [fetchPage, search, activeTab]);
-
-  const loadMore = () => {
-    const next = page + 1;
-    setPage(next);
-    fetchPage(next, false, search);
-  };
+  }, [fetchPage, search, activeTab, activeFilters]);
 
   const handleUpdate = useCallback(async (id, field, value) => {
-    // Lead object to update
-    const lead = leads.find(l => l.id === id);
-    if (!lead) return;
-
-    // Convert empty string to null for database compatibility
+    const idStr = String(id).toLowerCase();
+    const leadIndex = leads.findIndex(l => String(l.id).toLowerCase() === idStr);
+    if (leadIndex === -1) return;
+    const lead = leads[leadIndex];
     let dbValue = value === '' ? null : value;
-
-    // Normalize time format for the database (HHhMM -> HH:mm:00)
-    if (field === 'heure_rdv' && dbValue) {
-      const parts = dbValue.split(/[:hH]/);
-      const h = parts[0]?.padStart(2, '0') || '00';
-      const m = (parts[1] || '00').substring(0, 2).padStart(2, '0');
-      dbValue = `${h}:${m}:00`;
-    }
-
+    if (field === 'status' && dbValue) dbValue = dbValue.toUpperCase();
+    if (field === 'heure_rdv' && dbValue) { const parts = dbValue.split(/[:hH]/); const h = parts[0]?.padStart(2, '0') || '00'; const m = (parts[1] || '00').substring(0, 2).padStart(2, '0'); dbValue = `${h}:${m}:00`; }
     let updates = { [field]: dbValue, date_modification: new Date().toISOString() };
-
-    // Automatic extractions
-    if (field === 'adresse' && value) {
-      const cpMatch = value.match(/\b\d{5}\b/);
-      if (cpMatch) {
-        updates.code_postal = cpMatch[0];
-        updates.code_departement = cpMatch[0].substring(0, 2);
-      }
-    }
-
-    // Automatic calculations
-    if (field === 'ca_signe_ht' || field === 'nb_heures_formation') {
-      const ca = field === 'ca_signe_ht' ? parseFloat(value) : parseFloat(lead.ca_signe_ht);
-      const hrs = field === 'nb_heures_formation' ? parseFloat(value) : parseFloat(lead.nb_heures_formation);
-      if (ca && hrs && hrs !== 0) {
-        updates.tx_horaire_ca = (ca / hrs).toFixed(2);
-      }
-    }
-
-    // Optimistic UI update
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
-
-    if (supabase) {
-      console.log(`[Sync] Mise à jour du lead ${id}...`);
-      const { error: updateError } = await supabase
-        .from('crm_leads')
-        .update(updates)
-        .eq('id', id);
+    if (field === 'adresse' && value) { const cpMatch = value.match(/\b\d{5}\b/); if (cpMatch) { updates.code_postal = cpMatch[0]; updates.code_departement = cpMatch[0].substring(0, 2); } }
+    
+    // Auto-fill Secteur et Libellé d'activité à partir de l'IDCC
+    if (field === 'idcc' && value) {
+      const cleanIdcc = String(value).trim().replace(/^0+/, ''); // Removing leading zeros
+      // Match exact value or value padded with leading zero
+      const mapping = opcoMapping[value.trim()] || opcoMapping[String(value).trim().padStart(4, '0')];
       
-      if (updateError) console.error('[Sync] Erreur mise à jour lead:', updateError);
-
-      // Log observation history if field is observation
-      if (field === 'observation' && value) {
-        console.log(`[History] Enregistrement d'une nouvelle observation pour ${id} par ${user?.name || 'Inconnu'}...`);
-        const { error: historyError } = await supabase
-          .from('crm_observations_history')
-          .insert({
-            lead_id: id,
-            observation_text: value,
-            created_by: user?.name || 'Inconnu'
-          });
+      if (mapping) {
+        if (mapping.activite) updates.secteur_activite = mapping.activite;
         
-        if (historyError) {
-          console.error('[History] Erreur enregistrement historique:', historyError);
-        } else {
-          console.log('[History] Observation enregistrée avec succès.');
+        if (mapping.sous_activite) {
+          const rawNaf = lead.code_naf || lead.secteur || '';
+          const nafCode = String(rawNaf).trim().toUpperCase();
+          
+          if (nafCode) {
+            // Remove all dots, spaces, dashes for a pure alphanumeric match
+            const cleanNafMatch = nafCode.replace(/[^A-Z0-9]/g, '');
+            
+            // Split by newlines handling \r\n
+            const lines = mapping.sous_activite.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+            
+            // Find the precise line containing the NAF code (ignoring dots in both)
+            const matchingLine = lines.find(line => {
+              const cleanLine = line.toUpperCase().replace(/[^A-Z0-9]/g, '');
+              return cleanLine.includes(cleanNafMatch);
+            });
+            
+            if (matchingLine) {
+              // Replace the Excel's NAF prefix with the user's perfectly formatted NAF code (e.g. 47.11D)
+              updates.libelle_activite = matchingLine.replace(/^([^:-]+)([:-]\s*)/i, `${nafCode} - `);
+            } else if (lines.length === 1) {
+              updates.libelle_activite = lines[0].replace(/^([^:-]+)([:-]\s*)/i, `${nafCode} - `);
+            } else {
+              // If still no match, join with spaces to avoid words glued together in HTML
+              updates.libelle_activite = lines.join(' | ');
+            }
+          } else {
+            // Join with spaces to avoid clumping if rendered without pre-wrap
+            updates.libelle_activite = mapping.sous_activite.split(/\r?\n/).join(' | ');
+          }
         }
       }
     }
+
+    // Auto-fill Libellé d'activité à partir du Code NAF
+    if (field === 'code_naf' && value) {
+      const cleanNaf = String(value).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const description = nafMapping[cleanNaf];
+      if (description) {
+        updates.libelle_activite = description;
+      }
+    }
+    
+    if (field === 'ca_signe_ht' || field === 'nb_heures_formation') { const ca = field === 'ca_signe_ht' ? parseFloat(value) : parseFloat(lead.ca_signe_ht); const hrs = field === 'nb_heures_formation' ? parseFloat(value) : parseFloat(lead.nb_heures_formation); if (ca && hrs && hrs !== 0) updates.tx_horaire_ca = (ca / hrs).toFixed(2); }
+    const updatedLead = { ...lead, ...updates };
+    setLeads(prev => { const newList = [...prev]; newList[leadIndex] = updatedLead; return newList; });
+    if (supabase) {
+      await supabase.from('crm_leads').update(updates).eq('id', id);
+      if (field === 'observation' && value) await supabase.from('crm_observations_history').insert({ lead_id: id, observation_text: value, created_by: user?.name || 'Inconnu' });
+    }
   }, [leads, user]);
 
-  const filtered = useMemo(() => {
-    return leads;
-  }, [leads]);
+  const loadMore = useCallback(() => {
+    const next = page + 1;
+    setPage(next);
+    fetchPage(next, false, search, activeFilters);
+  }, [page, fetchPage, search, activeFilters]);
 
-  const tableMinWidth = COLUMNS.reduce((a, c) => a + c.width, 48);
-
-  const itemData = useMemo(() => ({
-    leads: filtered,
-    columns: COLUMNS,
-    handleUpdate,
-    activePicker,
-    setActivePicker,
-    pickerRef,
-    onDoubleClick: setSelectedLeadId,
-    clickedRowId,
-    onClick: setClickedRowId
-  }), [filtered, handleUpdate, activePicker, setActivePicker, clickedRowId]);
+  const itemData = useMemo(() => ({ leads, columns: COLUMNS, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick: setSelectedLeadId, clickedRowId, onClick: setClickedRowId }), [leads, handleUpdate, activePicker, setActivePicker, clickedRowId]);
 
   return (
     <div className="flex flex-col gap-6 w-full h-full animate-in fade-in duration-700">
-
-      {/* ── Top bar ── */}
       <div className="flex items-center justify-between gap-4 flex-wrap px-1">
         <div className="flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-navy/5 border border-navy/5 shadow-inner">
-            <LayoutGrid className="w-5 h-5 text-navy" />
-          </div>
+          <div className="p-3 rounded-2xl bg-navy/5 border border-navy/5 shadow-inner"><LayoutGrid className="w-5 h-5 text-navy" /></div>
           <div className="flex flex-col">
             <span className="text-2xl font-black tracking-tight text-navy leading-none mb-1">Inventaire Leads</span>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-navy/40 uppercase tracking-widest">
-                {leads.length.toLocaleString()} {activeTab === 'leads' ? 'chargés' : 'extraits'}
-              </span>
+              <span className="text-[10px] font-bold text-navy/40 uppercase tracking-widest">{leads.length.toLocaleString()} chargés</span>
               <div className="w-1 h-1 rounded-full bg-navy/20" />
-              {totalCount > 0 && (
-                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
-                  {totalCount.toLocaleString()} au total
-                </span>
-              )}
+              {totalCount > 0 && <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{totalCount.toLocaleString()} au total</span>}
             </div>
           </div>
         </div>
-
         <div className="flex items-center gap-3">
-          <SearchInput
-            value={search}
-            onSearch={setSearch}
-          />
-          
-          <button className="p-3.5 rounded-2xl border border-navy/10 bg-white hover:bg-navy/5 text-navy/30 hover:text-navy transition-all shadow-sm group">
-            <Filter className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-          </button>
-
-          <a
-            href="https://quel-est-mon-opco.francecompetences.fr/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-6 py-3.5 bg-navy text-white rounded-2xl text-sm font-bold hover:bg-navy/90 transition-all shadow-lg shadow-navy/10 group"
-          >
-            Vérif OPCO
-            <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </a>
+          <SearchInput value={search} onSearch={setSearch} />
+          <a href="https://quel-est-mon-opco.francecompetences.fr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3.5 bg-navy text-white rounded-2xl text-sm font-bold hover:bg-navy/90 transition-all shadow-lg shadow-navy/10 group">Vérif OPCO<ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>
         </div>
       </div>
-
-      {/* ── Table Container (Unified Scroll) ── */}
-      <div
-        className="rounded-[2rem] border border-navy/5 shadow-2xl bg-white overflow-x-auto custom-scrollbar"
-        style={{ height: 'calc(100vh - 180px)' }}
-      >
+      <div className="rounded-[2rem] border border-navy/5 shadow-2xl bg-white overflow-x-auto custom-scrollbar" style={{ height: 'calc(100vh - 180px)' }}>
         <div style={{ width: tableTotalWidth }}>
-          {/* Header Row (Sticky) */}
           <div className="sticky top-0 z-[60] flex items-center bg-[#f8f9ff] border-b border-navy/5 shadow-sm">
-            <div className="w-14 flex-shrink-0 px-5 py-4 text-[10px] font-black text-navy/20 uppercase tracking-widest text-center italic border-r border-navy/5">#</div>
-            {COLUMNS.map(col => (
-              <div
-                key={col.key}
-                style={{ width: col.width, minWidth: col.width }}
-                className="flex-shrink-0 px-6 py-4 text-[11px] font-black text-navy/60 uppercase tracking-[0.15em] border-l border-navy/[0.03]"
-              >
-                {col.label}
-              </div>
-            ))}
+            {COLUMNS.map(col => {
+              const isFilterable = FILTERABLE_COLUMNS.includes(col.key);
+              const isActive = activeFilters[col.key]?.length > 0;
+              return (
+                <div key={col.key} style={{ width: col.width, minWidth: col.width }} className="flex-shrink-0 px-6 py-4 text-[11px] font-black text-navy/60 uppercase tracking-[0.15em] border-l border-navy/[0.03] flex items-center justify-between group">
+                  <span className="break-words leading-tight pr-2">{col.label}</span>
+                  {isFilterable && (
+                    <button onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setFilterMenu({ field: col.key, label: col.label, anchorRect: rect }); }} className={`p-1.5 rounded-lg transition-all ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-navy/20 hover:bg-navy/5 hover:text-navy/40'}`}>
+                      <Filter className={`w-3 h-3 ${isActive ? 'fill-current' : ''}`} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
-
-          {/* Virtualized Body */}
+          {filterMenu && (
+            <>
+              <div className="fixed inset-0 z-[9998]" onClick={() => setFilterMenu(null)} />
+              <ColumnFilterPortal {...filterMenu} activeValues={activeFilters[filterMenu.field]} onApply={(values) => handleApplyFilter(filterMenu.field, values)} onClose={() => setFilterMenu(null)} />
+            </>
+          )}
           <div className="relative">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-32 gap-4">
                 <div className="w-10 h-10 border-4 border-navy/10 border-t-primary rounded-full animate-spin" />
                 <span className="text-[10px] font-bold text-navy/30 uppercase tracking-[0.3em]">Synchronisation en cours…</span>
               </div>
-            ) : filtered.length === 0 ? (
+            ) : leads.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-32 gap-4">
                 <div className="w-16 h-16 rounded-3xl bg-navy/5 flex items-center justify-center">
                   <span className="text-3xl grayscale opacity-50 text-navy">📭</span>
@@ -906,18 +779,23 @@ const MondayTable = React.memo(({ activeTab, user }) => {
                 ref={listRef}
                 height={550}
                 width={tableTotalWidth}
-                itemCount={filtered.length}
+                itemCount={leads.length}
                 itemSize={48}
                 itemData={itemData}
                 style={{ overflowY: 'auto', overflowX: 'hidden' }}
                 onItemsRendered={({ visibleStopIndex }) => {
-                  if (hasMore && !search && !loadingMore && visibleStopIndex >= filtered.length - 10) {
+                  if (hasMore && !search && !loadingMore && visibleStopIndex >= leads.length - 10) {
                     loadMore();
                   }
                 }}
               >
                 {TableRow}
               </List>
+            )}
+            {loadingMore && (
+              <div className="py-4 text-center">
+                <RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary" />
+              </div>
             )}
           </div>
         </div>

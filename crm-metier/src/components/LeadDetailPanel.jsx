@@ -1,10 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { X, Clock, User, Building2, MapPin, Hash, Briefcase, Calendar, MessageSquare, History, Phone } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import nafMapping from '../data/naf_mapping.json';
+
+const formatNaf = (val) => {
+  if (!val) return val;
+  const clean = String(val).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (clean.length === 5) {
+    return `${clean.substring(0, 2)}.${clean.substring(2, 4)}${clean.substring(4)}`;
+  }
+  if (clean.length === 4) {
+    const matches = Object.keys(nafMapping).filter(k => k.startsWith(clean));
+    if (matches.length === 1) {
+      const full = matches[0];
+      return `${full.substring(0, 2)}.${full.substring(2, 4)}${full.substring(4)}`;
+    }
+    return `${clean.substring(0, 2)}.${clean.substring(2)}`;
+  }
+  return val;
+};
 
 const LeadDetailPanel = ({ leadId, lead, onClose, userName }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Helper for automated NAF label
+  const getAutomatedLibelle = () => {
+    if (lead.libelle_activite) return lead.libelle_activite;
+    const nafValue = lead.code_naf || lead.secteur;
+    if (nafValue) {
+      const cleanNaf = String(nafValue).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      let desc = nafMapping[cleanNaf];
+      
+      // Fuzzy match if incomplete (4 digits)
+      if (!desc && cleanNaf.length === 4) {
+        const matches = Object.keys(nafMapping).filter(k => k.startsWith(cleanNaf));
+        if (matches.length === 1) desc = nafMapping[matches[0]];
+      }
+      
+      return desc || null;
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (leadId) {
@@ -95,9 +132,9 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName }) => {
                 <InfoItem label="Raison Sociale" value={lead.nom_entreprise} icon={Building2} />
                 <InfoItem label="N° SIRET" value={lead.siret} icon={Hash} isMono />
                 <InfoItem label="Secteur" value={lead.secteur_activite} icon={Briefcase} />
-                <InfoItem label="Libellé" value={lead.libelle_activite} />
+                <InfoItem label="Libellé" value={getAutomatedLibelle()} />
                 <InfoItem label="Opco" value={lead.nom_opco} />
-                <InfoItem label="NAF" value={lead.code_naf} isMono />
+                <InfoItem label="NAF" value={lead.code_naf || lead.secteur} isMono />
               </div>
             </section>
 
@@ -217,7 +254,7 @@ const InfoItem = ({ label, value, icon: Icon, isMono }) => (
       {Icon && <Icon className="w-3.5 h-3.5 text-navy/20" />}
       <span className="text-[10px] font-bold text-navy/30 uppercase tracking-widest">{label}</span>
     </div>
-    <span className={`text-navy font-bold truncate ${isMono ? 'font-mono tracking-tighter text-sm' : 'text-[13px]'}`}>
+    <span className={`text-navy font-bold break-words leading-snug ${isMono ? 'font-mono tracking-tighter text-sm' : 'text-[13px]'}`}>
       {value || '—'}
     </span>
   </div>
