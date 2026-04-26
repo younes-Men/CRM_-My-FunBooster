@@ -28,6 +28,7 @@ const STATUS_COLORS = {
   'pi':                   { bg: '#0f172a', text: '#ff007f' },
   'rappel':               { bg: '#d97706', text: '#fff' },
   'rdv':                  { bg: '#16a34a', text: '#fff' },
+  'en attente rdv':       { bg: '#f97316', text: '#fff' }, // Orange pour l'attente
   'repondeur':            { bg: '#475569', text: '#fff' },
   'signe':                { bg: '#ff007f', text: '#fff' },
   // Status Gérant colors (matching user image)
@@ -99,7 +100,7 @@ const COLUMNS = [
   { label: 'Code Postal',  key: 'code_postal',       width: 100, type: 'auto' },
   { label: 'Code Dépt.',   key: 'code_departement',  width: 100, type: 'auto' },
   { label: 'Statut',       key: 'status',            width: 180, type: 'select', options: [
-    'A TRAITER', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
+    'A TRAITER', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
   ]},
   { label: 'E-mail',       key: 'email',             width: 200, type: 'editable' },
@@ -318,7 +319,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     return (
       <div className="relative group/picker w-full flex items-center">
         <div className="absolute inset-0 flex items-center justify-center text-navy text-[11px] font-bold pointer-events-none group-hover/picker:opacity-0 transition-opacity">{formatDateFr(raw)}</div>
-        <input type="date" defaultValue={raw || ''} onChange={e => handleUpdate(lead.id, col.key, e.target.value)} className="w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] hover:bg-navy/[0.06] border border-transparent hover:border-navy/10 rounded-lg text-transparent hover:text-navy text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all" />
+        <input type="date" defaultValue={raw || ''} onChange={e => handleUpdate(lead.id, col.key, e.target.value)} className="w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] hover:bg-navy/[0.06] border border-transparent hover:border-navy/10 rounded-lg text-transparent hover:text-navy text-[11px] font-bold cursor-pointer transition-all" />
       </div>
     );
   }
@@ -367,8 +368,8 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     return <span className={`${!raw && displayValue ? 'text-primary' : 'text-navy/40'} text-xs italic font-medium`}>{displayValue || 'auto'}</span>;
   }
   let displayVal = displayRaw;
-  if (col.key === 'lead_id') displayVal = (lead.status?.toLowerCase() === 'rdv' && raw) ? `D-${String(raw).padStart(5, '0')}` : '—';
-  return <span className={[(col.key === 'siret' || col.key === 'lead_id') ? 'block text-xs font-bold' : 'truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy/70', col.mono ? 'font-mono tracking-tighter text-navy/90' : ''].join(' ')} title={displayVal || ''}>{displayVal}</span>;
+  if (col.key === 'lead_id') displayVal = (lead.status?.toUpperCase() === 'RDV' && raw) ? `D-${String(raw).padStart(5, '0')}` : '—';
+  return <span className={[(col.key === 'siret' || col.key === 'lead_id') ? 'block text-xs font-bold' : 'truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy/70', col.mono ? 'font-mono tracking-tighter text-navy/90' : ''].join(' ')} title={displayVal || ''}>{displayVal || '—'}</span>;
 });
 
 const TableRow = React.memo(({ data, index, style }) => {
@@ -641,7 +642,13 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     if (leadIndex === -1) return;
     const lead = leads[leadIndex];
     let dbValue = value === '' ? null : value;
-    if (field === 'status' && dbValue) dbValue = dbValue.toUpperCase();
+    if (field === 'status' && dbValue) {
+      dbValue = dbValue.toUpperCase();
+      // Intercepter le statut RDV si l'utilisateur n'est pas ADMIN
+      if (dbValue === 'RDV' && user?.role !== 'admin') {
+        dbValue = 'EN ATTENTE RDV';
+      }
+    }
     if (field === 'heure_rdv' && dbValue) { const parts = dbValue.split(/[:hH]/); const h = parts[0]?.padStart(2, '0') || '00'; const m = (parts[1] || '00').substring(0, 2).padStart(2, '0'); dbValue = `${h}:${m}:00`; }
     let updates = { [field]: dbValue, date_modification: new Date().toISOString() };
     if (field === 'adresse' && value) { const cpMatch = value.match(/\b\d{5}\b/); if (cpMatch) { updates.code_postal = cpMatch[0]; updates.code_departement = cpMatch[0].substring(0, 2); } }
@@ -792,21 +799,15 @@ const MondayTable = React.memo(({ activeTab, user }) => {
                 {TableRow}
               </List>
             )}
-            {loadingMore && (
-              <div className="py-4 text-center">
-                <RefreshCw className="w-5 h-5 animate-spin mx-auto text-primary" />
-              </div>
-            )}
           </div>
         </div>
       </div>
-
       {selectedLeadId && (
         <LeadDetailPanel 
-          leadId={selectedLeadId}
-          lead={leads.find(l => l.id === selectedLeadId)}
-          onClose={() => setSelectedLeadId(null)}
-          userName={user?.name}
+          leadId={selectedLeadId} 
+          lead={leads.find(l => l.id === selectedLeadId)} 
+          onClose={() => setSelectedLeadId(null)} 
+          userName={user?.name} 
         />
       )}
     </div>

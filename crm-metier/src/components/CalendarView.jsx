@@ -45,6 +45,7 @@ const CalendarView = ({ user }) => {
     let query = supabase
       .from('crm_leads')
       .select('*')
+      .eq('status', 'RDV')
       .not('date_rdv', 'is', null);
 
     if (isCommercial && user.client) {

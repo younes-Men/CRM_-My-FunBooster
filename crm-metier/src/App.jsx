@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import MondayTable from './components/MondayTable';
 import TeamList from './components/TeamList';
+import TempRdvZone from './components/TempRdvZone';
 import CalendarView from './components/CalendarView';
 import Pipeline from './components/Pipeline';
 import { getUser } from './lib/authConfig';
@@ -16,15 +17,17 @@ function App() {
 
   // Check for existing session
   useEffect(() => {
-    const savedEmail = localStorage.getItem('crm_user_email');
-    if (savedEmail) {
-      const userData = getUser(savedEmail);
-      if (userData) {
-        setUser({ ...userData, email: savedEmail });
-        // Set default tab for commercial users
-        if (userData.role === 'commercial') setActiveTab('pipeline');
+    const checkSession = async () => {
+      const savedEmail = localStorage.getItem('crm_user_email');
+      if (savedEmail) {
+        const userData = await getUser(savedEmail);
+        if (userData) {
+          setUser({ ...userData, email: savedEmail });
+          if (userData.role === 'commercial') setActiveTab('pipeline');
+        }
       }
-    }
+    };
+    checkSession();
   }, []);
 
   useEffect(() => {
@@ -33,13 +36,13 @@ function App() {
     }
   }, [user, activeTab]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const userData = getUser(email);
+    setLoginError('');
+    const userData = await getUser(email);
     if (userData) {
       setUser({ ...userData, email });
       localStorage.setItem('crm_user_email', email);
-      setLoginError('');
     } else {
       setLoginError('Accès non autorisé. Vérifiez votre e-mail.');
     }
@@ -144,7 +147,9 @@ function App() {
           {/* Dynamic Content */}
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             {activeTab === 'users' ? (
-              <TeamList />
+              <TeamList currentUser={user} />
+            ) : activeTab === 'temp-rdv' ? (
+              <TempRdvZone user={user} />
             ) : activeTab === 'calendar' ? (
               <CalendarView user={user} />
             ) : activeTab === 'pipeline' ? (

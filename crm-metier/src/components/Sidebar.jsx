@@ -46,6 +46,7 @@ const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsEx
   }
 
   if (isAdmin) {
+    menuItems.push({ id: 'temp-rdv', icon: Bell, label: 'Zone Temp' });
     menuItems.push({ id: 'users', icon: Users, label: 'Équipe' });
   }
 
