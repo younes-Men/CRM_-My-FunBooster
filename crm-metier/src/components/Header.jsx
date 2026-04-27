@@ -35,7 +35,9 @@ const Header = ({ activeTab, user }) => {
             {/* User Profile */}
             <div className="flex items-center gap-3 cursor-pointer group">
               <div className="flex flex-col items-end">
-                {!isAdmin && <span className="text-[9px] font-black text-navy/30 uppercase tracking-[0.15em] leading-none mb-1">FunBooster</span>}
+                <span className="text-[9px] font-black text-navy/30 uppercase tracking-[0.15em] leading-none mb-1">
+                  {user?.role || 'FunBooster'}
+                </span>
                 <span className="text-sm font-bold text-navy tracking-tight group-hover:text-primary transition-colors">
                   {user?.name}
                 </span>
