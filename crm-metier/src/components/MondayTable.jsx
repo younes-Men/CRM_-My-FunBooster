@@ -49,6 +49,14 @@ const STATUS_COLORS = {
   're-conquête':          { bg: '#fef3c7', text: '#b45309' },
   'oui':                  { bg: '#dcfce7', text: '#15803d' },
   'non':                  { bg: '#fee2e2', text: '#b91c1c' },
+  // RDV Status Commercial (Sync with Pipeline Stages)
+  'nouveau':              { bg: '#f3e8ff', text: '#6d28d9' },
+  'rap':                  { bg: '#f1f5f9', text: '#64748b' },
+  'proposition':          { bg: '#fee2e2', text: '#ef4444' },
+  'signé':                { bg: '#eff6ff', text: '#3b82f6' },
+  'pec':                  { bg: '#f1f5f9', text: '#1e293b' },
+  'gagné':                { bg: '#dcfce7', text: '#22c55e' },
+  'organisé':             { bg: '#ecfeff', text: '#06b6d4' },
   // Client OF specific colors
   'ca conseils':          { bg: '#fff7ed', text: '#c2410c' }, // Orange
   'tb formations':        { bg: '#eff6ff', text: '#1d4ed8' }, // Blue
@@ -80,7 +88,7 @@ const slugify = (text) => {
 const COLUMNS = [
   { label: 'ID',           key: 'lead_id',           width: 100, mono: true },
   { label: 'Funbooster',   key: 'funebooster',       width: 160, type: 'select', options: [
-    'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN'
+    'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA'
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Gérant',       key: 'gerant',            width: 150, type: 'editable' },
@@ -102,6 +110,9 @@ const COLUMNS = [
   { label: 'Statut',       key: 'status',            width: 180, type: 'select', options: [
     'A TRAITER', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
+  ]},
+  { label: 'Statut RDV',   key: 'status_rdv',        width: 180, type: 'select', options: [
+    'Nouveau', 'RAP', 'Proposition', 'Signé', 'PEC', 'Gagné', 'ORGANISÉ'
   ]},
   { label: 'E-mail',       key: 'email',             width: 200, type: 'editable' },
   { label: 'Site Web',     key: 'site_web',          width: 180, type: 'editable' },
@@ -555,9 +566,31 @@ const MondayTable = React.memo(({ activeTab, user }) => {
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [clickedRowId, setClickedRowId] = useState(null);
   const [filterMenu, setFilterMenu] = useState(null);
+  const [columns, setColumns] = useState(COLUMNS);
   const listRef = useRef(null);
   const pickerRef = useRef(null);
-  const tableTotalWidth = useMemo(() => COLUMNS.reduce((acc, col) => acc + col.width, 0), []);
+  const tableTotalWidth = useMemo(() => columns.reduce((acc, col) => acc + col.width, 0), [columns]);
+
+  // Fetch dynamic FunBooster names
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      if (!supabase) return;
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('name')
+        .eq('role', 'funebooster')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (!error && data) {
+        const names = [...new Set(data.map(m => m.name.toUpperCase()))].sort();
+        setColumns(prev => prev.map(col => 
+          col.key === 'funebooster' ? { ...col, options: names } : col
+        ));
+      }
+    };
+    fetchTeamMembers();
+  }, []);
 
   const fetchPage = useCallback(async (pageIndex, replace = false, searchQuery = '', filters = activeFilters) => {
     if (!supabase) return;
@@ -720,7 +753,7 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     fetchPage(next, false, search, activeFilters);
   }, [page, fetchPage, search, activeFilters]);
 
-  const itemData = useMemo(() => ({ leads, columns: COLUMNS, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick: setSelectedLeadId, clickedRowId, onClick: setClickedRowId }), [leads, handleUpdate, activePicker, setActivePicker, clickedRowId]);
+  const itemData = useMemo(() => ({ leads, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick: setSelectedLeadId, clickedRowId, onClick: setClickedRowId }), [leads, columns, handleUpdate, activePicker, setActivePicker, clickedRowId]);
 
   return (
     <div className="flex flex-col gap-6 w-full h-full animate-in fade-in duration-700">
@@ -744,7 +777,7 @@ const MondayTable = React.memo(({ activeTab, user }) => {
       <div className="rounded-[2rem] border border-navy/5 shadow-2xl bg-white overflow-x-auto custom-scrollbar" style={{ height: 'calc(100vh - 180px)' }}>
         <div style={{ width: tableTotalWidth }}>
           <div className="sticky top-0 z-[60] flex items-center bg-[#f8f9ff] border-b border-navy/5 shadow-sm">
-            {COLUMNS.map(col => {
+            {columns.map(col => {
               const isFilterable = FILTERABLE_COLUMNS.includes(col.key);
               const isActive = activeFilters[col.key]?.length > 0;
               return (

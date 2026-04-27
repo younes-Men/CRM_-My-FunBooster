@@ -173,6 +173,7 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName }) => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy/[0.02] p-6 rounded-3xl border border-navy/5">
                 <InfoItem label="Statut Actuel" value={lead.status} />
+                <InfoItem label="Statut RDV" value={lead.status_rdv} />
                 <InfoItem label="FUNEBOOSTER" value={lead.funebooster} icon={User} />
                 <InfoItem label="Date RDV" value={formatDate(lead.date_rdv, lead.heure_rdv)} />
                 <InfoItem label="Type RDV" value={lead.type_rdv} />

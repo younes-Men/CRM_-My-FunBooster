@@ -63,7 +63,8 @@ const Pipeline = ({ user }) => {
     if (!supabase) return;
     // Reset logic to ensure tickets move correctly between columns
     let updates = { 
-      date_modification: new Date().toISOString()
+      date_modification: new Date().toISOString(),
+      status_rdv: newStatus
     };
 
     switch (newStatus) {
@@ -112,8 +113,16 @@ const Pipeline = ({ user }) => {
       default:
         break;
     }
-    const { error } = await supabase.from('crm_leads').update(updates).eq('id', id);
     if (!error) setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+  };
+
+  const updateLead = async (id, updates) => {
+    if (!supabase) return;
+    const { error } = await supabase.from('crm_leads').update({
+      ...updates,
+      date_modification: new Date().toISOString()
+    }).eq('id', id);
+    if (!error) setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates, date_modification: new Date().toISOString() } : l));
   };
 
   const getLeadsByStatus = (status) => {
@@ -253,6 +262,11 @@ const Pipeline = ({ user }) => {
                           <div className="px-2 py-0.5 rounded bg-navy/5 border border-navy/5">
                             <span className="text-[9px] font-black text-navy/40 uppercase">{lead.status || 'RDV'}</span>
                           </div>
+                          {lead.status_rdv && (
+                            <div className="px-2 py-0.5 rounded bg-primary/10 border border-primary/10">
+                              <span className="text-[9px] font-black text-primary uppercase">{lead.status_rdv}</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="pt-2 flex items-center justify-between border-t border-navy/[0.03]">
@@ -285,6 +299,10 @@ const Pipeline = ({ user }) => {
             const updatedLead = leads.find(l => l.id === id);
             if (updatedLead) setSelectedLead({ ...updatedLead, ...updatesFromStatus(status) });
           }}
+          onUpdateLead={async (id, updates) => {
+            await updateLead(id, updates);
+            setSelectedLead(prev => prev ? { ...prev, ...updates } : null);
+          }}
         />
       )}
     </div>
@@ -294,13 +312,13 @@ const Pipeline = ({ user }) => {
 // Helper to simulate updates for the UI
 function updatesFromStatus(status) {
   switch (status) {
-    case 'Nouveau': return { status: 'RDV', proposition: null, signe: null, pec: null, suivi_formation: null };
-    case 'RAP': return { status: 'RAPPEL', proposition: null, signe: null, pec: null, suivi_formation: null };
-    case 'Proposition': return { status: 'RDV', proposition: 'OUI', signe: null, pec: null, suivi_formation: null };
-    case 'Signé': return { status: 'SIGNE', signe: 'OUI', pec: null, suivi_formation: null };
-    case 'PEC': return { status: 'RDV', pec: 'OUI', signe: null, suivi_formation: null };
-    case 'Gagné': return { status: 'SIGNE', signe: 'OUI', pec: 'OUI', suivi_formation: null };
-    case 'ORGANISÉ': return { suivi_formation: 'ORGANISÉE' };
+    case 'Nouveau': return { status: 'RDV', status_rdv: status, proposition: null, signe: null, pec: null, suivi_formation: null };
+    case 'RAP': return { status: 'RAPPEL', status_rdv: status, proposition: null, signe: null, pec: null, suivi_formation: null };
+    case 'Proposition': return { status: 'RDV', status_rdv: status, proposition: 'OUI', signe: null, pec: null, suivi_formation: null };
+    case 'Signé': return { status: 'SIGNE', status_rdv: status, signe: 'OUI', pec: null, suivi_formation: null };
+    case 'PEC': return { status: 'RDV', status_rdv: status, pec: 'OUI', signe: null, suivi_formation: null };
+    case 'Gagné': return { status: 'SIGNE', status_rdv: status, signe: 'OUI', pec: 'OUI', suivi_formation: null };
+    case 'ORGANISÉ': return { suivi_formation: 'ORGANISÉE', status_rdv: status };
     default: return {};
   }
 }

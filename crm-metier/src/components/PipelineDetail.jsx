@@ -37,7 +37,17 @@ const STATUS_STEPS = [
   { id: 'ORGANISÉ', label: 'ORGANISÉ' },
 ];
 
-const PipelineDetail = ({ lead, onClose, onUpdateStatus, user }) => {
+const RDV_STATUS_OPTIONS = [
+  'Nouveau', 
+  'RAP', 
+  'Proposition', 
+  'Signé', 
+  'PEC', 
+  'Gagné', 
+  'ORGANISÉ'
+];
+
+const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead }) => {
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [newNote, setNewNote] = useState('');
@@ -90,6 +100,12 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user }) => {
       setTimeout(() => setShowCelebration(false), 3000);
     }
     onUpdateStatus(lead.id, status);
+  };
+
+  const handleFieldUpdate = async (field, value) => {
+    if (onUpdateLead) {
+      await onUpdateLead(lead.id, { [field]: value });
+    }
   };
 
   const getAutomatedLibelle = () => {
@@ -254,6 +270,19 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user }) => {
               <div className="space-y-6">
                 <InfoRow label="Vendeur" value={lead.funebooster} icon={User} />
                 <InfoRow label="Date de clôture" value={lead.date_rdv || 'Pas d\'estimation'} icon={Calendar} />
+                <div className="flex items-start gap-4">
+                  <span className="w-32 text-[10px] font-black text-navy/30 uppercase tracking-widest shrink-0 pt-1">Statut RDV</span>
+                  <select 
+                    value={lead.status_rdv || ''} 
+                    onChange={(e) => handleFieldUpdate('status_rdv', e.target.value)}
+                    className="bg-navy/[0.02] border border-navy/10 rounded-lg px-2 py-1 text-sm font-bold text-navy focus:outline-none focus:border-primary/30 transition-all"
+                  >
+                    <option value="">— CHOISIR —</option>
+                    {RDV_STATUS_OPTIONS.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
                 <InfoRow label="Étiquettes" value={lead.status} />
                 <div className="h-px bg-navy/[0.03] my-4" />
                 <InfoRow label="Secteur" value={lead.secteur_activite} icon={Building2} />
