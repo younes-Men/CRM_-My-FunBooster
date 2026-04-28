@@ -60,7 +60,7 @@ const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsEx
 
   // Admin Specific Zones & Permitted Access
   if (isAdmin || perms.view_zone_temp) {
-    menuItems.push({ id: 'temp-rdv', icon: Bell, label: 'Zone Temp' });
+    menuItems.push({ id: 'temp-rdv', icon: Bell, label: 'Zone Tampon' });
   }
   
   if (isAdmin) {

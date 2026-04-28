@@ -21,8 +21,8 @@ const CLIENTS = [
 
 const PERMISSION_KEYS = [
   { id: 'view_agenda',      label: 'Accès Agenda',    icon: Calendar,    hasClients: true },
-  { id: 'view_zone_temp',   label: 'Accès Zone Temp', icon: Bell,         hasClients: false },
-  { id: 'control_zone_temp',label: 'Gérer Zone Temp', icon: Settings2,    hasClients: false },
+  { id: 'view_zone_temp',   label: 'Accès Zone Tampon', icon: Bell,         hasClients: false },
+  { id: 'control_zone_temp',label: 'Gérer Zone Tampon', icon: Settings2,    hasClients: false },
   { id: 'view_leads',       label: 'Accès Leads',     icon: ListChecks,   hasColumns: true },
   { id: 'view_pipeline',    label: 'Accès Pipeline',  icon: Layout,       hasClients: true },
 ];

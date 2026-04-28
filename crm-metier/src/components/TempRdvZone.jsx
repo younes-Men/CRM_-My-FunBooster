@@ -88,7 +88,7 @@ const TempRdvZone = ({ user }) => {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <div className="w-12 h-12 border-4 border-navy/10 border-t-primary rounded-full animate-spin" />
-        <span className="text-[10px] font-bold text-navy/30 uppercase tracking-[0.3em]">Chargement de la Zone Temp...</span>
+        <span className="text-[10px] font-bold text-navy/30 uppercase tracking-[0.3em]">Chargement de la Zone Tampon...</span>
       </div>
     );
   }
@@ -107,7 +107,7 @@ const TempRdvZone = ({ user }) => {
             )}
           </div>
           <div>
-            <h2 className="text-3xl font-black text-navy tracking-tight">Zone Temp</h2>
+            <h2 className="text-3xl font-black text-navy tracking-tight">Zone Tampon</h2>
             <p className="text-[10px] font-bold text-navy/30 uppercase tracking-[0.2em] mt-1">Validation des nouveaux rendez-vous</p>
           </div>
         </div>
