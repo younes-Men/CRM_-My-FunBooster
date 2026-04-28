@@ -60,13 +60,13 @@ export const teamService = {
   },
 
   /**
-   * Récupérer un membre par son email (pour le login)
+   * Récupérer un membre par son email ou identifiant (pour le login)
    */
-  async getMemberByEmail(email) {
+  async getMemberByEmail(credential) {
     const { data, error } = await supabase
       .from('team_members')
       .select('*')
-      .eq('email', email.trim())
+      .or(`email.eq.${credential.trim()},identifier.eq.${credential.trim()}`)
       .eq('is_active', true)
       .single();
     

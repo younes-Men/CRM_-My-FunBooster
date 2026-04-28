@@ -571,10 +571,12 @@ const MondayTable = React.memo(({ activeTab, user }) => {
   const pickerRef = useRef(null);
   const tableTotalWidth = useMemo(() => columns.reduce((acc, col) => acc + col.width, 0), [columns]);
 
-  // Fetch dynamic FunBooster names
+  // Fetch dynamic FunBooster names & Handle Permissions
   useEffect(() => {
     const fetchTeamMembers = async () => {
       if (!supabase) return;
+      
+      // 1. Fetch FunBooster names for the dropdown
       const { data, error } = await supabase
         .from('team_members')
         .select('name')
@@ -582,15 +584,26 @@ const MondayTable = React.memo(({ activeTab, user }) => {
         .eq('is_active', true)
         .order('name');
       
+      let updatedColumns = [...COLUMNS];
+
+      // 2. Filter columns based on user permissions
+      const perms = user?.permissions;
+      if (perms?.leads_columns && !perms.leads_columns.includes('all')) {
+        updatedColumns = updatedColumns.filter(col => perms.leads_columns.includes(col.key));
+      }
+
+      // 3. Update FunBooster options in the column definition
       if (!error && data) {
         const names = [...new Set(data.map(m => m.name.toUpperCase()))].sort();
-        setColumns(prev => prev.map(col => 
+        updatedColumns = updatedColumns.map(col => 
           col.key === 'funebooster' ? { ...col, options: names } : col
-        ));
+        );
       }
+
+      setColumns(updatedColumns);
     };
     fetchTeamMembers();
-  }, []);
+  }, [user]);
 
   const fetchPage = useCallback(async (pageIndex, replace = false, searchQuery = '', filters = activeFilters) => {
     if (!supabase) return;
@@ -840,7 +853,8 @@ const MondayTable = React.memo(({ activeTab, user }) => {
           leadId={selectedLeadId} 
           lead={leads.find(l => l.id === selectedLeadId)} 
           onClose={() => setSelectedLeadId(null)} 
-          userName={user?.name} 
+          userName={user?.name}
+          permissions={user?.permissions}
         />
       )}
     </div>

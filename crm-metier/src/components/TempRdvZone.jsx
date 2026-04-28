@@ -25,14 +25,13 @@ const TempRdvZone = ({ user }) => {
   useEffect(() => {
     fetchPendingRdvs();
     
-    // Realtime subscription
+    // Realtime subscription for Zone Temp
     const channel = supabase
       .channel('temp_rdv_changes')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
-        table: 'crm_leads',
-        filter: "status=eq.EN ATTENTE RDV"
+        table: 'crm_leads'
       }, () => fetchPendingRdvs())
       .subscribe();
 

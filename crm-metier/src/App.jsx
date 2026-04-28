@@ -10,7 +10,8 @@ import { getUser } from './lib/authConfig';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [email, setEmail] = useState('');
+  const [credential, setCredential] = useState('');
+  const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState('leads');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -18,13 +19,9 @@ function App() {
   // Check for existing session
   useEffect(() => {
     const checkSession = async () => {
-      const savedEmail = localStorage.getItem('crm_user_email');
-      if (savedEmail) {
-        const userData = await getUser(savedEmail);
-        if (userData) {
-          setUser({ ...userData, email: savedEmail });
-          if (userData.role === 'commercial') setActiveTab('pipeline');
-        }
+      const savedUser = localStorage.getItem('crm_user_data');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
       }
     };
     checkSession();
@@ -39,18 +36,25 @@ function App() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
-    const userData = await getUser(email);
+    const userData = await getUser(credential);
+    
+    // Si l'utilisateur existe et que le mot de passe correspond (ou si pas encore de mdp défini dans la DB)
     if (userData) {
-      setUser({ ...userData, email });
-      localStorage.setItem('crm_user_email', email);
+      if (!userData.password || userData.password === password) {
+        setUser(userData);
+        localStorage.setItem('crm_user_data', JSON.stringify(userData));
+        if (userData.role === 'commercial') setActiveTab('pipeline');
+      } else {
+        setLoginError('Mot de passe incorrect.');
+      }
     } else {
-      setLoginError('Accès non autorisé. Vérifiez votre e-mail.');
+      setLoginError('Accès non autorisé. Vérifiez votre identifiant.');
     }
   };
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem('crm_user_email');
+    localStorage.removeItem('crm_user_data');
     setActiveTab('leads');
   };
 
@@ -72,14 +76,25 @@ function App() {
           </div>
           
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">E-mail de connexion</label>
+            <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">Identifiant ou E-mail</label>
             <input 
-              type="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="votre@email.com"
+              type="text" 
+              value={credential}
+              onChange={(e) => setCredential(e.target.value)}
+              placeholder="Ex: TB1001-1 ou admin@lykos.fr"
               className="bg-navy/5 border border-navy/10 rounded-2xl px-5 py-4 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-navy/20"
               required
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">Mot de passe</label>
+            <input 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Laissez vide si non défini"
+              className="bg-navy/5 border border-navy/10 rounded-2xl px-5 py-4 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-navy/20"
             />
           </div>
 

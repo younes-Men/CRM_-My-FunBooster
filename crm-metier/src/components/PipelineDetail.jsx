@@ -21,7 +21,8 @@ import {
   TrendingUp,
   Star,
   Trophy,
-  PartyPopper
+  PartyPopper,
+  Pencil
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -52,6 +53,8 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead }) =
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [showCelebration, setShowCelebration] = useState(false);
+  const [isEditingRevenue, setIsEditingRevenue] = useState(false);
+  const [tempRevenue, setTempRevenue] = useState(lead.ca_signe_ht || 0);
 
   useEffect(() => {
     if (lead?.id) fetchHistory();
@@ -242,10 +245,33 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead }) =
               </h1>
 
               <div className="grid grid-cols-2 gap-12">
-                <div className="space-y-2">
-                  <span className="text-[10px] font-black text-navy/30 uppercase tracking-[0.2em]">Revenu attendu</span>
+                <div className="space-y-2 group/revenu">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-navy/30 uppercase tracking-[0.2em]">Revenu attendu</span>
+                    {!isEditingRevenue && <Pencil onClick={() => { setTempRevenue(lead.ca_signe_ht || 0); setIsEditingRevenue(true); }} className="w-2.5 h-2.5 text-navy/10 opacity-0 group-hover/revenu:opacity-100 transition-all cursor-pointer hover:text-primary" />}
+                  </div>
                   <div className="flex items-end gap-2">
-                    <span className="text-2xl font-black text-navy">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(lead.ca_signe_ht || 0)}</span>
+                    {isEditingRevenue ? (
+                      <div className="flex items-center gap-2 animate-in slide-in-from-left-2">
+                        <input 
+                          autoFocus
+                          type="number"
+                          value={tempRevenue}
+                          onChange={e => setTempRevenue(e.target.value)}
+                          onBlur={() => { handleFieldUpdate('ca_signe_ht', parseFloat(tempRevenue)); setIsEditingRevenue(false); }}
+                          onKeyDown={e => e.key === 'Enter' && (handleFieldUpdate('ca_signe_ht', parseFloat(tempRevenue)), setIsEditingRevenue(false))}
+                          className="text-2xl font-black text-navy bg-navy/5 border-none rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-primary/20 w-40"
+                        />
+                        <span className="text-xl font-black text-navy/20">€</span>
+                      </div>
+                    ) : (
+                      <span 
+                        onClick={() => { setTempRevenue(lead.ca_signe_ht || 0); setIsEditingRevenue(true); }}
+                        className="text-2xl font-black text-navy cursor-pointer hover:text-primary transition-colors"
+                      >
+                        {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(lead.ca_signe_ht || 0)}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -260,16 +286,16 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead }) =
             {/* Main Info Grid */}
             <div className="grid grid-cols-2 gap-x-20 gap-y-8">
               <div className="space-y-6">
-                <InfoRow label="Contact" value={lead.nom_entreprise} icon={User} />
-                <InfoRow label="E-mail" value={lead.email || '—'} icon={Mail} />
-                <InfoRow label="Téléphone" value={lead.tel || lead.mobile || '—'} icon={Phone} />
+                <EditableRow label="Contact" value={lead.nom_entreprise} icon={User} onSave={(val) => handleFieldUpdate('nom_entreprise', val)} />
+                <EditableRow label="E-mail" value={lead.email} icon={Mail} onSave={(val) => handleFieldUpdate('email', val)} />
+                <EditableRow label="Téléphone" value={lead.tel || lead.mobile} icon={Phone} onSave={(val) => handleFieldUpdate('tel', val)} />
                 <div className="h-px bg-navy/[0.03] my-4" />
                 <InfoRow label="N° SIRET" value={lead.siret} icon={Hash} isMono />
                 <InfoRow label="Code NAF" value={lead.code_naf} icon={Briefcase} isMono />
               </div>
               <div className="space-y-6">
-                <InfoRow label="Vendeur" value={lead.funebooster} icon={User} />
-                <InfoRow label="Date de clôture" value={lead.date_rdv || 'Pas d\'estimation'} icon={Calendar} />
+                <EditableRow label="Vendeur" value={lead.funebooster} icon={User} onSave={(val) => handleFieldUpdate('funebooster', val)} />
+                <EditableRow label="Date de clôture" value={lead.date_rdv} icon={Calendar} onSave={(val) => handleFieldUpdate('date_rdv', val)} />
                 <div className="flex items-start gap-4">
                   <span className="w-32 text-[10px] font-black text-navy/30 uppercase tracking-widest shrink-0 pt-1">Statut RDV</span>
                   <select 
@@ -352,6 +378,46 @@ const InfoRow = ({ label, value, icon: Icon, isMono }) => (
     </div>
   </div>
 );
+
+const EditableRow = ({ label, value, icon: Icon, onSave, isMono }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempValue, setTempValue] = useState(value || '');
+
+  const handleSave = () => {
+    if (tempValue !== value) onSave(tempValue);
+    setIsEditing(false);
+  };
+
+  return (
+    <div className="flex items-start gap-4 group/row">
+      <span className="w-32 text-[10px] font-black text-navy/30 uppercase tracking-widest shrink-0 pt-1">{label}</span>
+      <div className="flex-1 flex items-center gap-2 min-w-0">
+        {Icon && <Icon className="w-3.5 h-3.5 text-navy/20 group-hover/row:text-primary transition-colors" />}
+        {isEditing ? (
+          <input 
+            autoFocus
+            type="text"
+            value={tempValue}
+            onChange={e => setTempValue(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={e => e.key === 'Enter' && handleSave()}
+            className="flex-1 bg-navy/[0.03] border-none rounded-md px-2 py-0.5 text-sm font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+          />
+        ) : (
+          <div 
+            onClick={() => setIsEditing(true)}
+            className="flex-1 flex items-center justify-between gap-2 cursor-pointer group/inner"
+          >
+            <span className={`font-bold text-navy truncate ${isMono ? 'font-mono text-sm tracking-tighter' : 'text-[13px]'}`}>
+              {value || '—'}
+            </span>
+            <Pencil className="w-3 h-3 text-navy/10 opacity-0 group-hover/row:opacity-100 transition-all" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default PipelineDetail;
 

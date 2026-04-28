@@ -20,9 +20,15 @@ const formatNaf = (val) => {
   return val;
 };
 
-const LeadDetailPanel = ({ leadId, lead, onClose, userName }) => {
+const LeadDetailPanel = ({ leadId, lead, onClose, userName, permissions }) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const isVisible = (key) => {
+    if (!permissions?.leads_columns) return true;
+    if (permissions.leads_columns.includes('all')) return true;
+    return permissions.leads_columns.includes(key);
+  };
 
   // Helper for automated NAF label
   const getAutomatedLibelle = () => {
@@ -129,12 +135,12 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName }) => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy/[0.02] p-6 rounded-3xl border border-navy/5">
-                <InfoItem label="Raison Sociale" value={lead.nom_entreprise} icon={Building2} />
-                <InfoItem label="N° SIRET" value={lead.siret} icon={Hash} isMono />
-                <InfoItem label="Secteur" value={lead.secteur_activite} icon={Briefcase} />
-                <InfoItem label="Libellé" value={getAutomatedLibelle()} />
-                <InfoItem label="Opco" value={lead.nom_opco} />
-                <InfoItem label="NAF" value={lead.code_naf || lead.secteur} isMono />
+                {isVisible('nom_entreprise') && <InfoItem label="Raison Sociale" value={lead.nom_entreprise} icon={Building2} />}
+                {isVisible('siret') && <InfoItem label="N° SIRET" value={lead.siret} icon={Hash} isMono />}
+                {isVisible('secteur_activite') && <InfoItem label="Secteur" value={lead.secteur_activite} icon={Briefcase} />}
+                {isVisible('libelle_activite') && <InfoItem label="Libellé" value={getAutomatedLibelle()} />}
+                {isVisible('nom_opco') && <InfoItem label="Opco" value={lead.nom_opco} />}
+                {isVisible('code_naf') && <InfoItem label="NAF" value={lead.code_naf || lead.secteur} isMono />}
               </div>
             </section>
 
@@ -148,16 +154,18 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName }) => {
               </div>
               
               <div className="grid grid-cols-1 gap-6 bg-navy/[0.02] p-6 rounded-3xl border border-navy/5 text-sm">
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-navy/30 uppercase tracking-widest">Adresse Complète</span>
-                  <p className="text-navy font-bold">{lead.adresse || '—'}</p>
-                </div>
+                {isVisible('adresse') && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-navy/30 uppercase tracking-widest">Adresse Complète</span>
+                    <p className="text-navy font-bold">{lead.adresse || '—'}</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-6 pt-4 border-t border-navy/5">
-                  <InfoItem label="Code Postal" value={lead.code_postal} />
-                  <InfoItem label="Département" value={lead.code_departement} />
-                  <div className="col-span-full h-px bg-navy/5 my-2" />
-                  <InfoItem label="Téléphone Fixe" value={lead.tel} icon={Phone} />
-                  <InfoItem label="Mobile" value={lead.mobile} icon={Phone} />
+                  {isVisible('code_postal') && <InfoItem label="Code Postal" value={lead.code_postal} />}
+                  {isVisible('code_departement') && <InfoItem label="Département" value={lead.code_departement} />}
+                  {(isVisible('tel') || isVisible('mobile')) && <div className="col-span-full h-px bg-navy/5 my-2" />}
+                  {isVisible('tel') && <InfoItem label="Téléphone Fixe" value={lead.tel} icon={Phone} />}
+                  {isVisible('mobile') && <InfoItem label="Mobile" value={lead.mobile} icon={Phone} />}
                 </div>
               </div>
             </section>
@@ -172,11 +180,11 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName }) => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy/[0.02] p-6 rounded-3xl border border-navy/5">
-                <InfoItem label="Statut Actuel" value={lead.status} />
-                <InfoItem label="Statut RDV" value={lead.status_rdv} />
-                <InfoItem label="FUNEBOOSTER" value={lead.funebooster} icon={User} />
-                <InfoItem label="Date RDV" value={formatDate(lead.date_rdv, lead.heure_rdv)} />
-                <InfoItem label="Type RDV" value={lead.type_rdv} />
+                {isVisible('status') && <InfoItem label="Statut Actuel" value={lead.status} />}
+                {isVisible('status_rdv') && <InfoItem label="Statut RDV" value={lead.status_rdv} />}
+                {isVisible('funebooster') && <InfoItem label="FUNEBOOSTER" value={lead.funebooster} icon={User} />}
+                {isVisible('date_rdv') && <InfoItem label="Date RDV" value={formatDate(lead.date_rdv, lead.heure_rdv)} />}
+                {isVisible('type_rdv') && <InfoItem label="Type RDV" value={lead.type_rdv} />}
               </div>
             </section>
 

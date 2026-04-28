@@ -20,14 +20,22 @@ import logo2 from '../assets/Logo2.jpeg';
 
 const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsExpanded, onLogout }) => {
   const isAdmin = user?.role === 'admin';
+  const perms = user?.permissions || {};
 
   const menuItems = [];
 
-  if (isAdmin || user?.role === 'funebooster') {
+  // Lead Management (Hidden for Commercials as they only use Pipeline/RDV list)
+  if ((isAdmin || perms.view_leads) && user?.role !== 'commercial') {
     menuItems.push({ id: 'leads', icon: Layers, label: 'Gestion Leads' });
   }
 
-  if (user?.role === 'funebooster' || user?.role === 'commercial') {
+  // Mes RDV / Liste des RDV
+  // For Commercials: depends strictly on Accès Leads
+  // For FunBoosters: depends on leads or pipeline access
+  const canSeeRdv = isAdmin || 
+    (user?.role === 'commercial' ? perms.view_leads : (perms.view_leads || perms.view_pipeline));
+    
+  if (canSeeRdv && (user?.role === 'funebooster' || user?.role === 'commercial')) {
     menuItems.push({ 
       id: 'mes-rdv', 
       icon: UserCheck, 
@@ -35,18 +43,27 @@ const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsEx
     });
   }
 
-  if (user?.role === 'funebooster') {
+  // Mes Rappels - Specific to FunBoosters
+  if (canSeeRdv && user?.role === 'funebooster') {
     menuItems.push({ id: 'mes-rappel', icon: ClipboardList, label: 'Mes Rappels' });
   }
 
-  menuItems.push({ id: 'calendar', icon: Calendar, label: 'Calendrier' });
+  // Calendar - Checked against permissions
+  if (isAdmin || perms.view_agenda) {
+    menuItems.push({ id: 'calendar', icon: Calendar, label: 'Calendrier' });
+  }
 
-  if (isAdmin || user?.role === 'commercial') {
+  // Pipeline - Checked against permissions
+  if (isAdmin || perms.view_pipeline) {
     menuItems.push({ id: 'pipeline', icon: LayoutGrid, label: 'Pipeline' });
   }
 
-  if (isAdmin) {
+  // Admin Specific Zones & Permitted Access
+  if (isAdmin || perms.view_zone_temp) {
     menuItems.push({ id: 'temp-rdv', icon: Bell, label: 'Zone Temp' });
+  }
+  
+  if (isAdmin) {
     menuItems.push({ id: 'users', icon: Users, label: 'Équipe' });
   }
 

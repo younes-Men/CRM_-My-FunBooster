@@ -38,7 +38,17 @@ const CalendarView = ({ user }) => {
   // Fetch RDV data
   useEffect(() => {
     fetchRDVs();
-  }, []);
+
+    // Real-time subscription for instant updates
+    const channel = supabase
+      .channel('calendar_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_leads' }, () => {
+        fetchRDVs();
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [user]);
 
   const fetchRDVs = async () => {
     setLoading(true);
