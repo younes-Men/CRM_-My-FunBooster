@@ -196,8 +196,15 @@ const Pipeline = ({ user }) => {
     setLoading(true);
     
     let query = supabase.from('crm_leads').select('*');
-    if (user.role === 'commercial' && user.client) {
+    if (user.role === 'commercial' && user.client && user.name) {
+      query = query.eq('client_of', user.client).or(`opcosign.eq."${user.name}",opcosign.is.null`);
+    } else if (user.role === 'commercial' && user.client) {
       query = query.eq('client_of', user.client);
+    } else if (user?.role === 'funebooster') {
+      const assigned = user?.permissions?.assigned_commercials || [];
+      if (assigned.length > 0) {
+        query = query.in('opcosign', assigned);
+      }
     }
 
     const { data, error } = await query.order('date_modification', { ascending: false });

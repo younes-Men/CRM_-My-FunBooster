@@ -21,6 +21,7 @@ const TempRdvZone = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [processingId, setProcessingId] = useState(null);
+  const [selectedCommercials, setSelectedCommercials] = useState({});
 
   useEffect(() => {
     fetchPendingRdvs();
@@ -51,13 +52,32 @@ const TempRdvZone = ({ user }) => {
   };
 
   const handleApprove = async (id) => {
+    let targetCommercial = null;
+    if (user?.role === 'funebooster') {
+      const assigned = user?.permissions?.assigned_commercials || [];
+      if (assigned.length === 1) {
+        targetCommercial = assigned[0];
+      } else if (assigned.length > 1) {
+        targetCommercial = selectedCommercials[id];
+        if (!targetCommercial) {
+          alert('Veuillez sélectionner un commercial pour ce RDV.');
+          return;
+        }
+      }
+    }
+
     setProcessingId(id);
+    const updates = { 
+      status: 'RDV',
+      date_modification: new Date().toISOString()
+    };
+    if (targetCommercial) {
+      updates.opcosign = targetCommercial;
+    }
+
     const { error } = await supabase
       .from('crm_leads')
-      .update({ 
-        status: 'RDV',
-        date_modification: new Date().toISOString()
-      })
+      .update(updates)
       .eq('id', id);
 
     if (!error) {
@@ -190,6 +210,21 @@ const TempRdvZone = ({ user }) => {
                   </div>
                 </div>
               </div>
+
+              {/* Commercial Selection for Funbooster with multiple assignments */}
+              {user?.role === 'funebooster' && (user?.permissions?.assigned_commercials || []).length > 1 && (
+                <div className="bg-navy/[0.02] rounded-3xl p-4">
+                  <label className="text-[10px] font-black text-navy/30 uppercase tracking-widest ml-1 mb-2 block">Assigner au commercial</label>
+                  <select 
+                    value={selectedCommercials[lead.id] || ''}
+                    onChange={(e) => setSelectedCommercials(prev => ({ ...prev, [lead.id]: e.target.value }))}
+                    className="w-full bg-white border border-navy/10 rounded-2xl px-4 py-3 text-xs font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                  >
+                    <option value="">Sélectionner un commercial...</option>
+                    {(user.permissions.assigned_commercials).map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 pt-2">

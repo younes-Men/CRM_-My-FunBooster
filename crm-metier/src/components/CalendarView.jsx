@@ -25,14 +25,27 @@ const CLIENTS = Object.keys(CALENDAR_COLORS);
 
 const CalendarView = ({ user }) => {
   const isCommercial = user?.role === 'commercial';
-  const initialFilters = isCommercial && user.client 
-    ? [user.client.toLowerCase()] 
-    : CLIENTS;
+  
+  const allowedClients = useMemo(() => {
+    if (isCommercial && user.client) return [user.client.toLowerCase()];
+    if (user?.permissions?.agenda_clients) {
+      const perms = user.permissions.agenda_clients.map(c => c.toLowerCase());
+      if (perms.includes('tous les clients')) return CLIENTS;
+      const valid = perms.filter(c => CLIENTS.includes(c));
+      if (valid.length > 0) return valid;
+    }
+    return CLIENTS;
+  }, [user, isCommercial]);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilters, setActiveFilters] = useState(initialFilters);
+  const [activeFilters, setActiveFilters] = useState([allowedClients[0]]);
+  const [activeCommercials, setActiveCommercials] = useState(
+    user?.role === 'funebooster' && user?.permissions?.assigned_commercials?.length > 0 
+      ? [user.permissions.assigned_commercials[0]] 
+      : []
+  );
   const [selectedLeadId, setSelectedLeadId] = useState(null);
 
   // Fetch RDV data
@@ -58,8 +71,16 @@ const CalendarView = ({ user }) => {
       .eq('status', 'RDV')
       .not('date_rdv', 'is', null);
 
-    if (isCommercial && user.client) {
+    if (isCommercial && user.client && user.name) {
+      // Show events specifically assigned to this commercial, OR old events that are unassigned but belong to their client
+      query = query.eq('client_of', user.client).or(`opcosign.eq."${user.name}",opcosign.is.null`);
+    } else if (isCommercial && user.client) {
       query = query.eq('client_of', user.client);
+    } else if (user?.role === 'funebooster') {
+      const assigned = user?.permissions?.assigned_commercials || [];
+      if (assigned.length > 0) {
+        query = query.in('opcosign', assigned);
+      }
     }
 
     const { data, error } = await query;
@@ -93,17 +114,29 @@ const CalendarView = ({ user }) => {
   }, [startDate, endDate]);
 
   const toggleFilter = (client) => {
-    setActiveFilters(prev => 
-      prev.includes(client) ? prev.filter(c => c !== client) : [...prev, client]
+    setActiveFilters([client]);
+  };
+
+  const toggleCommercial = (comm) => {
+    setActiveCommercials(prev => 
+      prev.includes(comm) ? prev.filter(c => c !== comm) : [...prev, comm]
     );
   };
 
   const getEventsForDay = (day) => {
     const dateStr = day.toISOString().split('T')[0];
-    return events.filter(e => 
-      e.date_rdv === dateStr && 
-      activeFilters.includes(e.client_of.toLowerCase())
-    ).sort((a, b) => (a.heure_rdv || '').localeCompare(b.heure_rdv || ''));
+    return events.filter(e => {
+      if (e.date_rdv !== dateStr) return false;
+      if (!activeFilters.includes(e.client_of?.toLowerCase())) return false;
+      
+      // If it's a funbooster and they are looking at their assigned client's tab, filter by selected commercials
+      if (user?.role === 'funebooster' && user?.client?.toLowerCase() === activeFilters[0]) {
+        if (activeCommercials.length === 0) return false; // Show nothing if no commercial is selected
+        if (!activeCommercials.includes(e.opcosign)) return false;
+      }
+      
+      return true;
+    }).sort((a, b) => (a.heure_rdv || '').localeCompare(b.heure_rdv || ''));
   };
 
   const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -139,28 +172,59 @@ const CalendarView = ({ user }) => {
           {/* Vertical Divider */}
           <div className="h-6 w-px bg-navy/10" />
 
-          {/* Filters Bar - Hidden for Commercials */}
-          {!isCommercial && (
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-              {CLIENTS.map(client => (
+          {/* Professional Agenda Switcher / Tabs */}
+          <div className="flex items-center bg-navy/[0.03] p-1.5 rounded-[1rem] border border-navy/5">
+            {allowedClients.map(client => {
+              const isActive = activeFilters[0] === client;
+              const color = CALENDAR_COLORS[client];
+              return (
                 <button
                   key={client}
                   onClick={() => toggleFilter(client)}
-                  className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all whitespace-nowrap ${
-                    activeFilters.includes(client)
-                      ? 'bg-white border-navy/10 shadow-sm'
-                      : 'bg-transparent border-transparent opacity-30 grayscale'
+                  className={`relative flex items-center gap-2.5 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                    isActive 
+                      ? 'bg-white text-navy shadow-md shadow-navy/5 ring-1 ring-navy/5' 
+                      : 'text-navy/40 hover:text-navy hover:bg-navy/5'
                   }`}
                 >
                   <div 
-                    className="w-2.5 h-2.5 rounded-full" 
-                    style={{ backgroundColor: CALENDAR_COLORS[client].dot }}
+                    className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${isActive ? 'scale-100' : 'scale-75 opacity-50'}`}
+                    style={{ backgroundColor: color.dot }}
                   />
-                  <span className="text-[10px] font-bold text-navy uppercase tracking-wider">
-                    {client}
-                  </span>
+                  {client}
                 </button>
-              ))}
+              );
+            })}
+          </div>
+
+          {/* Commerciaux info for Funbooster */}
+          {user?.role === 'funebooster' && user?.client?.toLowerCase() === activeFilters[0] && user?.permissions?.assigned_commercials?.length > 0 && (
+            <div className="flex items-center gap-4 ml-2">
+              <div className="h-8 w-px bg-navy/10 hidden md:block" />
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black text-navy/30 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Alimentation en direct
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {user.permissions.assigned_commercials.map(comm => {
+                    const isCommActive = activeCommercials.includes(comm);
+                    return (
+                      <button
+                        key={comm}
+                        onClick={() => toggleCommercial(comm)}
+                        className={`px-3 py-1.5 border shadow-sm rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-300 ${
+                          isCommActive
+                            ? 'bg-primary/10 border-primary/30 text-primary scale-105'
+                            : 'bg-white border-navy/10 text-navy/40 hover:bg-navy/5 hover:text-navy/70'
+                        }`}
+                      >
+                        {comm}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>

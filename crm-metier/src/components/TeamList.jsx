@@ -199,7 +199,8 @@ const TeamList = ({ currentUser }) => {
         control_zone_temp: false,
         view_leads: true,
         view_pipeline: role === 'commercial',
-        leads_columns: ["all"]
+        leads_columns: ["all"],
+        assigned_commercials: []
       }
     });
     setIsEditModalOpen(true);
@@ -522,17 +523,58 @@ const TeamList = ({ currentUser }) => {
                     <CompactInput label="Nom Complet" value={editingMember.name} onChange={(v) => setEditingMember({...editingMember, name: v})} placeholder="Jean Dupont" />
                     <CompactInput label="E-mail" type="email" value={editingMember.email} onChange={(v) => setEditingMember({...editingMember, email: v})} placeholder="jean@lykos.fr" />
                     <CompactInput label="Téléphone" value={editingMember.phone} onChange={(v) => setEditingMember({...editingMember, phone: v})} placeholder="06 12 34 56 78" />
-                    {activeTab === 'utilisateurs' && (
+                    {(editingMember.role === 'commercial' || editingMember.role === 'funebooster') && (
                       <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">Client Assigné</label>
                         <select 
                           value={editingMember.client}
-                          onChange={(e) => setEditingMember({...editingMember, client: e.target.value})}
+                          onChange={(e) => setEditingMember({
+                            ...editingMember, 
+                            client: e.target.value,
+                            permissions: {
+                              ...editingMember.permissions,
+                              assigned_commercials: []
+                            }
+                          })}
                           className="bg-navy/[0.03] border-none rounded-2xl px-5 py-4 text-sm font-bold text-navy focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                         >
                           <option value="">Choisir un client...</option>
                           {CLIENTS.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
+                      </div>
+                    )}
+
+                    {editingMember.role === 'funebooster' && editingMember.client && (
+                      <div className="col-span-full p-6 bg-navy/[0.02] border border-navy/5 rounded-3xl animate-in slide-in-from-top-2">
+                        <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1 mb-4 block">Commerciaux à alimenter</label>
+                        <div className="flex flex-wrap gap-2">
+                          {members.filter(m => m.role === 'commercial' && m.client === editingMember.client).length === 0 ? (
+                            <span className="text-xs text-navy/40 italic">Aucun commercial trouvé pour ce client.</span>
+                          ) : (
+                            members.filter(m => m.role === 'commercial' && m.client === editingMember.client).map(comm => {
+                              const isAssigned = (editingMember.permissions?.assigned_commercials || []).includes(comm.name);
+                              return (
+                                <button
+                                  key={comm.id}
+                                  type="button"
+                                  onClick={() => {
+                                    let current = editingMember.permissions?.assigned_commercials || [];
+                                    const next = isAssigned ? current.filter(c => c !== comm.name) : [...current, comm.name];
+                                    setEditingMember({...editingMember, permissions: {...editingMember.permissions, assigned_commercials: next}});
+                                  }}
+                                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 ${
+                                    isAssigned 
+                                      ? 'bg-primary/10 text-primary border-primary/30 shadow-sm' 
+                                      : 'bg-white text-navy/40 border-navy/10 hover:border-navy/20'
+                                  }`}
+                                >
+                                  {isAssigned && <Check className="w-3.5 h-3.5" />}
+                                  {comm.name}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
