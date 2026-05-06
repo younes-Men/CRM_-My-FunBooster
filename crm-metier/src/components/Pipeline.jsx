@@ -97,7 +97,7 @@ const PipelineFunnel = ({ stats }) => {
 const PipelineStats = ({ leads, getLeadsByStatus }) => {
   const stats = React.useMemo(() => {
     const total = leads.length;
-    if (total === 0) return null;
+    // Removed: if (total === 0) return null;
 
     const countBy = (id) => getLeadsByStatus(id).length;
     
@@ -106,7 +106,7 @@ const PipelineStats = ({ leads, getLeadsByStatus }) => {
     const organized = countBy('ORGANISÉ');
     const prop = countBy('Proposition');
     const lost = leads.filter(l => 
-      ['ABSENT', 'FAUX NUM', 'HORS CIBLE OPCO', 'HORS CIBLE SIÈGE', 'HORS CIBLE SALARIÉS'].includes(l.status?.toUpperCase())
+      l.status_rdv?.toUpperCase() === 'PERDU' || l.status?.toUpperCase() === 'PERDU'
     ).length;
 
     const getP = (n) => total > 0 ? Math.round((n / total) * 100) : 0;
@@ -120,12 +120,19 @@ const PipelineStats = ({ leads, getLeadsByStatus }) => {
     ];
   }, [leads, getLeadsByStatus]);
 
-  if (!stats) return null;
+  // Always show stats area even if empty
+  const displayStats = stats || [
+    { label: 'Propositions', count: 0, perc: 0, color: '#ef4444', icon: FileText },
+    { label: 'Signés', count: 0, perc: 0, color: '#3b82f6', icon: CheckCircle2 },
+    { label: 'Gagnés', count: 0, perc: 0, color: '#22c55e', icon: Star },
+    { label: 'Organisés', count: 0, perc: 0, color: '#06b6d4', icon: Calendar },
+    { label: 'Perdus', count: 0, perc: 0, color: '#94a3b8', icon: X }
+  ];
 
   return (
     <div className="flex flex-col gap-6 mb-2">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {stats.map((s, i) => (
+        {displayStats.map((s, i) => (
           <motion.div 
             key={s.label}
             initial={{ opacity: 0, y: 20 }}
@@ -196,10 +203,28 @@ const Pipeline = ({ user }) => {
     setLoading(true);
     
     let query = supabase.from('crm_leads').select('*');
-    if (user.role === 'commercial' && user.client && user.name) {
-      query = query.eq('client_of', user.client).or(`opcosign.eq."${user.name}",opcosign.is.null`);
-    } else if (user.role === 'commercial' && user.client) {
-      query = query.eq('client_of', user.client);
+    if (user.role === 'commercial' && user.client) {
+      let clientList = [];
+      try {
+        const raw = user.client;
+        if (typeof raw === 'string' && raw.startsWith('[')) {
+          clientList = JSON.parse(raw);
+        } else if (Array.isArray(raw)) {
+          clientList = raw;
+        } else {
+          clientList = String(raw).split(',').map(c => c.trim()).filter(Boolean);
+        }
+      } catch (e) {
+        clientList = [String(user.client).replace(/[\[\]"]/g, '')];
+      }
+      
+      if (clientList.length > 0) {
+        query = query.in('client_of', clientList);
+      }
+      if (user.name) {
+        // Use case-insensitive matching for opcosign
+        query = query.or(`opcosign.ilike."${user.name}",opcosign.is.null`);
+      }
     } else if (user?.role === 'funebooster') {
       const assigned = user?.permissions?.assigned_commercials || [];
       if (assigned.length > 0) {
@@ -234,14 +259,13 @@ const Pipeline = ({ user }) => {
 
     switch (newStatus) {
       case 'Nouveau':
-        updates.status = 'RDV';
+        updates.status_rdv = 'Nouveau';
         updates.proposition = null;
         updates.signe = null;
         updates.pec = null;
         updates.suivi_formation = null;
         break;
       case 'RAP':
-        updates.status = 'RDV';
         updates.status_rdv = 'RAP';
         updates.proposition = null;
         updates.signe = null;
@@ -249,32 +273,36 @@ const Pipeline = ({ user }) => {
         updates.suivi_formation = null;
         break;
       case 'Proposition':
-        updates.status = 'RDV';
+        updates.status_rdv = 'Proposition';
         updates.proposition = 'OUI';
         updates.signe = null;
         updates.pec = null;
         updates.suivi_formation = null;
         break;
       case 'Signé':
-        updates.status = 'SIGNE';
+        updates.status_rdv = 'Signé';
         updates.signe = 'OUI';
         updates.pec = null;
         updates.suivi_formation = null;
         break;
       case 'PEC':
-        updates.status = 'RDV';
+        updates.status_rdv = 'PEC';
         updates.pec = 'OUI';
         updates.signe = null;
         updates.suivi_formation = null;
         break;
       case 'Gagné':
-        updates.status = 'SIGNE';
+        updates.status_rdv = 'Gagné';
         updates.signe = 'OUI';
         updates.pec = 'OUI';
         updates.suivi_formation = null;
         break;
       case 'ORGANISÉ':
+        updates.status_rdv = 'ORGANISÉ';
         updates.suivi_formation = 'ORGANISÉE';
+        break;
+      case 'Perdu':
+        updates.status_rdv = 'Perdu';
         break;
       default:
         break;
@@ -347,7 +375,19 @@ const Pipeline = ({ user }) => {
           </div>
           <div className="flex flex-col">
             <span className="text-2xl font-black tracking-tight text-navy leading-none mb-1">Pipeline</span>
-            <span className="text-[10px] font-bold text-navy/30 uppercase tracking-[0.2em]">{user.client || 'Général'}</span>
+            <span className="text-[10px] font-bold text-navy/30 uppercase tracking-[0.2em]">
+              {(() => {
+                const raw = user.client;
+                if (!raw) return 'Général';
+                try {
+                  const parsed = typeof raw === 'string' && (raw.startsWith('[') || raw.startsWith('{')) ? JSON.parse(raw) : raw;
+                  if (Array.isArray(parsed)) return parsed.join(', ');
+                  return String(parsed);
+                } catch (e) {
+                  return String(raw).replace(/[\[\]"]/g, '');
+                }
+              })()}
+            </span>
           </div>
         </div>
 
@@ -433,8 +473,21 @@ const Pipeline = ({ user }) => {
                       className={`relative bg-white p-4 rounded-xl border border-navy/5 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-xl hover:border-primary/20 transition-all ${draggedId === lead.id ? 'opacity-0' : 'opacity-100'}`}
                     >
                       <div className="flex flex-col gap-3">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[9px] font-bold text-navy/20 uppercase tracking-widest leading-none">Opportunité de</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-bold text-navy/20 uppercase tracking-widest leading-none">Opportunité de</span>
+                            {lead.client_of && (
+                              <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md border uppercase tracking-tighter ${
+                                lead.client_of.toLowerCase().includes('ca conseil') ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                                lead.client_of.toLowerCase().includes('go conseil') ? 'bg-green-50 text-green-600 border-green-100' :
+                                lead.client_of.toLowerCase().includes('hors zone') ? 'bg-pink-50 text-pink-600 border-pink-100' :
+                                lead.client_of.toLowerCase().includes('tb formation') ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                'bg-navy/[0.03] text-navy/40 border-navy/5'
+                              }`}>
+                                {lead.client_of}
+                              </span>
+                            )}
+                          </div>
                           <h3 className="text-[13px] font-bold text-navy leading-tight truncate">
                             {lead.nom_entreprise || 'N/A'}
                           </h3>

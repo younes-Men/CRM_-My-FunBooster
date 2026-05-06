@@ -6,7 +6,7 @@ import {
   Settings2, UserCheck, UserX, Briefcase, ChevronRight,
   Plus, X, Save, AlertCircle, Check, RefreshCw,
   Search, Layout, Calendar, Bell, ListChecks, Lock,
-  Phone, Users, CreditCard, Building2, Eye, EyeOff
+  Phone, Users, CreditCard, Building2, Eye, EyeOff, Grid
 } from 'lucide-react';
 
 const ROLES = [
@@ -15,9 +15,7 @@ const ROLES = [
   { value: 'admin', label: 'Admin', color: 'navy' }
 ];
 
-const CLIENTS = [
-  'CA CONSEILS', 'TB FORMATIONS', 'GO CONSEILS', 'HORS ZONE', 'IT PERFORMANCE'
-];
+// CLIENTS will be fetched from the database now
 
 const PERMISSION_KEYS = [
   { id: 'view_agenda',      label: 'Accès Agenda',    icon: Calendar,    hasClients: true },
@@ -30,12 +28,15 @@ const PERMISSION_KEYS = [
 const TeamList = ({ currentUser }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('utilisateurs'); // 'cabinet', 'utilisateurs', 'equipe'
+  const [activeTab, setActiveTab] = useState('my_team'); // 'my_team', 'cabinet', 'utilisateurs', 'equipe'
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
+  const [newClient, setNewClient] = useState({ name: '', prefix: '' });
   const [saving, setSaving] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [allClients, setAllClients] = useState([]);
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -50,12 +51,83 @@ const TeamList = ({ currentUser }) => {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      const data = await teamService.getAllMembers();
-      setMembers(data);
+      const [membersData, clientsData] = await Promise.all([
+        teamService.getAllMembers(),
+        teamService.getAllClients()
+      ]);
+      
+      setAllClients(clientsData);
+      
+      const cleanedData = membersData.map(m => {
+        let clients = m.client;
+        
+        const cleanString = (str) => {
+          if (!str) return [];
+          // Try to extract all quoted strings (works for JSON and corrupted JSON+Text)
+          const matches = str.match(/"([^"]+)"/g);
+          if (matches && matches.length > 0) {
+            return matches.map(m => m.replace(/"/g, '').trim());
+          }
+          // Fallback: split by comma and remove brackets
+          return str.split(',').map(c => c.replace(/[\[\]]/g, '').trim()).filter(Boolean);
+        };
+
+        if (typeof clients === 'string') {
+          clients = cleanString(clients);
+        } else if (!Array.isArray(clients)) {
+          clients = clients ? [clients] : [];
+        }
+        
+        // Ensure flat unique array of strings
+        clients = [...new Set(clients.flat().map(c => String(c).trim()))].filter(Boolean);
+
+        return { ...m, client: clients };
+      });
+      setMembers(cleanedData);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteClient = async (e, clientName) => {
+    e.stopPropagation();
+    const client = allClients.find(c => c.name === clientName);
+    if (!client) return;
+    
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer le client "${clientName}" ?\n\nCela ne supprimera pas les collaborateurs, mais ils ne seront plus rattachés à cette entité.`)) return;
+    
+    try {
+      setLoading(true);
+      await teamService.deleteClient(client.id);
+      setAllClients(prev => prev.filter(c => c.id !== client.id));
+      // Refresh members to see the impact (though they stay in DB)
+      fetchMembers();
+    } catch (err) {
+      alert("Erreur lors de la suppression du client");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveClient = async (e) => {
+    e.preventDefault();
+    if (!newClient.name || !newClient.prefix) return alert("Veuillez remplir tous les champs");
+    
+    setSaving(true);
+    try {
+      const saved = await teamService.addClient({
+        name: newClient.name.toUpperCase(),
+        prefix: newClient.prefix.toUpperCase()
+      });
+      setAllClients(prev => [...prev, saved]);
+      setIsClientModalOpen(false);
+      setNewClient({ name: '', prefix: '' });
+    } catch (err) {
+      alert("Erreur lors de la création du client");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -76,11 +148,26 @@ const TeamList = ({ currentUser }) => {
 
       if (memberToSave.id) {
         const { id, created_at, ...updates } = memberToSave;
-        await teamService.updateMember(id, updates);
+        // Stringify client array for the database if it's an array
+        const updatesForDb = { 
+          ...updates, 
+          client: Array.isArray(updates.client) ? JSON.stringify(updates.client) : updates.client 
+        };
+        await teamService.updateMember(id, updatesForDb);
         setMembers(prev => prev.map(m => m.id === id ? memberToSave : m));
       } else {
-        const added = await teamService.addMember(memberToSave);
-        setMembers(prev => [...prev, added]);
+        // Stringify client array for the database
+        const memberForDb = { 
+          ...memberToSave, 
+          client: Array.isArray(memberToSave.client) ? JSON.stringify(memberToSave.client) : memberToSave.client 
+        };
+        const added = await teamService.addMember(memberForDb);
+        // Ensure the local state has the cleaned array version
+        const addedCleaned = { 
+          ...added, 
+          client: Array.isArray(memberToSave.client) ? memberToSave.client : added.client 
+        };
+        setMembers(prev => [...prev, addedCleaned]);
       }
       setIsEditModalOpen(false);
     } catch (err) {
@@ -137,10 +224,12 @@ const TeamList = ({ currentUser }) => {
 
   const filteredMembers = useMemo(() => {
     return members.filter(m => {
+      const mClients = Array.isArray(m.client) ? m.client : (m.client ? [m.client] : []);
       const matchesSearch = 
         m.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
         m.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.identifier?.toLowerCase().includes(searchQuery.toLowerCase());
+        m.identifier?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        mClients.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()));
       
       if (!matchesSearch) return false;
 
@@ -156,11 +245,13 @@ const TeamList = ({ currentUser }) => {
     if (role === 'funebooster') {
       baseId = 'DO1000';
     } else if (role === 'commercial') {
-      if (clientName === 'TB FORMATIONS') baseId = 'TB1001';
-      else if (clientName === 'CA CONSEILS') baseId = 'CA1003';
-      else if (clientName === 'GO CONSEILS') baseId = 'GO1004';
-      else if (clientName === 'HORS ZONE') baseId = 'HZ1002';
-      else return ''; // Need client selection first
+      const cName = Array.isArray(clientName) ? clientName[0] : clientName;
+      const clientObj = allClients.find(c => c.name === cName);
+      if (clientObj?.prefix) {
+        baseId = clientObj.prefix;
+      } else {
+        return ''; // Need client selection first or client has no prefix
+      }
     } else if (role === 'admin') {
       baseId = 'AD1000';
     } else {
@@ -187,7 +278,7 @@ const TeamList = ({ currentUser }) => {
       name: '',
       email: '',
       role: role,
-      client: '',
+      client: [],
       identifier: '',
       password: '',
       phone: '',
@@ -227,9 +318,10 @@ const TeamList = ({ currentUser }) => {
       
       {/* Tabs Header */}
       <div className="flex items-center gap-2 p-1 bg-navy/5 rounded-[2rem] w-fit">
-        <TabButton active={activeTab === 'cabinet'} onClick={() => setActiveTab('cabinet')} icon={Building2} label="Mon Cabinet" />
-        <TabButton active={activeTab === 'utilisateurs'} onClick={() => setActiveTab('utilisateurs')} icon={Users} label="Mes Utilisateurs" />
-        <TabButton active={activeTab === 'equipe'} onClick={() => setActiveTab('equipe')} icon={ShieldCheck} label="Mon Équipe" />
+        <TabButton active={activeTab === 'my_team'} onClick={() => setActiveTab('my_team')} icon={Grid} label="MY TEAM" />
+        <TabButton active={activeTab === 'cabinet'} onClick={() => setActiveTab('cabinet')} icon={Building2} label="MON CABINET" />
+        <TabButton active={activeTab === 'utilisateurs'} onClick={() => setActiveTab('utilisateurs')} icon={Users} label="MES UTILISATEURS" />
+        <TabButton active={activeTab === 'equipe'} onClick={() => setActiveTab('equipe')} icon={ShieldCheck} label="MY FUNBOOSTER" />
       </div>
 
       {/* Main Container */}
@@ -241,7 +333,7 @@ const TeamList = ({ currentUser }) => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-navy/20" />
             <input 
               type="text"
-              placeholder="Rechercher un utilisateur..."
+              placeholder={activeTab === 'my_team' ? "Rechercher un client..." : "Rechercher un utilisateur..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-navy/[0.02] border border-navy/5 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
@@ -249,17 +341,199 @@ const TeamList = ({ currentUser }) => {
           </div>
 
           <button 
-            onClick={() => openAddModal(activeTab === 'equipe' ? 'funebooster' : activeTab === 'cabinet' ? 'admin' : 'commercial')}
-            className="px-6 py-3 bg-navy text-white rounded-2xl text-sm font-black hover:bg-primary transition-all flex items-center gap-2 shadow-lg shadow-navy/10"
+            onClick={() => activeTab === 'my_team' ? setIsClientModalOpen(true) : openAddModal(activeTab === 'equipe' ? 'funebooster' : activeTab === 'cabinet' ? 'admin' : 'commercial')}
+            className={`px-6 py-3 ${activeTab === 'my_team' ? 'bg-primary' : 'bg-navy'} text-white rounded-2xl text-sm font-black hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-navy/10`}
           >
-            <UserPlus className="w-4 h-4" />
-            CRÉER UN UTILISATEUR
+            {activeTab === 'my_team' ? <Plus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+            {activeTab === 'my_team' ? 'NOUVEAU CLIENT' : 
+             activeTab === 'equipe' ? 'AJOUTER UN FUNBOOSTER' : 
+             activeTab === 'utilisateurs' ? 'AJOUTER UN COMMERCIAL' : 'CRÉER UN UTILISATEUR'}
           </button>
         </div>
 
         {/* Table View or Cabinet View */}
         <div className="flex-1 overflow-x-auto">
-          {activeTab === 'cabinet' ? (
+          {activeTab === 'my_team' && !selectedClient ? (
+            <div className="p-12 space-y-12 animate-in fade-in slide-in-from-bottom-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-extrabold font-outfit text-navy tracking-tight">DASHBOARD CLIENTS</h2>
+                  <p className="text-[10px] font-bold text-navy/30 uppercase tracking-[0.25em] mt-1">{allClients.length} CLIENTS ACTIFS</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {allClients.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())).map(clientObj => {
+                  const client = clientObj.name;
+                  const clientMembers = members.filter(m => 
+                    Array.isArray(m.client) ? m.client.includes(client) : m.client === client
+                  );
+                  const commCount = clientMembers.filter(m => m.role === 'commercial').length;
+                  const funbCount = clientMembers.filter(m => m.role === 'funebooster').length;
+                  const clientPrefix = clientObj.prefix || clientMembers[0]?.identifier?.split('-')[0] || '—';
+
+                  return (
+                    <div 
+                      key={clientObj.id}
+                      className="bg-white p-8 rounded-[3rem] border border-navy/5 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all group relative overflow-hidden"
+                    >
+                      <div className="flex items-start justify-between mb-8">
+                        <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-inner">
+                          <Building2 className="w-7 h-7" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono font-bold text-navy/20 bg-navy/5 px-2 py-1 rounded-lg">{clientPrefix}</span>
+                          <button 
+                            onClick={(e) => handleDeleteClient(e, client)}
+                            className="p-2 hover:bg-red-50 text-red-200 hover:text-red-400 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-black text-navy uppercase tracking-tight leading-tight">{client}</h3>
+                        
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1.5">
+                            <Users className="w-3.5 h-3.5 text-secondary" />
+                            <span className="text-[10px] font-black text-navy/40 uppercase tracking-wider">{commCount} COMM.</span>
+                          </div>
+                          <div className="w-1 h-1 rounded-full bg-navy/10" />
+                          <div className="flex items-center gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-[10px] font-black text-navy/40 uppercase tracking-wider">{funbCount} FUNB.</span>
+                          </div>
+                        </div>
+
+                        {/* Avatars */}
+                        <div className="flex -space-x-3 pt-4">
+                          {clientMembers.slice(0, 4).map((m, i) => (
+                            <div key={m.id} className="w-9 h-9 rounded-xl bg-navy/5 border-2 border-white flex items-center justify-center text-[10px] font-black text-navy uppercase shadow-sm">
+                              {m.name?.substring(0, 2)}
+                            </div>
+                          ))}
+                          {clientMembers.length > 4 && (
+                            <div className="w-9 h-9 rounded-xl bg-navy/5 border-2 border-white flex items-center justify-center text-[10px] font-black text-navy/40 uppercase shadow-sm">
+                              +{clientMembers.length - 4}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={() => setSelectedClient(client)}
+                        className="absolute bottom-8 right-8 w-10 h-10 rounded-xl bg-navy/5 text-navy opacity-0 group-hover:opacity-100 group-hover:bg-navy group-hover:text-white transition-all duration-300 flex items-center justify-center"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : activeTab === 'my_team' && selectedClient ? (
+            <div className="p-12 space-y-12 animate-in fade-in slide-in-from-left-4 duration-500">
+              {/* Client Detail Header */}
+              <div className="flex items-center gap-8">
+                <button 
+                  onClick={() => setSelectedClient(null)} 
+                  className="p-4 rounded-[1.5rem] bg-navy/5 text-navy hover:bg-navy hover:text-white transition-all shadow-sm"
+                >
+                  <ChevronRight className="w-6 h-6 rotate-180" />
+                </button>
+                <div>
+                  <h2 className="text-4xl font-black text-navy tracking-tight uppercase">{selectedClient}</h2>
+                  <p className="text-[10px] font-bold text-navy/30 uppercase tracking-[0.25em] mt-1">Équipe Commerciale & Assistance</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                {/* Commerciaux & Their Assistants */}
+                <div className="space-y-8">
+                  <div className="flex items-center gap-3 ml-2">
+                    <div className="w-8 h-8 rounded-xl bg-secondary/10 flex items-center justify-center"><Users className="w-4 h-4 text-secondary" /></div>
+                    <h4 className="text-xs font-black text-navy uppercase tracking-widest">Commerciaux & Assistants</h4>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    {members.filter(m => 
+                      (Array.isArray(m.client) ? m.client.includes(selectedClient) : m.client === selectedClient) && 
+                      m.role === 'commercial'
+                    ).map(comm => {
+                      const assignedAssistants = members.filter(m => 
+                        (Array.isArray(m.client) ? m.client.includes(selectedClient) : m.client === selectedClient) && 
+                        m.role === 'funebooster' && 
+                        (m.permissions?.assigned_commercials || []).includes(comm.name)
+                      );
+
+                      return (
+                        <div key={comm.id} className="bg-white p-8 rounded-[2.5rem] border border-navy/5 shadow-sm hover:shadow-xl transition-all group">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-2xl bg-secondary/5 flex items-center justify-center text-secondary font-black text-sm uppercase">
+                                {comm.name?.substring(0, 2)}
+                              </div>
+                              <div>
+                                <p className="text-xl font-extrabold font-outfit text-navy">{comm.name}</p>
+                                <p className="text-[11px] font-bold text-navy/20 font-mono tracking-wider">{comm.identifier}</p>
+                              </div>
+                            </div>
+                            <span className="px-4 py-1.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-extrabold font-outfit uppercase tracking-widest">Commercial</span>
+                          </div>
+
+                          <div className="pt-6 border-t border-navy/5 space-y-4">
+                            <p className="text-[9px] font-black text-navy/30 uppercase tracking-widest ml-1">Assistants Funboosters assignés :</p>
+                            <div className="flex flex-wrap gap-3">
+                              {assignedAssistants.length > 0 ? assignedAssistants.map(ast => (
+                                <div key={ast.id} className="flex items-center gap-3 bg-primary/5 px-4 py-3 rounded-2xl border border-primary/10">
+                                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-[10px] uppercase">
+                                    {ast.name?.substring(0, 2)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-black text-navy">{ast.name}</p>
+                                    <p className="text-[8px] font-bold text-primary/40 uppercase tracking-[0.2em]">Assistante</p>
+                                  </div>
+                                </div>
+                              )) : (
+                                <p className="text-[10px] font-bold text-navy/20 italic ml-1">Aucun assistant assigné</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* All Assistants List */}
+                <div className="space-y-8">
+                  <div className="flex items-center gap-3 ml-2">
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><ShieldCheck className="w-4 h-4 text-primary" /></div>
+                    <h4 className="text-xs font-black text-navy uppercase tracking-widest">Tous les Funboosters</h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {members.filter(m => 
+                      (Array.isArray(m.client) ? m.client.includes(selectedClient) : m.client === selectedClient) && 
+                      m.role === 'funebooster'
+                    ).map(ast => (
+                      <div key={ast.id} className="bg-white p-6 rounded-[2rem] border border-navy/5 shadow-sm hover:shadow-lg transition-all flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary font-black text-xs uppercase">
+                          {ast.name?.substring(0, 2)}
+                        </div>
+                        <div>
+                          <p className="text-base font-extrabold font-outfit text-navy">{ast.name}</p>
+                          <p className="text-[10px] font-bold text-navy/20 font-mono tracking-wider">{ast.identifier}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'cabinet' ? (
             <div className="p-12 space-y-12 animate-in fade-in slide-in-from-bottom-4">
               {selectedClient ? (
                 /* Client Detail View */
@@ -278,7 +552,7 @@ const TeamList = ({ currentUser }) => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {members.filter(m => m.client === selectedClient).map(member => (
+                    {members.filter(m => Array.isArray(m.client) ? m.client.includes(selectedClient) : m.client === selectedClient).map(member => (
                       <div key={member.id} className="bg-white p-6 rounded-[2rem] border border-navy/5 shadow-sm hover:shadow-xl transition-all group flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-navy/5 flex items-center justify-center text-navy font-black text-sm uppercase group-hover:bg-primary group-hover:text-white transition-all">
                           {member.name?.substring(0, 2)}
@@ -368,11 +642,14 @@ const TeamList = ({ currentUser }) => {
                       <h4 className="text-xs font-black text-navy uppercase tracking-widest">Mes Clients</h4>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                      {CLIENTS.map(client => {
-                        const count = members.filter(m => m.client === client).length;
+                      {allClients.map(clientObj => {
+                        const client = clientObj.name;
+                        const count = members.filter(m => 
+                          Array.isArray(m.client) ? m.client.includes(client) : m.client === client
+                        ).length;
                         return (
                           <button 
-                            key={client} 
+                            key={clientObj.id} 
                             onClick={() => setSelectedClient(client)}
                             className="bg-white p-6 rounded-[2rem] border border-navy/5 shadow-sm hover:shadow-2xl hover:scale-[1.02] hover:border-primary/20 transition-all flex flex-col gap-4 group text-left relative overflow-hidden"
                           >
@@ -400,6 +677,7 @@ const TeamList = ({ currentUser }) => {
                 <tr className="bg-navy/[0.01] border-b border-navy/5">
                   <th className="px-8 py-4 text-[10px] font-black text-navy/30 uppercase tracking-widest">Utilisateur</th>
                   <th className="px-8 py-4 text-[10px] font-black text-navy/30 uppercase tracking-widest">Identifiant</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-navy/30 uppercase tracking-widest">Rôle</th>
                   <th className="px-8 py-4 text-[10px] font-black text-navy/30 uppercase tracking-widest">Email</th>
                   <th className="px-8 py-4 text-[10px] font-black text-navy/30 uppercase tracking-widest">Téléphone</th>
                   <th className="px-8 py-4 text-[10px] font-black text-navy/30 uppercase tracking-widest text-center">Statut</th>
@@ -416,12 +694,26 @@ const TeamList = ({ currentUser }) => {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-black text-navy">{member.name}</span>
-                          {member.client && <span className="text-[9px] font-bold text-primary uppercase">{member.client}</span>}
+                          {member.client && (
+                            <span className="text-[9px] font-bold text-primary uppercase">
+                              {Array.isArray(member.client) ? member.client.join(', ') : member.client}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-5">
                       <span className="text-xs font-mono font-bold text-navy/60">{member.identifier || '—'}</span>
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className={`px-3 py-1.5 rounded-xl text-[9px] font-extrabold font-outfit uppercase tracking-widest border transition-all ${
+                        member.role === 'funebooster' ? 'bg-primary/5 text-primary border-primary/10' : 
+                        member.role === 'commercial' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
+                        'bg-navy text-white border-navy'
+                      }`}>
+                        {member.role === 'funebooster' ? 'Assistante commerciale' : 
+                         member.role === 'commercial' ? 'Commerciale' : member.role}
+                      </span>
                     </td>
                     <td className="px-8 py-5">
                       <span className="text-xs font-bold text-navy/40">{member.email}</span>
@@ -463,7 +755,63 @@ const TeamList = ({ currentUser }) => {
         </div>
       </div>
 
-      {/* Edit/Create Modal - Redesigned to Full Page / Professional Style */}
+      {/* New Client Modal */}
+      {isClientModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-navy/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl border border-white/20 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-10">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-2xl font-black text-navy uppercase tracking-tight">Nouveau Client</h3>
+                  <p className="text-[10px] font-bold text-navy/30 uppercase tracking-[0.25em] mt-1">Configuration de l'entité</p>
+                </div>
+                <button onClick={() => setIsClientModalOpen(false)} className="p-3 rounded-2xl bg-navy/5 text-navy/30 hover:bg-navy hover:text-white transition-all">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveClient} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">Nom du Client</label>
+                  <input 
+                    type="text" 
+                    value={newClient.name}
+                    onChange={(e) => setNewClient({...newClient, name: e.target.value})}
+                    placeholder="Ex: TB FORMATIONS"
+                    className="w-full px-6 py-4 bg-navy/[0.02] border border-navy/5 rounded-2xl text-sm font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-navy/10"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">Préfixe Identifiant (6 chars)</label>
+                  <input 
+                    type="text" 
+                    value={newClient.prefix}
+                    onChange={(e) => setNewClient({...newClient, prefix: e.target.value.toUpperCase()})}
+                    placeholder="Ex: TB1001"
+                    maxLength={10}
+                    className="w-full px-6 py-4 bg-navy/[0.02] border border-navy/5 rounded-2xl text-sm font-mono font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-navy/10"
+                    required
+                  />
+                  <p className="text-[9px] font-medium text-navy/20 ml-1 italic">Ce préfixe sera utilisé pour générer les IDs des collaborateurs.</p>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={saving}
+                  className="w-full py-5 bg-primary text-white rounded-[2rem] text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-3"
+                >
+                  {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  {saving ? 'Création...' : 'Créer le Client'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit/Add Member Modal - Redesigned to Full Page / Professional Style */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-navy/40 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)} />
@@ -524,34 +872,84 @@ const TeamList = ({ currentUser }) => {
                     <CompactInput label="E-mail" type="email" value={editingMember.email} onChange={(v) => setEditingMember({...editingMember, email: v})} placeholder="jean@lykos.fr" />
                     <CompactInput label="Téléphone" value={editingMember.phone} onChange={(v) => setEditingMember({...editingMember, phone: v})} placeholder="06 12 34 56 78" />
                     {(editingMember.role === 'commercial' || editingMember.role === 'funebooster') && (
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">Client Assigné</label>
-                        <select 
-                          value={editingMember.client}
-                          onChange={(e) => setEditingMember({
-                            ...editingMember, 
-                            client: e.target.value,
-                            permissions: {
-                              ...editingMember.permissions,
-                              assigned_commercials: []
+                      <div className="col-span-full space-y-4">
+                        <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">Clients Assignés</label>
+                        <div className="flex flex-wrap gap-2">
+                          {allClients.map(clientObj => {
+                            const c = clientObj.name;
+                            let currentClients = [];
+                            if (Array.isArray(editingMember.client)) {
+                              currentClients = editingMember.client;
+                            } else if (typeof editingMember.client === 'string') {
+                              if (editingMember.client.startsWith('[')) {
+                                try {
+                                  currentClients = JSON.parse(editingMember.client);
+                                } catch (e) {
+                                  currentClients = [editingMember.client];
+                                }
+                              } else {
+                                currentClients = editingMember.client ? [editingMember.client] : [];
+                              }
                             }
+                            
+                            const isSelected = currentClients.includes(c);
+                            return (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => {
+                                  const next = isSelected 
+                                    ? currentClients.filter(item => item !== c) 
+                                    : [...currentClients, c];
+                                  
+                                  // Keep only commercials that still have at least one client in common with the new list
+                                  const nextAssigned = (editingMember.permissions?.assigned_commercials || []).filter(commName => {
+                                    const comm = members.find(m => m.name === commName && m.role === 'commercial');
+                                    if (!comm) return false;
+                                    const commClients = Array.isArray(comm.client) ? comm.client : [comm.client];
+                                    return commClients.some(cc => next.includes(cc));
+                                  });
+
+                                  setEditingMember({
+                                    ...editingMember, 
+                                    client: next,
+                                    permissions: {
+                                      ...editingMember.permissions,
+                                      assigned_commercials: nextAssigned
+                                    }
+                                  });
+                                }}
+                                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 ${
+                                  isSelected 
+                                    ? 'bg-primary/10 text-primary border-primary/30 shadow-sm' 
+                                    : 'bg-white text-navy/40 border-navy/10 hover:border-navy/20'
+                                }`}
+                              >
+                                {isSelected && <Check className="w-3.5 h-3.5" />}
+                                {c}
+                              </button>
+                            );
                           })}
-                          className="bg-navy/[0.03] border-none rounded-2xl px-5 py-4 text-sm font-bold text-navy focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
-                        >
-                          <option value="">Choisir un client...</option>
-                          {CLIENTS.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                        </div>
                       </div>
                     )}
 
-                    {editingMember.role === 'funebooster' && editingMember.client && (
+                    {editingMember.role === 'funebooster' && editingMember.client?.length > 0 && (
                       <div className="col-span-full p-6 bg-navy/[0.02] border border-navy/5 rounded-3xl animate-in slide-in-from-top-2">
                         <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1 mb-4 block">Commerciaux à alimenter</label>
                         <div className="flex flex-wrap gap-2">
-                          {members.filter(m => m.role === 'commercial' && m.client === editingMember.client).length === 0 ? (
-                            <span className="text-xs text-navy/40 italic">Aucun commercial trouvé pour ce client.</span>
+                          {members.filter(m => {
+                            const memberClients = Array.isArray(m.client) ? m.client : (m.client ? [m.client] : []);
+                            const editingClients = Array.isArray(editingMember.client) ? editingMember.client : [editingMember.client];
+                            return m.role === 'commercial' && memberClients.some(c => editingClients.includes(c));
+                          }).length === 0 ? (
+                            <span className="text-xs text-navy/40 italic">Aucun commercial trouvé pour ces clients.</span>
                           ) : (
-                            members.filter(m => m.role === 'commercial' && m.client === editingMember.client).map(comm => {
+                            members.filter(m => {
+                              const memberClients = Array.isArray(m.client) ? m.client : (m.client ? [m.client] : []);
+                              const editingClients = Array.isArray(editingMember.client) ? editingMember.client : [editingMember.client];
+                              return m.role === 'commercial' && memberClients.some(c => editingClients.includes(c));
+                            }).map(comm => {
                               const isAssigned = (editingMember.permissions?.assigned_commercials || []).includes(comm.name);
                               return (
                                 <button
@@ -646,16 +1044,19 @@ const TeamList = ({ currentUser }) => {
                                   selectedClients.includes('all') ? 'bg-navy text-white border-navy' : 'bg-white border-navy/10 text-navy/40 hover:border-navy/20'
                                 }`}
                               >Tous les clients</button>
-                              {CLIENTS.map(client => (
-                                <button
-                                  key={client}
-                                  type="button"
-                                  onClick={() => toggleClient(client)}
-                                  className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase border transition-all ${
-                                    selectedClients.includes(client) ? 'bg-primary/10 text-primary border-primary/30' : 'bg-white border-navy/10 text-navy/40 hover:border-navy/20'
-                                  }`}
-                                >{client}</button>
-                              ))}
+                                {allClients.map(clientObj => {
+                                  const client = clientObj.name;
+                                  return (
+                                    <button
+                                      key={clientObj.id}
+                                      type="button"
+                                      onClick={() => toggleClient(client)}
+                                      className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase border transition-all ${
+                                        selectedClients.includes(client) ? 'bg-primary/10 text-primary border-primary/30' : 'bg-white border-navy/10 text-navy/40 hover:border-navy/20'
+                                      }`}
+                                    >{client}</button>
+                                  );
+                                })}
                             </div>
                           </div>
                         )}

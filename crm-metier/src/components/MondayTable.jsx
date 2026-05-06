@@ -123,7 +123,7 @@ const COLUMNS = [
   { label: 'Client OF',    key: 'client_of',         width: 180, type: 'select', options: [
     'CA CONSEILS', 'HORS ZONE', 'TB FORMATIONS', 'IT PERFORMANCE', 'GO CONSEILS'
   ]},
-  { label: 'Opcosign',     key: 'opcosign',          width: 130, type: 'editable' },
+  { label: 'Opcosign',     key: 'opcosign',          width: 180, type: 'editable' },
   { label: 'Budget Opco',  key: 'budget_opco',       width: 120, type: 'currency' },
   { label: 'Année Budget', key: 'annee_budget',      width: 110, type: 'number' },
   { label: 'Date RDV',     key: 'date_rdv',          width: 130, type: 'date_picker' },
@@ -204,11 +204,11 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg }) => {
       <button
         onClick={(e) => { e.stopPropagation(); if (!isOpen) setRect(containerRef.current.getBoundingClientRect()); setIsOpen(!isOpen); }}
         style={{ backgroundColor: colorCfg.bg, color: colorCfg.text }}
-        className="w-full pl-2 pr-6 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-normal flex items-center justify-between shadow-sm group/btn transition-all active:scale-[0.98]"
+        className="w-full pl-2 pr-5 py-1.5 rounded-lg font-black uppercase tracking-tight flex items-center justify-between shadow-sm group/btn transition-all active:scale-[0.98] min-h-[28px] relative overflow-hidden"
       >
-        <span className="whitespace-nowrap leading-tight">{value || 'CHOISIR'}</span>
-        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40 group-hover/btn:opacity-100 transition-all">
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        <span className={`whitespace-nowrap leading-none ${value && value.length > 10 ? 'text-[8.5px]' : 'text-[10px]'}`}>{value || 'CHOISIR'}</span>
+        <div className="flex-shrink-0 ml-1 opacity-40 group-hover/btn:opacity-100 transition-all">
+          <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
       {isOpen && (
@@ -566,6 +566,8 @@ const MondayTable = React.memo(({ activeTab, user }) => {
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [clickedRowId, setClickedRowId] = useState(null);
   const [filterMenu, setFilterMenu] = useState(null);
+  const [error, setError] = useState(null);
+  const lastFetchId = useRef(0);
   const [columns, setColumns] = useState(COLUMNS);
   const listRef = useRef(null);
   const pickerRef = useRef(null);
@@ -576,15 +578,20 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     const fetchTeamMembers = async () => {
       if (!supabase) return;
       
-      // 1. Fetch FunBooster names for the dropdown
+      // 1. Fetch FunBooster and Commercial names for the dropdowns
       const { data, error } = await supabase
         .from('team_members')
-        .select('name')
-        .eq('role', 'funebooster')
+        .select('name, role')
+        .in('role', ['funebooster', 'commercial'])
         .eq('is_active', true)
         .order('name');
       
       let updatedColumns = [...COLUMNS];
+
+      // Update Opcosign type to select in static definition for safety
+      updatedColumns = updatedColumns.map(col => 
+        col.key === 'opcosign' ? { ...col, type: 'select' } : col
+      );
 
       // 2. Filter columns based on user permissions
       const perms = user?.permissions;
@@ -592,12 +599,29 @@ const MondayTable = React.memo(({ activeTab, user }) => {
         updatedColumns = updatedColumns.filter(col => perms.leads_columns.includes(col.key));
       }
 
-      // 3. Update FunBooster options in the column definition
+      // 3. Update FunBooster and Commercial options in the column definitions
       if (!error && data) {
-        const names = [...new Set(data.map(m => m.name.toUpperCase()))].sort();
-        updatedColumns = updatedColumns.map(col => 
-          col.key === 'funebooster' ? { ...col, options: names } : col
-        );
+        const funboosters = data.filter(m => m.role === 'funebooster').map(m => m.name.toUpperCase());
+        
+        // Security: For FunBoosters, only show commercials they are assigned to
+        let commercialNames = [];
+        const userRole = (user?.role || '').toLowerCase();
+        const isFunbooster = userRole === 'funbooster' || userRole === 'funebooster';
+        
+        if (userRole === 'admin') {
+          commercialNames = data.filter(m => m.role === 'commercial').map(m => m.name);
+        } else if (isFunbooster) {
+          const assigned = user?.permissions?.assigned_commercials || [];
+          commercialNames = data
+            .filter(m => (m.role || '').toLowerCase() === 'commercial' && assigned.includes(m.name))
+            .map(m => m.name);
+        }
+
+        updatedColumns = updatedColumns.map(col => {
+          if (col.key === 'funebooster') return { ...col, options: [...new Set(funboosters)].sort() };
+          if (col.key === 'opcosign') return { ...col, options: [...new Set(commercialNames)].sort() };
+          return col;
+        });
       }
 
       setColumns(updatedColumns);
@@ -607,6 +631,8 @@ const MondayTable = React.memo(({ activeTab, user }) => {
 
   const fetchPage = useCallback(async (pageIndex, replace = false, searchQuery = '', filters = activeFilters) => {
     if (!supabase) return;
+    const fetchId = ++lastFetchId.current;
+    setError(null);
     if (pageIndex === 0) setLoading(true); else setLoadingMore(true);
     const from = pageIndex * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
@@ -616,30 +642,63 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     Object.entries(filters).forEach(([field, values]) => {
       if (values && values.length > 0) {
         // Replace non-ASCII (accents, broken ) with '%' wildcards to match all variations in DB
-        const ilikeConditions = values.map(v => {
+        const ilikeConditions = values.flatMap(v => {
           const safeVal = String(v).replace(/[^\x00-\x7F]/g, '%');
-          return `${field}.ilike.${safeVal}`;
+          
+          // Special Case: NAF Code filter should check both 'code_naf' and 'secteur' columns
+          if (field === 'code_naf') {
+            return [
+              `code_naf.ilike.${safeVal}`,
+              `secteur.ilike.${safeVal}`
+            ];
+          }
+          
+          return [`${field}.ilike.${safeVal}`];
         }).join(',');
+        
         query = query.or(ilikeConditions);
       }
     });
     if (activeTab === 'mes-rdv') {
       query = query.ilike('status', 'rdv');
       if (user?.role === 'commercial') {
-        query = query.eq('client_of', user.client);
+        let clientList = [];
+        try {
+          const raw = user.client;
+          if (typeof raw === 'string' && raw.startsWith('[')) {
+            clientList = JSON.parse(raw);
+          } else if (Array.isArray(raw)) {
+            clientList = raw;
+          } else {
+            clientList = String(raw).split(',').map(c => c.trim()).filter(Boolean);
+          }
+        } catch (e) {
+          clientList = [String(user.client).replace(/[\[\]"]/g, '')];
+        }
+        
+        if (clientList.length > 0) {
+          query = query.in('client_of', clientList);
+        }
+        query = query.or(`opcosign.ilike."${user.name}",opcosign.is.null`);
       } else {
         query = query.ilike('funebooster', user?.name);
       }
     }
     else if (activeTab === 'mes-rappel') query = query.ilike('status', 'rappel').ilike('funebooster', user?.name);
-    const { data, error, count } = await query.order('date_modification', { ascending: false }).range(from, to);
-    if (!error && data) {
+    const { data, error: fetchError, count } = await query.order('date_modification', { ascending: false }).range(from, to);
+    
+    if (fetchId !== lastFetchId.current) return;
+
+    if (fetchError) {
+      console.error('Error fetching leads:', fetchError);
+      setError(fetchError.message);
+    } else if (data) {
       if (pageIndex === 0 && count !== null) setTotalCount(count);
       setLeads(prev => replace ? data : [...prev, ...data]);
       setHasMore(data.length === PAGE_SIZE);
     }
     setLoading(false); setLoadingMore(false);
-  }, [activeTab, user]);
+  }, [activeTab, user, activeFilters]);
 
   const handleApplyFilter = useCallback((field, values) => {
     const newFilters = { ...activeFilters, [field]: values };
@@ -817,15 +876,24 @@ const MondayTable = React.memo(({ activeTab, user }) => {
                 <div className="w-10 h-10 border-4 border-navy/10 border-t-primary rounded-full animate-spin" />
                 <span className="text-[10px] font-bold text-navy/30 uppercase tracking-[0.3em]">Synchronisation en cours…</span>
               </div>
-            ) : leads.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-32 gap-4">
-                <div className="w-16 h-16 rounded-3xl bg-navy/5 flex items-center justify-center">
-                  <span className="text-3xl grayscale opacity-50 text-navy">📭</span>
+            ) : (leads.length === 0 || error) ? (
+              <div className="flex flex-col items-center justify-center py-32 text-navy/20 animate-in fade-in duration-700">
+                <div className="p-6 rounded-3xl bg-navy/5 mb-6">
+                  {error ? <AlertCircle className="w-12 h-12 text-red-400" /> : <Mail className="w-12 h-12 opacity-40" />}
                 </div>
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-sm font-black text-navy/40 uppercase tracking-widest">Aucune donnée</span>
-                  <p className="text-xs text-navy/20">La requête n'a retourné aucun résultat pour ce filtre.</p>
-                </div>
+                <h3 className="text-xl font-black uppercase tracking-widest mb-2">
+                  {error ? 'Erreur de chargement' : 'Aucune donnée'}
+                </h3>
+                <p className="text-xs font-bold text-navy/20 uppercase tracking-widest max-w-xs text-center leading-relaxed mb-6">
+                  {error ? `Une erreur est survenue : ${error}` : "La requête n'a retourné aucun résultat pour ce filtre."}
+                </p>
+                <button 
+                  onClick={() => fetchPage(0, true, search, activeFilters)}
+                  className="flex items-center gap-2 px-6 py-3 bg-navy/5 text-navy hover:bg-navy hover:text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Chargement...' : 'Réessayer'}
+                </button>
               </div>
             ) : (
               <List
@@ -855,6 +923,10 @@ const MondayTable = React.memo(({ activeTab, user }) => {
           onClose={() => setSelectedLeadId(null)} 
           userName={user?.name}
           permissions={user?.permissions}
+          userRole={user?.role}
+          onUpdate={(id, updates) => {
+            setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+          }}
         />
       )}
     </div>

@@ -72,5 +72,45 @@ export const teamService = {
     
     if (error && error.code !== 'PGRST116') throw error;
     return data || null;
+  },
+
+  /**
+   * Récupérer tous les clients
+   */
+  async getAllClients() {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .order('name', { ascending: true });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Supprimer un client
+   */
+  async deleteClient(id) {
+    const { error } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    return true;
+  },
+
+  /**
+   * Ajouter un nouveau client
+   */
+  async addClient(client) {
+    const { data, error } = await supabase
+      .from('clients')
+      .insert([client])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   }
 };

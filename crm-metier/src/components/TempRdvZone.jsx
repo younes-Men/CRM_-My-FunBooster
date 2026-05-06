@@ -268,6 +268,11 @@ const TempRdvZone = ({ user }) => {
           lead={leads.find(l => l.id === selectedLeadId)}
           onClose={() => setSelectedLeadId(null)}
           userName={user?.name}
+          userRole={user?.role}
+          permissions={user?.permissions}
+          onUpdate={(id, updates) => {
+            setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+          }}
         />
       )}
     </div>

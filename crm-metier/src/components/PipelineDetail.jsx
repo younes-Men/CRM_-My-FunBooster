@@ -90,6 +90,7 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead }) =
     if (lead.pec === 'OUI' && lead.status !== 'SIGNE') return 'PEC';
     if (lead.status === 'SIGNE' && lead.pec !== 'OUI') return 'Signé';
     if (lead.proposition === 'OUI' && lead.status !== 'SIGNE') return 'Proposition';
+    if (lead.status_rdv === 'Perdu' || lead.status === 'PERDU') return 'Perdu';
     if (lead.status === 'RAPPEL') return 'RAP';
     if (lead.status === 'RDV') return 'Nouveau';
     return 'Nouveau';
@@ -198,7 +199,14 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead }) =
               >
                 Gagné
               </button>
-              <button className="px-4 py-2 bg-navy/5 text-navy/40 rounded-md text-[11px] font-black uppercase tracking-wider hover:bg-red-500 hover:text-white">
+              <button 
+                onClick={() => handleStatusChange('Perdu')}
+                className={`px-4 py-2 rounded-md text-[11px] font-black uppercase tracking-wider transition-all ${
+                  currentStatusId === 'Perdu'
+                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
+                    : 'bg-navy/5 text-navy/40 hover:bg-red-500 hover:text-white'
+                }`}
+              >
                 Perdu
               </button>
             </div>

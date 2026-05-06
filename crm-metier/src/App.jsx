@@ -48,7 +48,7 @@ function App() {
         setLoginError('Mot de passe incorrect.');
       }
     } else {
-      setLoginError('Accès non autorisé. Vérifiez votre identifiant.');
+      setLoginError('Accès non autorisé. Vérifiez votre e-mail.');
     }
   };
 
@@ -76,12 +76,12 @@ function App() {
           </div>
           
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">Identifiant ou E-mail</label>
+            <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">E-mail</label>
             <input 
               type="text" 
               value={credential}
               onChange={(e) => setCredential(e.target.value)}
-              placeholder="Ex: TB1001-1 ou admin@lykos.fr"
+              placeholder="Ex: admin@lykos.fr"
               className="bg-navy/5 border border-navy/10 rounded-2xl px-5 py-4 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-navy/20"
               required
             />
@@ -104,7 +104,7 @@ function App() {
             type="submit"
             className="bg-navy text-white font-black py-4 rounded-2xl shadow-xl shadow-navy/20 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-sm"
           >
-            Identifier
+            Se Connecter
           </button>
         </form>
       </div>

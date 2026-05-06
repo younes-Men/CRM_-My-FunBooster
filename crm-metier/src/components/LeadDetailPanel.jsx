@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, User, Building2, MapPin, Hash, Briefcase, Calendar, MessageSquare, History, Phone } from 'lucide-react';
+import { X, Clock, User, Building2, MapPin, Hash, Briefcase, Calendar, MessageSquare, History, Phone, Save, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import nafMapping from '../data/naf_mapping.json';
 
@@ -20,9 +20,18 @@ const formatNaf = (val) => {
   return val;
 };
 
-const LeadDetailPanel = ({ leadId, lead, onClose, userName, permissions }) => {
+const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permissions, userRole, onUpdate }) => {
+  const [lead, setLead] = useState(initialLead);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValues, setEditValues] = useState({});
+
+  useEffect(() => {
+    setLead(initialLead);
+  }, [initialLead]);
+
+  const isAdmin = userRole === 'admin' || (permissions?.leads_columns && permissions.leads_columns.includes('all'));
 
   const isVisible = (key) => {
     if (!permissions?.leads_columns) return true;
@@ -75,6 +84,36 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName, permissions }) => {
 
   if (!lead) return null;
 
+  const handleEditToggle = () => {
+    if (isEditing) {
+      setEditValues({});
+    } else {
+      setEditValues({ ...lead });
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditValues(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    const { error } = await supabase
+      .from('crm_leads')
+      .update(editValues)
+      .eq('id', leadId);
+
+    if (error) {
+      alert("Erreur lors de la mise à jour : " + error.message);
+    } else {
+      setLead(editValues);
+      setIsEditing(false);
+      if (onUpdate) onUpdate(leadId, editValues);
+    }
+    setLoading(false);
+  };
+
   const formatDate = (d, t) => {
     if (!d) return '—';
     const datePart = new Date(d).toLocaleDateString('fr-FR', {
@@ -113,12 +152,35 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName, permissions }) => {
               <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Dossier Complet</span>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-3 rounded-2xl bg-navy/5 text-navy/40 hover:bg-navy hover:text-white transition-all group"
-          >
-            <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-          </button>
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <button 
+                onClick={isEditing ? handleSave : handleEditToggle}
+                className={`p-3 rounded-2xl flex items-center gap-2 transition-all font-black text-[10px] uppercase tracking-widest ${
+                  isEditing 
+                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' 
+                    : 'bg-navy/5 text-navy hover:bg-navy hover:text-white'
+                }`}
+              >
+                {isEditing ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                {isEditing ? 'Enregistrer' : 'Modifier'}
+              </button>
+            )}
+            {isEditing && (
+              <button 
+                onClick={handleEditToggle}
+                className="p-3 rounded-2xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all font-black text-[10px] uppercase tracking-widest"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+            <button 
+              onClick={onClose}
+              className="p-3 rounded-2xl bg-navy/5 text-navy/40 hover:bg-navy hover:text-white transition-all group"
+            >
+              <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+            </button>
+          </div>
         </div>
 
         {/* Content (Optimized scroll) */}
@@ -135,12 +197,65 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName, permissions }) => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy/[0.02] p-6 rounded-3xl border border-navy/5">
-                {isVisible('nom_entreprise') && <InfoItem label="Raison Sociale" value={lead.nom_entreprise} icon={Building2} />}
-                {isVisible('siret') && <InfoItem label="N° SIRET" value={lead.siret} icon={Hash} isMono />}
-                {isVisible('secteur_activite') && <InfoItem label="Secteur" value={lead.secteur_activite} icon={Briefcase} />}
-                {isVisible('libelle_activite') && <InfoItem label="Libellé" value={getAutomatedLibelle()} />}
-                {isVisible('nom_opco') && <InfoItem label="Opco" value={lead.nom_opco} />}
-                {isVisible('code_naf') && <InfoItem label="NAF" value={lead.code_naf || lead.secteur} isMono />}
+                {isVisible('nom_entreprise') && (
+                  <InfoItem 
+                    label="Raison Sociale" 
+                    value={isEditing ? editValues.nom_entreprise : lead.nom_entreprise} 
+                    icon={Building2} 
+                    isEditing={isEditing}
+                    name="nom_entreprise"
+                    onChange={handleInputChange}
+                  />
+                )}
+                {isVisible('siret') && (
+                  <InfoItem 
+                    label="N° SIRET" 
+                    value={isEditing ? editValues.siret : lead.siret} 
+                    icon={Hash} 
+                    isMono 
+                    isEditing={isEditing}
+                    name="siret"
+                    onChange={handleInputChange}
+                  />
+                )}
+                {isVisible('secteur_activite') && (
+                  <InfoItem 
+                    label="Secteur" 
+                    value={isEditing ? editValues.secteur_activite : lead.secteur_activite} 
+                    icon={Briefcase} 
+                    isEditing={isEditing}
+                    name="secteur_activite"
+                    onChange={handleInputChange}
+                  />
+                )}
+                {isVisible('libelle_activite') && (
+                  <InfoItem 
+                    label="Libellé" 
+                    value={isEditing ? editValues.libelle_activite : getAutomatedLibelle()} 
+                    isEditing={isEditing}
+                    name="libelle_activite"
+                    onChange={handleInputChange}
+                  />
+                )}
+                {isVisible('nom_opco') && (
+                  <InfoItem 
+                    label="Opco" 
+                    value={isEditing ? editValues.nom_opco : lead.nom_opco} 
+                    isEditing={isEditing}
+                    name="nom_opco"
+                    onChange={handleInputChange}
+                  />
+                )}
+                {isVisible('code_naf') && (
+                  <InfoItem 
+                    label="NAF" 
+                    value={isEditing ? editValues.code_naf : (lead.code_naf || lead.secteur)} 
+                    isMono 
+                    isEditing={isEditing}
+                    name="code_naf"
+                    onChange={handleInputChange}
+                  />
+                )}
               </div>
             </section>
 
@@ -157,15 +272,58 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName, permissions }) => {
                 {isVisible('adresse') && (
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[10px] font-bold text-navy/30 uppercase tracking-widest">Adresse Complète</span>
-                    <p className="text-navy font-bold">{lead.adresse || '—'}</p>
+                    {isEditing ? (
+                      <input 
+                        type="text"
+                        value={editValues.adresse || ''}
+                        onChange={(e) => handleInputChange('adresse', e.target.value)}
+                        className="bg-white border border-navy/10 rounded-lg px-3 py-2 text-sm font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 w-full"
+                      />
+                    ) : (
+                      <p className="text-navy font-bold">{lead.adresse || '—'}</p>
+                    )}
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-6 pt-4 border-t border-navy/5">
-                  {isVisible('code_postal') && <InfoItem label="Code Postal" value={lead.code_postal} />}
-                  {isVisible('code_departement') && <InfoItem label="Département" value={lead.code_departement} />}
+                  {isVisible('code_postal') && (
+                    <InfoItem 
+                      label="Code Postal" 
+                      value={isEditing ? editValues.code_postal : lead.code_postal} 
+                      isEditing={isEditing}
+                      name="code_postal"
+                      onChange={handleInputChange}
+                    />
+                  )}
+                  {isVisible('code_departement') && (
+                    <InfoItem 
+                      label="Département" 
+                      value={isEditing ? editValues.code_departement : lead.code_departement} 
+                      isEditing={isEditing}
+                      name="code_departement"
+                      onChange={handleInputChange}
+                    />
+                  )}
                   {(isVisible('tel') || isVisible('mobile')) && <div className="col-span-full h-px bg-navy/5 my-2" />}
-                  {isVisible('tel') && <InfoItem label="Téléphone Fixe" value={lead.tel} icon={Phone} />}
-                  {isVisible('mobile') && <InfoItem label="Mobile" value={lead.mobile} icon={Phone} />}
+                  {isVisible('tel') && (
+                    <InfoItem 
+                      label="Téléphone Fixe" 
+                      value={isEditing ? editValues.tel : lead.tel} 
+                      icon={Phone} 
+                      isEditing={isEditing}
+                      name="tel"
+                      onChange={handleInputChange}
+                    />
+                  )}
+                  {isVisible('mobile') && (
+                    <InfoItem 
+                      label="Mobile" 
+                      value={isEditing ? editValues.mobile : lead.mobile} 
+                      icon={Phone} 
+                      isEditing={isEditing}
+                      name="mobile"
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
               </div>
             </section>
@@ -180,11 +338,53 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName, permissions }) => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy/[0.02] p-6 rounded-3xl border border-navy/5">
-                {isVisible('status') && <InfoItem label="Statut Actuel" value={lead.status} />}
-                {isVisible('status_rdv') && <InfoItem label="Statut RDV" value={lead.status_rdv} />}
-                {isVisible('funebooster') && <InfoItem label="FUNEBOOSTER" value={lead.funebooster} icon={User} />}
-                {isVisible('date_rdv') && <InfoItem label="Date RDV" value={formatDate(lead.date_rdv, lead.heure_rdv)} />}
-                {isVisible('type_rdv') && <InfoItem label="Type RDV" value={lead.type_rdv} />}
+                {isVisible('status') && (
+                  <InfoItem 
+                    label="Statut Actuel" 
+                    value={isEditing ? editValues.status : lead.status} 
+                    isEditing={isEditing}
+                    name="status"
+                    onChange={handleInputChange}
+                  />
+                )}
+                {isVisible('status_rdv') && (
+                  <InfoItem 
+                    label="Statut RDV" 
+                    value={isEditing ? editValues.status_rdv : lead.status_rdv} 
+                    isEditing={isEditing}
+                    name="status_rdv"
+                    onChange={handleInputChange}
+                  />
+                )}
+                {isVisible('funebooster') && (
+                  <InfoItem 
+                    label="FUNEBOOSTER" 
+                    value={isEditing ? editValues.funebooster : lead.funebooster} 
+                    icon={User} 
+                    isEditing={isEditing}
+                    name="funebooster"
+                    onChange={handleInputChange}
+                  />
+                )}
+                {isVisible('date_rdv') && (
+                  <InfoItem 
+                    label="Date RDV" 
+                    value={isEditing ? editValues.date_rdv : formatDate(lead.date_rdv, lead.heure_rdv)} 
+                    isEditing={isEditing}
+                    name="date_rdv"
+                    type="date"
+                    onChange={handleInputChange}
+                  />
+                )}
+                {isVisible('type_rdv') && (
+                  <InfoItem 
+                    label="Type RDV" 
+                    value={isEditing ? editValues.type_rdv : lead.type_rdv} 
+                    isEditing={isEditing}
+                    name="type_rdv"
+                    onChange={handleInputChange}
+                  />
+                )}
               </div>
             </section>
 
@@ -257,15 +457,25 @@ const LeadDetailPanel = ({ leadId, lead, onClose, userName, permissions }) => {
   );
 };
 
-const InfoItem = ({ label, value, icon: Icon, isMono }) => (
+const InfoItem = ({ label, value, icon: Icon, isMono, isEditing, onChange, name, type = 'text' }) => (
   <div className="flex flex-col gap-1.5 min-w-0">
     <div className="flex items-center gap-2">
       {Icon && <Icon className="w-3.5 h-3.5 text-navy/20" />}
       <span className="text-[10px] font-bold text-navy/30 uppercase tracking-widest">{label}</span>
     </div>
-    <span className={`text-navy font-bold break-words leading-snug ${isMono ? 'font-mono tracking-tighter text-sm' : 'text-[13px]'}`}>
-      {value || '—'}
-    </span>
+    {isEditing ? (
+      <input 
+        type={type}
+        name={name}
+        value={value || ''}
+        onChange={(e) => onChange(name, e.target.value)}
+        className="bg-white border border-navy/10 rounded-lg px-2 py-1.5 text-sm font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 w-full"
+      />
+    ) : (
+      <span className={`text-navy font-bold break-words leading-snug ${isMono ? 'font-mono tracking-tighter text-sm' : 'text-[13px]'}`}>
+        {value || '—'}
+      </span>
+    )}
   </div>
 );
 
