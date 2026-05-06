@@ -7,11 +7,13 @@ import TempRdvZone from './components/TempRdvZone';
 import CalendarView from './components/CalendarView';
 import Pipeline from './components/Pipeline';
 import { getUser } from './lib/authConfig';
+import { Eye, EyeOff } from 'lucide-react';
 
 function App() {
   const [user, setUser] = useState(null);
   const [credential, setCredential] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState('leads');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -89,13 +91,22 @@ function App() {
 
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-bold text-navy/30 uppercase tracking-widest ml-1">Mot de passe</label>
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Laissez vide si non défini"
-              className="bg-navy/5 border border-navy/10 rounded-2xl px-5 py-4 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-navy/20"
-            />
+            <div className="relative group/pass">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Laissez vide si non défini"
+                className="w-full bg-navy/5 border border-navy/10 rounded-2xl px-5 py-4 text-sm text-navy focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-navy/20"
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-navy/20 hover:text-primary transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
 
           {loginError && <p className="text-primary text-[11px] font-bold text-center animate-pulse">{loginError}</p>}
