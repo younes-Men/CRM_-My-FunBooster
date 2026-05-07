@@ -4,11 +4,12 @@ import { FixedSizeList as List } from 'react-window';
 import { 
   Search, Filter, ChevronDown, ChevronUp, Download, Eye, Plus, 
   Trash2, X, Check, Save, Calendar, Phone, Mail, User, 
-  AlertCircle, MoreVertical, LayoutGrid, RefreshCw, 
+  AlertCircle, MoreVertical, LayoutGrid, RefreshCw, Settings,
   MapPin, Hash, Briefcase, FileText, ArrowRight, ArrowLeft, Clock, ExternalLink, Copy
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LeadDetailPanel from './LeadDetailPanel';
+import ColumnManagerModal from './ColumnManagerModal';
 import opcoMapping from '../data/opco_mapping.json';
 import nafMapping from '../data/naf_mapping.json';
 
@@ -260,12 +261,14 @@ const formatNaf = (val) => {
 };
 
 const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker, setActivePicker, pickerRef, index }) => {
-  const raw = lead[col.key];
   const [copied, setCopied] = useState(false);
   const containerRef = useRef(null);
 
+  // Check if data is in native column or custom_fields
+  const raw = lead[col.key] !== undefined ? lead[col.key] : (lead.custom_fields?.[col.key]);
+  
   // Robust NAF mapping fallback
-  let displayRaw = raw;
+  let displayRaw = raw || '';
   if (col.key === 'code_naf' && !displayRaw && lead.secteur) displayRaw = lead.secteur;
   
   if (col.key === 'code_naf' && displayRaw) {
@@ -298,9 +301,10 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
       </div>
     );
   }
+  
   if (col.type === 'status' || col.type === 'select') {
     const cfg = getStatusStyle(raw);
-    return <CustomSelect value={raw} options={col.options} onChange={(val) => handleUpdate(lead.id, col.key, val)} colorCfg={cfg} />;
+    return <CustomSelect value={raw} options={col.options} onChange={(val) => handleUpdate(lead.id, col.key, val, col.is_custom)} colorCfg={cfg} />;
   }
   if (col.type === 'date') return <span className="flex items-center gap-1.5 text-navy/40 text-xs whitespace-nowrap"><Clock className="w-3 h-3 flex-shrink-0" />{formatDate(raw)}</span>;
   if (col.type === 'pappers') {
@@ -309,8 +313,8 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     const url = `https://www.pappers.fr/entreprise/${slug}-${siren}`;
     return <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-blue-400 text-[10px] font-bold uppercase tracking-wider transition-all group shadow-sm active:scale-95" onClick={(e) => e.stopPropagation()}>Pappers<ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>;
   }
-  if (col.type === 'editable') return <input type="text" key={`${lead.id}-${col.key}-${displayRaw}`} defaultValue={displayRaw || ''} onBlur={e => e.target.value !== (displayRaw || '') && handleUpdate(lead.id, col.key, e.target.value)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="—" />;
-  if (col.type === 'number') return <input type="number" defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="0" />;
+  if (col.type === 'editable') return <input type="text" key={`${lead.id}-${col.key}-${displayRaw}`} defaultValue={displayRaw || ''} onBlur={e => e.target.value !== (displayRaw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="—" />;
+  if (col.type === 'number') return <input type="number" defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="0" />;
   if (col.type === 'currency' || col.type === 'auto_currency') {
     const isAuto = col.type === 'auto_currency';
     let displayValue = raw;
@@ -321,7 +325,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     }
     return (
       <div className="flex items-center gap-1 group/currency">
-        <input type="number" readOnly={isAuto} defaultValue={displayValue || ''} onBlur={e => { if (!isAuto && e.target.value !== String(raw || '')) handleUpdate(lead.id, col.key, e.target.value); }} className={`w-full px-2 py-1.5 bg-transparent ${isAuto ? '' : 'hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary'} focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''}`} placeholder="0.00" />
+        <input type="number" readOnly={isAuto} defaultValue={displayValue || ''} onBlur={e => { if (!isAuto && e.target.value !== String(raw || '')) handleUpdate(lead.id, col.key, e.target.value, col.is_custom); }} className={`w-full px-2 py-1.5 bg-transparent ${isAuto ? '' : 'hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary'} focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''}`} placeholder="0.00" />
         <span className="text-[10px] font-bold text-navy/30 pr-1">€</span>
       </div>
     );
@@ -330,7 +334,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     return (
       <div className="relative group/picker w-full flex items-center">
         <div className="absolute inset-0 flex items-center justify-center text-navy text-[11px] font-bold pointer-events-none group-hover/picker:opacity-0 transition-opacity">{formatDateFr(raw)}</div>
-        <input type="date" defaultValue={raw || ''} onChange={e => handleUpdate(lead.id, col.key, e.target.value)} className="w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] hover:bg-navy/[0.06] border border-transparent hover:border-navy/10 rounded-lg text-transparent hover:text-navy text-[11px] font-bold cursor-pointer transition-all" />
+        <input type="date" defaultValue={raw || ''} onChange={e => handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className="w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] hover:bg-navy/[0.06] border border-transparent hover:border-navy/10 rounded-lg text-transparent hover:text-navy text-[11px] font-bold cursor-pointer transition-all" />
       </div>
     );
   }
@@ -339,7 +343,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     const displayValue = formatTime(raw);
     return (
       <div className="flex justify-center p-1">
-        <input type="text" defaultValue={displayValue} key={`${lead.id}-${col.key}-${displayValue}`} onBlur={e => { const val = e.target.value; if (val !== displayValue) handleUpdate(lead.id, col.key, val); }} placeholder="--h--" className="w-[70px] px-2 py-1.5 bg-navy/5 border border-transparent hover:border-navy/10 rounded-xl text-navy text-[11px] font-black focus:bg-white focus:border-primary focus:outline-none transition-all font-mono text-center placeholder:text-navy/20" />
+        <input type="text" defaultValue={displayValue} key={`${lead.id}-${col.key}-${displayValue}`} onBlur={e => { const val = e.target.value; if (val !== displayValue) handleUpdate(lead.id, col.key, val, col.is_custom); }} placeholder="--h--" className="w-[70px] px-2 py-1.5 bg-navy/5 border border-transparent hover:border-navy/10 rounded-xl text-navy text-[11px] font-black focus:bg-white focus:border-primary focus:outline-none transition-all font-mono text-center placeholder:text-navy/20" />
       </div>
     );
   }
@@ -348,7 +352,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     const start = parts[0]?.replace('DU ', '') || '';
     const end = parts[1] || '';
     const isActive = activePicker?.id === lead.id && activePicker?.field === col.key;
-    const updatePec = (newStart, newEnd) => { const s = newStart || '...'; const e = newEnd || '...'; handleUpdate(lead.id, col.key, `DU ${s} AU ${e}`); };
+    const updatePec = (newStart, newEnd) => { const s = newStart || '...'; const e = newEnd || '...'; handleUpdate(lead.id, col.key, `DU ${s} AU ${e}`, col.is_custom); };
     return (
       <div className="relative" ref={containerRef}>
         <button onClick={(e) => { e.stopPropagation(); const rect = containerRef.current.getBoundingClientRect(); setActivePicker(isActive ? null : { id: lead.id, field: col.key, rect }); }} className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg group/pec transition-all w-full">
@@ -573,61 +577,78 @@ const MondayTable = React.memo(({ activeTab, user }) => {
   const pickerRef = useRef(null);
   const tableTotalWidth = useMemo(() => columns.reduce((acc, col) => acc + col.width, 0), [columns]);
 
-  // Fetch dynamic FunBooster names & Handle Permissions
-  useEffect(() => {
-    const fetchTeamMembers = async () => {
-      if (!supabase) return;
-      
-      // 1. Fetch FunBooster and Commercial names for the dropdowns
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
+
+  const fetchColumnConfigs = useCallback(async () => {
+    if (!supabase) return;
+    try {
       const { data, error } = await supabase
-        .from('team_members')
-        .select('name, role')
-        .in('role', ['funebooster', 'commercial'])
-        .eq('is_active', true)
-        .order('name');
-      
-      let updatedColumns = [...COLUMNS];
+        .from('crm_column_configs')
+        .select('*')
+        .order('display_order', { ascending: true });
 
-      // Update Opcosign type to select in static definition for safety
-      updatedColumns = updatedColumns.map(col => 
-        col.key === 'opcosign' ? { ...col, type: 'select' } : col
-      );
+      if (error) throw error;
 
-      // 2. Filter columns based on user permissions
-      const perms = user?.permissions;
-      if (perms?.leads_columns && !perms.leads_columns.includes('all')) {
-        updatedColumns = updatedColumns.filter(col => perms.leads_columns.includes(col.key));
+      let finalCols = [];
+      if (data && data.length > 0) {
+        finalCols = data.map(c => ({
+          ...c,
+          is_custom: !COLUMNS.some(sc => sc.key === c.key)
+        }));
+      } else {
+        const seedData = COLUMNS.map((c, i) => ({
+          key: c.key,
+          label: c.label,
+          type: c.type || 'text',
+          options: c.options || [],
+          width: c.width || 150,
+          display_order: i,
+          is_visible: true
+        }));
+        await supabase.from('crm_column_configs').insert(seedData);
+        finalCols = COLUMNS;
       }
 
-      // 3. Update FunBooster and Commercial options in the column definitions
-      if (!error && data) {
-        const funboosters = data.filter(m => m.role === 'funebooster').map(m => m.name.toUpperCase());
-        
-        // Security: For FunBoosters, only show commercials they are assigned to
-        let commercialNames = [];
+      // Handle Permissions and Dynamic Options
+      const teamRes = await supabase.from('team_members').select('name, role').eq('is_active', true);
+      const perms = user?.permissions;
+      
+      let filteredCols = [...finalCols];
+      if (perms?.leads_columns && !perms.leads_columns.includes('all')) {
+        filteredCols = filteredCols.filter(col => perms.leads_columns.includes(col.key));
+      }
+
+      if (!teamRes.error && teamRes.data) {
+        const funboosters = teamRes.data.filter(m => m.role === 'funebooster').map(m => m.name.toUpperCase());
         const userRole = (user?.role || '').toLowerCase();
         const isFunbooster = userRole === 'funbooster' || userRole === 'funebooster';
         
+        let commercialNames = [];
         if (userRole === 'admin') {
-          commercialNames = data.filter(m => m.role === 'commercial').map(m => m.name);
+          commercialNames = teamRes.data.filter(m => m.role === 'commercial').map(m => m.name);
         } else if (isFunbooster) {
           const assigned = user?.permissions?.assigned_commercials || [];
-          commercialNames = data
+          commercialNames = teamRes.data
             .filter(m => (m.role || '').toLowerCase() === 'commercial' && assigned.includes(m.name))
             .map(m => m.name);
         }
 
-        updatedColumns = updatedColumns.map(col => {
+        filteredCols = filteredCols.map(col => {
           if (col.key === 'funebooster') return { ...col, options: [...new Set(funboosters)].sort() };
-          if (col.key === 'opcosign') return { ...col, options: [...new Set(commercialNames)].sort() };
+          if (col.key === 'opcosign') return { ...col, options: [...new Set(commercialNames)].sort(), type: 'select' };
           return col;
         });
       }
 
-      setColumns(updatedColumns);
-    };
-    fetchTeamMembers();
-  }, [user]);
+      setColumns(filteredCols);
+    } catch (err) {
+      console.error('Error fetching columns:', err);
+    }
+  }, [supabase, user]);
+
+  useEffect(() => {
+    fetchColumnConfigs();
+  }, [fetchColumnConfigs]);
 
   const fetchPage = useCallback(async (pageIndex, replace = false, searchQuery = '', filters = activeFilters) => {
     if (!supabase) return;
@@ -741,60 +762,54 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     }
   }, [fetchPage, search, activeTab, activeFilters]);
 
-  const handleUpdate = useCallback(async (id, field, value) => {
+  const handleUpdate = useCallback(async (id, field, value, isCustom) => {
     const idStr = String(id).toLowerCase();
     const leadIndex = leads.findIndex(l => String(l.id).toLowerCase() === idStr);
     if (leadIndex === -1) return;
     const lead = leads[leadIndex];
     let dbValue = value === '' ? null : value;
+    
     if (field === 'status' && dbValue) {
       dbValue = dbValue.toUpperCase();
-      // Intercepter le statut RDV si l'utilisateur n'est pas ADMIN
-      if (dbValue === 'RDV' && user?.role !== 'admin') {
-        dbValue = 'EN ATTENTE RDV';
-      }
+      if (dbValue === 'RDV' && user?.role !== 'admin') dbValue = 'EN ATTENTE RDV';
     }
-    if (field === 'heure_rdv' && dbValue) { const parts = dbValue.split(/[:hH]/); const h = parts[0]?.padStart(2, '0') || '00'; const m = (parts[1] || '00').substring(0, 2).padStart(2, '0'); dbValue = `${h}:${m}:00`; }
-    let updates = { [field]: dbValue, date_modification: new Date().toISOString() };
-    if (field === 'adresse' && value) { const cpMatch = value.match(/\b\d{5}\b/); if (cpMatch) { updates.code_postal = cpMatch[0]; updates.code_departement = cpMatch[0].substring(0, 2); } }
+    
+    if (field === 'heure_rdv' && dbValue) { 
+      const parts = dbValue.split(/[:hH]/); 
+      const h = parts[0]?.padStart(2, '0') || '00'; 
+      const m = (parts[1] || '00').substring(0, 2).padStart(2, '0'); 
+      dbValue = `${h}:${m}:00`; 
+    }
+
+    let updates = {};
+    if (isCustom) {
+      updates.custom_fields = { ...(lead.custom_fields || {}), [field]: dbValue };
+    } else {
+      updates[field] = dbValue;
+    }
+    updates.date_modification = new Date().toISOString();
+
+    if (!isCustom && field === 'adresse' && value) { 
+      const cpMatch = value.match(/\b\d{5}\b/); 
+      if (cpMatch) { updates.code_postal = cpMatch[0]; updates.code_departement = cpMatch[0].substring(0, 2); } 
+    }
     
     // Auto-fill Secteur et Libellé d'activité à partir de l'IDCC
-    if (field === 'idcc' && value) {
-      const cleanIdcc = String(value).trim().replace(/^0+/, ''); // Removing leading zeros
-      // Match exact value or value padded with leading zero
+    if (!isCustom && field === 'idcc' && value) {
       const mapping = opcoMapping[value.trim()] || opcoMapping[String(value).trim().padStart(4, '0')];
-      
       if (mapping) {
         if (mapping.activite) updates.secteur_activite = mapping.activite;
-        
         if (mapping.sous_activite) {
           const rawNaf = lead.code_naf || lead.secteur || '';
           const nafCode = String(rawNaf).trim().toUpperCase();
-          
           if (nafCode) {
-            // Remove all dots, spaces, dashes for a pure alphanumeric match
             const cleanNafMatch = nafCode.replace(/[^A-Z0-9]/g, '');
-            
-            // Split by newlines handling \r\n
             const lines = mapping.sous_activite.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-            
-            // Find the precise line containing the NAF code (ignoring dots in both)
-            const matchingLine = lines.find(line => {
-              const cleanLine = line.toUpperCase().replace(/[^A-Z0-9]/g, '');
-              return cleanLine.includes(cleanNafMatch);
-            });
-            
-            if (matchingLine) {
-              // Replace the Excel's NAF prefix with the user's perfectly formatted NAF code (e.g. 47.11D)
-              updates.libelle_activite = matchingLine.replace(/^([^:-]+)([:-]\s*)/i, `${nafCode} - `);
-            } else if (lines.length === 1) {
-              updates.libelle_activite = lines[0].replace(/^([^:-]+)([:-]\s*)/i, `${nafCode} - `);
-            } else {
-              // If still no match, join with spaces to avoid words glued together in HTML
-              updates.libelle_activite = lines.join(' | ');
-            }
+            const matchingLine = lines.find(line => line.toUpperCase().replace(/[^A-Z0-9]/g, '').includes(cleanNafMatch));
+            if (matchingLine) updates.libelle_activite = matchingLine.replace(/^([^:-]+)([:-]\s*)/i, `${nafCode} - `);
+            else if (lines.length === 1) updates.libelle_activite = lines[0].replace(/^([^:-]+)([:-]\s*)/i, `${nafCode} - `);
+            else updates.libelle_activite = lines.join(' | ');
           } else {
-            // Join with spaces to avoid clumping if rendered without pre-wrap
             updates.libelle_activite = mapping.sous_activite.split(/\r?\n/).join(' | ');
           }
         }
@@ -802,20 +817,30 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     }
 
     // Auto-fill Libellé d'activité à partir du Code NAF
-    if (field === 'code_naf' && value) {
+    if (!isCustom && field === 'code_naf' && value) {
       const cleanNaf = String(value).toUpperCase().replace(/[^A-Z0-9]/g, '');
       const description = nafMapping[cleanNaf];
-      if (description) {
-        updates.libelle_activite = description;
-      }
+      if (description) updates.libelle_activite = description;
     }
     
-    if (field === 'ca_signe_ht' || field === 'nb_heures_formation') { const ca = field === 'ca_signe_ht' ? parseFloat(value) : parseFloat(lead.ca_signe_ht); const hrs = field === 'nb_heures_formation' ? parseFloat(value) : parseFloat(lead.nb_heures_formation); if (ca && hrs && hrs !== 0) updates.tx_horaire_ca = (ca / hrs).toFixed(2); }
+    if (!isCustom && (field === 'ca_signe_ht' || field === 'nb_heures_formation')) { 
+      const ca = field === 'ca_signe_ht' ? parseFloat(value) : parseFloat(lead.ca_signe_ht); 
+      const hrs = field === 'nb_heures_formation' ? parseFloat(value) : parseFloat(lead.nb_heures_formation); 
+      if (ca && hrs && hrs !== 0) updates.tx_horaire_ca = (ca / hrs).toFixed(2); 
+    }
+
     const updatedLead = { ...lead, ...updates };
     setLeads(prev => { const newList = [...prev]; newList[leadIndex] = updatedLead; return newList; });
+    
     if (supabase) {
       await supabase.from('crm_leads').update(updates).eq('id', id);
-      if (field === 'observation' && value) await supabase.from('crm_observations_history').insert({ lead_id: id, observation_text: value, created_by: user?.name || 'Inconnu' });
+      if (field === 'observation' && value) {
+        await supabase.from('crm_observations_history').insert({ 
+          lead_id: id, 
+          observation_text: value, 
+          created_by: user?.name || 'Inconnu' 
+        });
+      }
     }
   }, [leads, user]);
 
@@ -844,6 +869,27 @@ const MondayTable = React.memo(({ activeTab, user }) => {
         <div className="flex items-center gap-3">
           <SearchInput value={search} onSearch={setSearch} />
           <a href="https://quel-est-mon-opco.francecompetences.fr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3.5 bg-navy text-white rounded-2xl text-sm font-bold hover:bg-navy/90 transition-all shadow-lg shadow-navy/10 group">Vérif OPCO<ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>
+          
+          {user?.role === 'admin' && (
+            <button 
+              onClick={() => setIsColumnModalOpen(true)} 
+              className="p-3.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-2xl transition-all shadow-lg shadow-primary/5 hover:scale-105 active:scale-95"
+              title="Gérer les colonnes"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          )}
+          
+          <button 
+            onClick={() => {
+              fetchColumnConfigs();
+              fetchPage(0, true);
+            }} 
+            className="p-3.5 bg-navy/5 text-navy/40 hover:text-navy rounded-2xl transition-all hover:rotate-180 duration-500"
+            title="Tout rafraîchir"
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
         </div>
       </div>
       <div className="rounded-[2rem] border border-navy/5 shadow-2xl bg-white overflow-x-auto custom-scrollbar" style={{ height: 'calc(100vh - 180px)' }}>
@@ -929,6 +975,12 @@ const MondayTable = React.memo(({ activeTab, user }) => {
           }}
         />
       )}
+
+      <ColumnManagerModal 
+        isOpen={isColumnModalOpen} 
+        onClose={() => setIsColumnModalOpen(false)} 
+        onRefresh={fetchColumnConfigs}
+      />
     </div>
   );
 });
