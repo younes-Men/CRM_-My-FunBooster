@@ -409,6 +409,24 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
   }
   let displayVal = displayRaw;
   if (col.key === 'lead_id') displayVal = (lead.status?.toUpperCase() === 'RDV' && raw) ? `D-${String(raw).padStart(5, '0')}` : '—';
+  
+  const isUrl = typeof displayVal === 'string' && (displayVal.startsWith('http://') || displayVal.startsWith('https://'));
+
+  if (isUrl) {
+    return (
+      <a 
+        href={displayVal} 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="flex items-center gap-1.5 text-primary hover:text-primary-dark font-medium transition-colors group/link min-w-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="truncate block text-sm" title={displayVal}>{displayVal}</span>
+        <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+      </a>
+    );
+  }
+
   return <span className={[(col.key === 'siret' || col.key === 'lead_id') ? 'block text-xs font-bold' : 'truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy/70', col.mono ? 'font-mono tracking-tighter text-navy/90' : ''].join(' ')} title={displayVal || ''}>{displayVal || '—'}</span>;
 });
 
