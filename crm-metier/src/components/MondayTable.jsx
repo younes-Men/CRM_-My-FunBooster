@@ -5,13 +5,14 @@ import {
   Search, Filter, ChevronDown, ChevronUp, Download, Eye, Plus, 
   Trash2, X, Check, Save, Calendar, Phone, Mail, User, 
   AlertCircle, MoreVertical, LayoutGrid, RefreshCw, Settings,
-  MapPin, Hash, Briefcase, FileText, ArrowRight, ArrowLeft, Clock, ExternalLink, Copy
+  MapPin, Hash, Briefcase, FileText, ArrowRight, ArrowLeft, Clock, ExternalLink, Copy, Sparkles, Wand2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LeadDetailPanel from './LeadDetailPanel';
 import ColumnManagerModal from './ColumnManagerModal';
 import opcoMapping from '../data/opco_mapping.json';
 import nafMapping from '../data/naf_mapping.json';
+import secteurMapping from '../data/secteur_mapping.json';
 
 
 // Status badge colors (case-insensitive match)
@@ -92,7 +93,7 @@ const COLUMNS = [
     'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA'
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
-  { label: 'Gérant',       key: 'gerant',            width: 150, type: 'editable' },
+  { label: 'Gérant',       key: 'gerant',            width: 300, type: 'editable' },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
   { label: 'Secteur Act.',  key: 'secteur_activite',  width: 180, type: 'editable' },
   { label: 'Libellé Act.',  key: 'libelle_activite',  width: 200, type: 'editable' },
@@ -260,12 +261,18 @@ const formatNaf = (val) => {
   return val;
 };
 
-const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker, setActivePicker, pickerRef, index }) => {
+const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker, setActivePicker, pickerRef, index, enrichLead, isEnriching }) => {
   const [copied, setCopied] = useState(false);
   const containerRef = useRef(null);
 
   // Check if data is in native column or custom_fields
-  const raw = lead[col.key] !== undefined ? lead[col.key] : (lead.custom_fields?.[col.key]);
+  let raw = lead[col.key];
+  // If native column is empty or contains '---', try fallback to custom_fields
+  if (raw === undefined || raw === null || raw === '' || raw === '---') {
+    if (lead.custom_fields && lead.custom_fields[col.key]) {
+      raw = lead.custom_fields[col.key];
+    }
+  }
   
   // Robust NAF mapping fallback
   let displayRaw = raw || '';
@@ -273,6 +280,24 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
   
   if (col.key === 'code_naf' && displayRaw) {
     displayRaw = formatNaf(displayRaw);
+  }
+
+  if (col.key === 'nom_entreprise') {
+    return (
+      <div className="flex items-center gap-2 group/ent min-w-0 pr-2">
+        <span className={['truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy/70'].join(' ')} title={displayRaw}>{displayRaw}</span>
+        {lead.siret && lead.siret !== '---' && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); enrichLead(lead.id, lead.siret); }}
+            disabled={isEnriching}
+            title="Enrichir automatiquement (Gérant & IDCC)"
+            className={`p-1 rounded-md transition-all flex-shrink-0 ${isEnriching ? 'bg-primary/10 text-primary' : 'opacity-0 group-hover/ent:opacity-100 hover:bg-primary/10 hover:text-primary'}`}
+          >
+            <Sparkles className={`w-3.5 h-3.5 ${isEnriching ? 'animate-pulse' : 'hover:scale-110 transition-transform'}`} />
+          </button>
+        )}
+      </div>
+    );
   }
 
   if (col.key === 'libelle_activite' && !displayRaw && (lead.code_naf || lead.secteur)) {
@@ -388,15 +413,16 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
 });
 
 const TableRow = React.memo(({ data, index, style }) => {
-  const { leads, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick, clickedRowId, onClick } = data;
+  const { leads, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick, clickedRowId, onClick, enrichLead, enrichingId } = data;
   const lead = leads[index];
   const isClicked = clickedRowId === lead.id;
   const isActive = activePicker?.id === lead.id;
+  const isEnriching = enrichingId === lead.id;
   return (
     <div style={{ ...style, zIndex: isActive ? 100 : 1 }} className={`flex items-center hover:bg-[#fff5f7] transition-colors group/row cursor-pointer ${isClicked ? 'bg-[#fff5f7]' : ''}`} onClick={() => onClick(lead.id)} onDoubleClick={() => onDoubleClick(lead.id)}>
       {columns.map(col => (
         <div key={col.key} style={{ width: col.width, minWidth: col.width }} className={`flex-shrink-0 px-6 py-3 border-l border-navy/[0.02] ${col.type === 'pec_dates' || col.type === 'select' ? '' : 'overflow-hidden'}`}>
-          <TableCell lead={lead} col={col} handleUpdate={handleUpdate} isActive={isActive && activePicker?.field === col.key} activePicker={activePicker} setActivePicker={setActivePicker} pickerRef={pickerRef} index={index} />
+          <TableCell lead={lead} col={col} handleUpdate={handleUpdate} isActive={isActive && activePicker?.field === col.key} activePicker={activePicker} setActivePicker={setActivePicker} pickerRef={pickerRef} index={index} enrichLead={enrichLead} isEnriching={isEnriching && col.key === 'nom_entreprise'} />
         </div>
       ))}
     </div>
@@ -591,17 +617,23 @@ const MondayTable = React.memo(({ activeTab, user }) => {
 
       let finalCols = [];
       if (data && data.length > 0) {
-        finalCols = data.map(c => ({
-          ...c,
-          is_custom: !COLUMNS.some(sc => sc.key === c.key)
-        }));
+        finalCols = data.map(c => {
+          const baseCol = COLUMNS.find(oc => oc.key === c.key);
+          return {
+            ...c,
+            width: c.key === 'gerant' ? 300 : (c.width || baseCol?.width || 150),
+            label: c.label || baseCol?.label,
+            type: c.type || baseCol?.type || 'text',
+            options: c.options || baseCol?.options
+          };
+        });
       } else {
         const seedData = COLUMNS.map((c, i) => ({
           key: c.key,
           label: c.label,
           type: c.type || 'text',
           options: c.options || [],
-          width: c.width || 150,
+          width: c.key === 'gerant' ? 300 : (c.width || 150),
           display_order: i,
           is_visible: true
         }));
@@ -649,6 +681,104 @@ const MondayTable = React.memo(({ activeTab, user }) => {
   useEffect(() => {
     fetchColumnConfigs();
   }, [fetchColumnConfigs]);
+
+  const [enrichingId, setEnrichingId] = useState(null);
+
+  const enrichLead = useCallback(async (id, siret) => {
+    if (!siret || siret === '---') return;
+    setEnrichingId(id);
+    try {
+      const cleanSiret = String(siret).replace(/[^0-9]/g, '');
+      const siren = cleanSiret.substring(0, 9);
+      
+      let response = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${cleanSiret}`);
+      let data = await response.json();
+      
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        const updates = {};
+        let foundGerant = "";
+        let foundIdcc = "";
+        
+        if (result.dirigeants && result.dirigeants.length > 0) {
+          const d = result.dirigeants[0];
+          foundGerant = `${d.nom || ''} ${d.prenoms || ''}`.trim().toUpperCase();
+        }
+
+        const idccList = result.liste_idcc || 
+                         (result.complements && result.complements.liste_idcc) ||
+                         (result.siege && result.siege.liste_idcc) ||
+                         (result.unite_legale && result.unite_legale.liste_idcc) ||
+                         (result.matching_etablissements && result.matching_etablissements[0]?.liste_idcc);
+
+        if (idccList && idccList.length > 0) {
+          foundIdcc = String(idccList[0]).trim();
+        }
+
+        // Fallback to SIREN
+        if (!foundIdcc) {
+          const sirenResp = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${siren}`);
+          const sirenData = await sirenResp.json();
+          if (sirenData.results && sirenData.results.length > 0) {
+            const sResult = sirenData.results[0];
+            const sIdccList = sResult.liste_idcc || (sResult.unite_legale && sResult.unite_legale.liste_idcc) || (sResult.complements && sResult.complements.liste_idcc);
+            if (sIdccList && sIdccList.length > 0) {
+              foundIdcc = String(sIdccList[0]).trim();
+            }
+          }
+        }
+
+        const lead = leads.find(l => l.id === id);
+        if (foundGerant && (!lead.gerant || lead.gerant === '---')) updates.gerant = foundGerant;
+        if (foundIdcc && (!lead.idcc || lead.idcc === '' || lead.idcc === '---')) {
+          updates.idcc = foundIdcc;
+          updates.custom_fields = { ...(lead.custom_fields || {}), idcc: foundIdcc };
+        }
+
+        // 3. Match Sector Activity
+        let matchedSecteur = "";
+        const idccToMatch = foundIdcc || lead.idcc;
+        const nafToMatch = lead.code_naf || (result.activite_principale ? String(result.activite_principale).replace(/[^A-Z0-9]/g, '') : "");
+
+        if (idccToMatch && secteurMapping.idcc[idccToMatch]) {
+          matchedSecteur = secteurMapping.idcc[idccToMatch];
+        } else if (nafToMatch && secteurMapping.naf[nafToMatch]) {
+          matchedSecteur = secteurMapping.naf[nafToMatch];
+        }
+
+        if (matchedSecteur && (!lead.secteur_activite || lead.secteur_activite === '---')) {
+          updates.secteur_activite = matchedSecteur;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          const { error } = await supabase.from('crm_leads').update(updates).eq('id', id);
+          if (!error) {
+            setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Enrichment error:', err);
+    }
+    setEnrichingId(null);
+  }, [leads]);
+
+  const bulkEnrich = async () => {
+    const targets = leads.filter(l => l.siret && l.siret !== '---' && (!l.gerant || (!l.idcc || l.idcc === '---')));
+    if (targets.length === 0) return alert("Aucun lead à enrichir sur cette page.");
+    
+    const count = targets.length;
+    const confirmed = window.confirm(`Voulez-vous enrichir automatiquement ${count} leads ?\n\nCela prendra environ ${Math.round(count * 0.6)} secondes pour respecter les limites de l'API.`);
+    
+    if (!confirmed) return;
+
+    for (const lead of targets) {
+      await enrichLead(lead.id, lead.siret);
+      // Wait 300ms between requests to avoid 429 errors
+      await new Promise(r => setTimeout(r, 300));
+    }
+    alert("Enrichissement en masse terminé !");
+  };
 
   const fetchPage = useCallback(async (pageIndex, replace = false, searchQuery = '', filters = activeFilters) => {
     if (!supabase) return;
@@ -794,28 +924,8 @@ const MondayTable = React.memo(({ activeTab, user }) => {
       if (cpMatch) { updates.code_postal = cpMatch[0]; updates.code_departement = cpMatch[0].substring(0, 2); } 
     }
     
-    // Auto-fill Secteur et Libellé d'activité à partir de l'IDCC
-    if (!isCustom && field === 'idcc' && value) {
-      const mapping = opcoMapping[value.trim()] || opcoMapping[String(value).trim().padStart(4, '0')];
-      if (mapping) {
-        if (mapping.activite) updates.secteur_activite = mapping.activite;
-        if (mapping.sous_activite) {
-          const rawNaf = lead.code_naf || lead.secteur || '';
-          const nafCode = String(rawNaf).trim().toUpperCase();
-          if (nafCode) {
-            const cleanNafMatch = nafCode.replace(/[^A-Z0-9]/g, '');
-            const lines = mapping.sous_activite.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-            const matchingLine = lines.find(line => line.toUpperCase().replace(/[^A-Z0-9]/g, '').includes(cleanNafMatch));
-            if (matchingLine) updates.libelle_activite = matchingLine.replace(/^([^:-]+)([:-]\s*)/i, `${nafCode} - `);
-            else if (lines.length === 1) updates.libelle_activite = lines[0].replace(/^([^:-]+)([:-]\s*)/i, `${nafCode} - `);
-            else updates.libelle_activite = lines.join(' | ');
-          } else {
-            updates.libelle_activite = mapping.sous_activite.split(/\r?\n/).join(' | ');
-          }
-        }
-      }
-    }
-
+    // IDCC is now a simple text field, no more auto-fill from here
+    
     // Auto-fill Libellé d'activité à partir du Code NAF
     if (!isCustom && field === 'code_naf' && value) {
       const cleanNaf = String(value).toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -850,7 +960,19 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     fetchPage(next, false, search, activeFilters);
   }, [page, fetchPage, search, activeFilters]);
 
-  const itemData = useMemo(() => ({ leads, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick: setSelectedLeadId, clickedRowId, onClick: setClickedRowId }), [leads, columns, handleUpdate, activePicker, setActivePicker, clickedRowId]);
+  const itemData = useMemo(() => ({
+    leads,
+    columns,
+    handleUpdate,
+    activePicker,
+    setActivePicker,
+    pickerRef,
+    onDoubleClick: setSelectedLeadId,
+    clickedRowId,
+    onClick: setClickedRowId,
+    enrichLead,
+    enrichingId
+  }), [leads, columns, handleUpdate, activePicker, clickedRowId, enrichLead, enrichingId]);
 
   return (
     <div className="flex flex-col gap-6 w-full h-full animate-in fade-in duration-700">
@@ -868,6 +990,16 @@ const MondayTable = React.memo(({ activeTab, user }) => {
         </div>
         <div className="flex items-center gap-3">
           <SearchInput value={search} onSearch={setSearch} />
+          
+          <button 
+            onClick={bulkEnrich}
+            disabled={enrichingId !== null}
+            className={`p-3.5 rounded-2xl transition-all shadow-lg flex items-center justify-center group ${enrichingId === 'BULK' ? 'bg-primary text-white animate-pulse' : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'}`}
+            title="Enrichir tous les leads de la page"
+          >
+            <Wand2 className={`w-5 h-5 ${enrichingId !== null ? 'animate-spin' : 'group-hover:rotate-12 transition-transform'}`} />
+          </button>
+
           <a href="https://quel-est-mon-opco.francecompetences.fr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3.5 bg-navy text-white rounded-2xl text-sm font-bold hover:bg-navy/90 transition-all shadow-lg shadow-navy/10 group">Vérif OPCO<ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>
           
           {user?.role === 'admin' && (

@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import nafMapping from '../data/naf_mapping.json';
+import opcoMapping from '../data/opco_mapping.json';
+import secteurMapping from '../data/secteur_mapping.json';
 
 const formatNaf = (val) => {
   if (!val) return val;
@@ -87,8 +89,100 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
   };
 
   useEffect(() => {
-    if (leadId) fetchHistory();
+    if (leadId) {
+      fetchHistory();
+      // Auto-enrich if missing critical info
+      if (lead?.siret && (!lead.gerant || !lead.idcc)) {
+        fetchEnrichmentData(lead.siret);
+      }
+    }
   }, [leadId]);
+
+  const fetchEnrichmentData = async (siret, debug = false) => {
+    try {
+      const cleanSiret = String(siret).replace(/[^0-9]/g, '');
+      if (cleanSiret.length < 9) return;
+      
+      const siren = cleanSiret.substring(0, 9);
+      
+      // Attempt 1: Search by SIRET (to get specific manager/location)
+      let response = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${cleanSiret}`);
+      let data = await response.json();
+      
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        const updates = {};
+        let foundGerant = "";
+        let foundIdcc = "";
+        
+        // 1. Get Gérant Name
+        if (result.dirigeants && result.dirigeants.length > 0) {
+          const d = result.dirigeants[0];
+          foundGerant = `${d.nom || ''} ${d.prenoms || ''}`.trim().toUpperCase();
+          if (!lead.gerant || lead.gerant === '---') updates.gerant = foundGerant;
+        }
+
+        // 2. Get IDCC (Searching in all locations found in your JSON)
+        const idccList = result.liste_idcc || 
+                         (result.complements && result.complements.liste_idcc) ||
+                         (result.siege && result.siege.liste_idcc) ||
+                         (result.unite_legale && result.unite_legale.liste_idcc) ||
+                         (result.matching_etablissements && result.matching_etablissements[0]?.liste_idcc);
+
+        if (idccList && idccList.length > 0) {
+          foundIdcc = String(idccList[0]).trim();
+        }
+
+        // Attempt 2: If IDCC still missing, search by SIREN
+        if (!foundIdcc) {
+          const sirenResp = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${siren}`);
+          const sirenData = await sirenResp.json();
+          if (sirenData.results && sirenData.results.length > 0) {
+            const sResult = sirenData.results[0];
+            const sIdccList = sResult.liste_idcc || (sResult.unite_legale && sResult.unite_legale.liste_idcc);
+            if (sIdccList && sIdccList.length > 0) {
+              foundIdcc = String(sIdccList[0]).trim();
+            }
+          }
+        }
+
+        if (foundIdcc && (!lead.idcc || lead.idcc === '' || lead.idcc === '---')) {
+          updates.idcc = foundIdcc;
+          updates.custom_fields = { ...(lead.custom_fields || {}), idcc: foundIdcc };
+        }
+
+        // 3. Match Sector Activity
+        let matchedSecteur = "";
+        const idccToMatch = foundIdcc || lead.idcc;
+        const nafToMatch = lead.code_naf || (result.activite_principale ? String(result.activite_principale).replace(/[^A-Z0-9]/g, '') : "");
+
+        if (idccToMatch && secteurMapping.idcc[idccToMatch]) {
+          matchedSecteur = secteurMapping.idcc[idccToMatch];
+        } else if (nafToMatch && secteurMapping.naf[nafToMatch]) {
+          matchedSecteur = secteurMapping.naf[nafToMatch];
+        }
+
+        if (matchedSecteur && (!lead.secteur_activite || lead.secteur_activite === '---')) {
+          updates.secteur_activite = matchedSecteur;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          const { error: updateError } = await supabase
+            .from('crm_leads')
+            .update(updates)
+            .eq('id', lead.id);
+
+          if (!updateError) {
+            const updatedLead = { ...lead, ...updates };
+            setLead(updatedLead);
+            if (onUpdate) onUpdate(lead.id, updatedLead);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('API Enrichment Error:', err);
+    }
+  };
 
   const fetchHistory = async () => {
     setLoading(true);
