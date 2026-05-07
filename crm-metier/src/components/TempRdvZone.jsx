@@ -10,11 +10,17 @@ import {
   User, 
   RefreshCw,
   AlertCircle,
+  X,
+  MessageSquare,
+  Copy,
+  Send,
+  ExternalLink,
   Eye,
-  Check,
-  X
+  Check
 } from 'lucide-react';
 import LeadDetailPanel from './LeadDetailPanel';
+import nafMapping from '../data/naf_mapping.json';
+import secteurMapping from '../data/secteur_mapping.json';
 
 const TempRdvZone = ({ user }) => {
   const [leads, setLeads] = useState([]);
@@ -22,6 +28,8 @@ const TempRdvZone = ({ user }) => {
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [processingId, setProcessingId] = useState(null);
   const [selectedCommercials, setSelectedCommercials] = useState({});
+  const [validatedLead, setValidatedLead] = useState(null);
+  const [messageCopied, setMessageCopied] = useState(false);
 
   useEffect(() => {
     fetchPendingRdvs();
@@ -81,9 +89,102 @@ const TempRdvZone = ({ user }) => {
       .eq('id', id);
 
     if (!error) {
+      const lead = leads.find(l => l.id === id);
+      if (lead) {
+        setValidatedLead({ ...lead, ...updates });
+      }
       setLeads(prev => prev.filter(l => l.id !== id));
     }
     setProcessingId(null);
+  };
+
+  const formatDate = (d, t) => {
+    if (!d) return '—';
+    const datePart = new Date(d).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    });
+    if (!t || t === '-' || t === ':') return datePart;
+    const [h, m] = t.split(/[:hH]/);
+    const timePart = `${(h || '00').padStart(2, '0')}h${(m || '00').substring(0, 2).padStart(2, '0')}`;
+    return `${datePart} à ${timePart}`;
+  };
+
+  const generateMessage = (lead) => {
+    if (!lead) return "";
+    const client = String(lead.client_of || '').toUpperCase();
+    const isCA = client.includes('CA CONSEILS') || client.includes('CA');
+    const isGO = client.includes('GO CONSEILS') || client.includes('GO');
+    const isTB = client.includes('TB FORMATION') || client.includes('TB');
+    if (client === 'HORS ZONE' || !client) return "";
+    if (!isCA && !isGO && !isTB) return "";
+    let msg = "";
+    if (isCA || isGO) {
+      msg += `SOURCE : PS ${client}\n`;
+      msg += `ID \n`; 
+    }
+    msg += `RDV TÉLÉPHONIQUE POUR LE ${formatDate(lead.date_rdv, lead.heure_rdv)}\n`;
+    msg += `Etablissement: ${lead.nom_entreprise || '—'}\n`;
+    msg += `Activité: ${lead.secteur_activite || '—'}\n`;
+    msg += `ADRESSE: ${lead.adresse || '—'}\n`;
+    msg += `Nom du gérant : ${lead.gerant || '—'}\n`;
+    msg += `MAIL : ${lead.email || '—'}\n`;
+    msg += `Tél : ${lead.mobile || lead.tel || '—'}\n`;
+    msg += `Nbr salariés: ${lead.nb_salaries || '—'}\n`;
+    msg += `APPRENTIS : ${lead.nb_apprentis || '0'}\n`;
+    msg += `Siret : ${lead.siret || '—'}\n`;
+    msg += `Opco : ${lead.nom_opco || '—'} IDCC ${lead.idcc || '—'}\n`;
+    if (lead.observation) {
+      msg += `Observation : ${lead.observation}\n`;
+    }
+    return msg;
+  };
+
+  const handleCopyMessage = (lead) => {
+    const msg = generateMessage(lead);
+    navigator.clipboard.writeText(msg);
+    setMessageCopied(true);
+    setTimeout(() => setMessageCopied(false), 2000);
+  };
+
+  const handleWhatsApp = (lead) => {
+    const msg = generateMessage(lead);
+    const phone = (lead.mobile || lead.tel || '').replace(/[^0-9]/g, '');
+    if (!phone) return alert("Pas de numéro de téléphone");
+    window.open(`https://web.whatsapp.com/send?phone=33${phone.substring(1)}&text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  const handleGoogleCalendar = (lead) => {
+    if (!lead || !lead.date_rdv) return alert("Date de RDV manquante");
+    
+    const client = String(lead.client_of || '').toUpperCase();
+    const prefix = client.includes('TB') ? '[TB]' : '[OPCO]';
+    const title = `${prefix} ${lead.nom_entreprise || 'RDV'}`;
+    
+    // Parse date and time
+    const date = new Date(lead.date_rdv);
+    const time = lead.heure_rdv || "10:00";
+    const [hours, minutes] = time.split(/[:hH]/).map(n => n.padStart(2, '0'));
+    
+    // Create start and end dates (1 hour duration)
+    const start = new Date(date);
+    start.setHours(parseInt(hours), parseInt(minutes));
+    const end = new Date(start);
+    end.setHours(start.getHours() + 1);
+
+    const formatGDate = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    
+    const details = generateMessage(lead);
+    const location = lead.adresse || "";
+    
+    // Select the correct Calendar ID
+    const calendarId = client.includes('TB') 
+      ? 'maxime.tanneur@tb-formations.fr' 
+      : '93079c8fd22819865b2014cb7b6a9a9bd22f396c25ef25ae2398589b64aa4ab0@group.calendar.google.com';
+
+    // Build URL with target calendar
+    const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatGDate(start)}/${formatGDate(end)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}&src=${calendarId}&add=${calendarId}`;
+    
+    window.open(url, '_blank');
   };
 
   const handleReject = async (id) => {
@@ -274,6 +375,77 @@ const TempRdvZone = ({ user }) => {
             setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
           }}
         />
+      )}
+
+      {/* Success Modal with Message */}
+      {validatedLead && (
+        <>
+          <div className="fixed inset-0 bg-navy/60 backdrop-blur-sm z-[200] animate-in fade-in duration-300" onClick={() => setValidatedLead(null)} />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl z-[201] animate-in zoom-in-95 duration-300 flex flex-col overflow-hidden border border-navy/5">
+            <div className="p-8 text-center border-b border-navy/5 bg-navy/[0.01]">
+              <div className="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/20 animate-bounce">
+                <Check className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-black text-navy tracking-tight">RDV Validé !</h3>
+              <p className="text-[9px] font-bold text-navy/30 uppercase tracking-[0.3em] mt-1">Dossier transféré avec succès</p>
+            </div>
+
+            <div className="p-8 flex-1 overflow-y-auto max-h-[50vh] custom-scrollbar">
+              {generateMessage(validatedLead) !== "" ? (
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 shadow-sm ring-1 ring-emerald-500/5">
+                        <MessageSquare className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-[11px] font-black text-navy uppercase tracking-widest">Message prêt</h3>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleCopyMessage(validatedLead)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-navy/5 text-navy hover:bg-navy hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                      >
+                        {messageCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {messageCopied ? 'Copié' : 'Copier'}
+                      </button>
+                      <button 
+                        onClick={() => handleWhatsApp(validatedLead)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        WhatsApp
+                      </button>
+                      <button 
+                        onClick={() => handleGoogleCalendar(validatedLead)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 text-white hover:bg-blue-600 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20"
+                      >
+                        <Calendar className="w-3.5 h-3.5" />
+                        Agenda
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-navy/[0.02] p-6 rounded-3xl border border-navy/5 font-mono text-[10.5px] leading-relaxed text-navy/80 whitespace-pre-wrap select-all selection:bg-primary/20">
+                    {generateMessage(validatedLead)}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-10 text-center opacity-40">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-4" />
+                  <p className="text-sm font-bold uppercase tracking-widest">Aucun message pour ce client</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-navy/5 bg-navy/[0.01]">
+              <button 
+                onClick={() => setValidatedLead(null)}
+                className="w-full py-4 bg-navy text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-navy/90 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-lg shadow-navy/10"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

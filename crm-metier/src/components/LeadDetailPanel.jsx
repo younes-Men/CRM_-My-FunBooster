@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Clock, User, Building2, MapPin, Hash, Briefcase, 
   Calendar, MessageSquare, History, Phone, Save, Check,
-  ExternalLink, Layers
+  ExternalLink, Layers, Send, Copy
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import nafMapping from '../data/naf_mapping.json';
@@ -28,11 +28,12 @@ const formatNaf = (val) => {
 
 const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permissions, userRole, onUpdate }) => {
   const [lead, setLead] = useState(initialLead);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [editValues, setEditValues] = useState({});
-  const [columnConfigs, setColumnConfigs] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [messageCopied, setMessageCopied] = useState(false);
+  const [currentConfigs, setCurrentConfigs] = useState([]);
 
   useEffect(() => {
     const fetchConfigs = async () => {
@@ -40,13 +41,13 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
         .from('crm_column_configs')
         .select('*')
         .order('display_order', { ascending: true });
-      if (data) setColumnConfigs(data);
+      if (data) setCurrentConfigs(data);
     };
     fetchConfigs();
   }, []);
 
   useEffect(() => {
-    setLead(initialLead);
+    if (initialLead) setLead(initialLead);
   }, [initialLead]);
 
   const isAdmin = userRole === 'admin' || (permissions?.leads_columns && permissions.leads_columns.includes('all'));
@@ -207,7 +208,7 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
         'budget_opco', 'annee_budget', 'date_rdv', 'heure_rdv', 
         'type_rdv', 'rdv_honore', 'proposition', 'signe', 'date_signe', 
         'ca_signe_ht', 'nb_heures_formation', 'tx_horaire_ca', 
-        'campagne_act', 'pec'
+        'campagne_act', 'pec', 'pappers'
       ];
 
       const nativeUpdates = {};
@@ -256,6 +257,60 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
     return `${datePart} à ${timePart}`;
   };
 
+  const generateMessage = () => {
+    if (!lead) return "";
+    const client = String(lead.client_of || '').toUpperCase();
+    
+    // Flexible matching
+    const isCA = client.includes('CA CONSEILS') || client.includes('CA');
+    const isGO = client.includes('GO CONSEILS') || client.includes('GO');
+    const isTB = client.includes('TB FORMATION') || client.includes('TB');
+    
+    // If HORS ZONE or empty, don't show
+    if (client === 'HORS ZONE' || !client) return "";
+    if (!isCA && !isGO && !isTB) return "";
+
+    let msg = "";
+    if (isCA || isGO) {
+      msg += `SOURCE : PS ${client}\n`;
+      msg += `ID \n`; // Left empty for manual entry
+    }
+    
+    msg += `RDV TÉLÉPHONIQUE POUR LE ${formatDate(lead.date_rdv, lead.heure_rdv)}\n`;
+    msg += `Etablissement: ${lead.nom_entreprise || '—'}\n`;
+    msg += `Activité: ${lead.secteur_activite || '—'}\n`;
+    msg += `ADRESSE: ${lead.adresse || '—'}\n`;
+    msg += `Nom du gérant : ${lead.gerant || '—'}\n`;
+    msg += `MAIL : ${lead.email || '—'}\n`;
+    msg += `Tél : ${lead.mobile || lead.tel || '—'}\n`;
+    msg += `Nbr salariés: ${lead.nb_salaries || '—'}\n`;
+    msg += `APPRENTIS : ${lead.nb_apprentis || '0'}\n`;
+    msg += `Siret : ${lead.siret || '—'}\n`;
+    msg += `Opco : ${lead.nom_opco || '—'} IDCC ${lead.idcc || '—'}\n`;
+    
+    // Add observation from history or fallback to lead.observation
+    const observation = history.length > 0 ? history[0].observation_text : (lead.observation || "");
+    if (observation) {
+      msg += `Observation : ${observation}\n`;
+    }
+
+    return msg;
+  };
+
+  const handleCopyMessage = () => {
+    const msg = generateMessage();
+    navigator.clipboard.writeText(msg);
+    setMessageCopied(true);
+    setTimeout(() => setMessageCopied(false), 2000);
+  };
+
+  const handleWhatsApp = () => {
+    const msg = generateMessage();
+    const phone = (lead.mobile || lead.tel || '').replace(/[^0-9]/g, '');
+    if (!phone) return alert("Pas de numéro de téléphone");
+    window.open(`https://web.whatsapp.com/send?phone=33${phone.substring(1)}&text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   if (!lead) return null;
 
   // Filter custom column configs
@@ -268,9 +323,9 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
     'client_of', 'opcosign', 'budget_opco', 'annee_budget', 'date_rdv', 
     'heure_rdv', 'type_rdv', 'rdv_honore', 'proposition', 'signe', 
     'date_signe', 'ca_signe_ht', 'nb_heures_formation', 'tx_horaire_ca', 
-    'campagne_act', 'pec'
+    'campagne_act', 'pec', 'pappers'
   ];
-  const customColumnConfigs = columnConfigs.filter(c => !nativeKeys.includes(c.key) && c.is_visible);
+  const customColumnConfigs = currentConfigs.filter(c => !nativeKeys.includes(c.key) && c.is_visible);
 
   return (
     <>
@@ -327,6 +382,8 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
                 {isVisible('libelle_activite') && <InfoItem label="Libellé" value={isEditing ? editValues.libelle_activite : getAutomatedLibelle()} isEditing={isEditing} name="libelle_activite" onChange={handleInputChange} />}
                 {isVisible('nom_opco') && <InfoItem label="Opco" value={isEditing ? editValues.nom_opco : lead.nom_opco} isEditing={isEditing} name="nom_opco" onChange={handleInputChange} />}
                 {isVisible('code_naf') && <InfoItem label="NAF" value={isEditing ? editValues.code_naf : (lead.code_naf || lead.secteur)} isMono isEditing={isEditing} name="code_naf" onChange={handleInputChange} />}
+                {isVisible('gerant') && <InfoItem label="Gérant" value={isEditing ? editValues.gerant : lead.gerant} icon={User} isEditing={isEditing} name="gerant" onChange={handleInputChange} />}
+                {isVisible('idcc') && <InfoItem label="IDCC" value={isEditing ? editValues.idcc : lead.idcc} icon={Hash} isEditing={isEditing} name="idcc" onChange={handleInputChange} />}
               </div>
             </section>
 
@@ -423,6 +480,39 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
                 )}
               </div>
             </section>
+
+            {/* Message Preview Section */}
+            {generateMessage() !== "" && (
+              <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 shadow-sm ring-1 ring-emerald-500/5">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-sm font-black text-navy uppercase tracking-widest">Aperçu du Message</h3>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleCopyMessage}
+                      className="flex items-center gap-2 px-4 py-2 bg-navy/5 text-navy hover:bg-navy hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                    >
+                      {messageCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {messageCopied ? 'Copié !' : 'Copier'}
+                    </button>
+                    <button 
+                      onClick={handleWhatsApp}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      WhatsApp
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-navy/[0.03] p-8 rounded-[2.5rem] border border-navy/5 font-mono text-[11px] leading-relaxed text-navy/80 whitespace-pre-wrap select-all selection:bg-primary/20">
+                  {generateMessage()}
+                </div>
+              </section>
+            )}
           </div>
         </div>
 
