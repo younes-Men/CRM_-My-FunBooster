@@ -202,7 +202,9 @@ const Pipeline = ({ user }) => {
     if (!supabase) return;
     setLoading(true);
     
-    let query = supabase.from('crm_leads').select('*');
+    let query = supabase.from('crm_leads')
+      .select('*')
+      .or('status_rdv.not.is.null,status.in.(RDV,RAPPEL,SIGNE)');
     if (user.role === 'commercial' && user.client) {
       let clientList = [];
       try {
@@ -329,22 +331,22 @@ const Pipeline = ({ user }) => {
       // Priority 1: Direct match on status_rdv
       if (l.status_rdv === status) return true;
 
-      // Priority 2: Fallback logic for various columns
+      // Strict logic: Rely EXCLUSIVELY on status_rdv for pipeline columns
       switch (status) {
         case 'Nouveau': 
-          return l.status === 'RDV' && (!l.status_rdv || l.status_rdv === 'Nouveau') && l.proposition !== 'OUI' && l.pec !== 'OUI' && l.status_rdv !== 'RAP';
+          return l.status_rdv === 'Nouveau';
         case 'RAP': 
-          return l.status === 'RAPPEL' || l.status_rdv === 'RAP';
+          return l.status_rdv === 'RAP';
         case 'Proposition': 
-          return l.proposition === 'OUI' && l.status !== 'SIGNE' && l.pec !== 'OUI';
+          return l.status_rdv === 'Proposition';
         case 'Signé': 
-          return l.status === 'SIGNE' && l.pec !== 'OUI' && l.status_rdv !== 'Gagné';
+          return l.status_rdv === 'Signé';
         case 'PEC': 
-          return l.pec === 'OUI' && l.status !== 'SIGNE' && l.status_rdv !== 'Gagné';
+          return l.status_rdv === 'PEC';
         case 'Gagné': 
-          return l.status === 'SIGNE' && l.pec === 'OUI';
+          return l.status_rdv === 'Gagné';
         case 'ORGANISÉ': 
-          return l.suivi_formation === 'ORGANISÉE';
+          return l.status_rdv === 'ORGANISÉ';
         default: 
           return false;
       }

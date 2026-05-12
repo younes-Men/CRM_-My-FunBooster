@@ -77,6 +77,7 @@ const TempRdvZone = ({ user }) => {
     setProcessingId(id);
     const updates = { 
       status: 'RDV',
+      status_rdv: 'Nouveau',
       date_modification: new Date().toISOString()
     };
     if (targetCommercial) {

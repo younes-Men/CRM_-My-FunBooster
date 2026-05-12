@@ -440,7 +440,7 @@ const TableRow = React.memo(({ data, index, style }) => {
     <div style={{ ...style, zIndex: isActive ? 100 : 1 }} className={`flex items-center hover:bg-[#fff5f7] transition-colors group/row cursor-pointer ${isClicked ? 'bg-[#fff5f7]' : ''}`} onClick={() => onClick(lead.id)} onDoubleClick={() => onDoubleClick(lead.id)}>
       {columns.map(col => (
         <div key={col.key} style={{ width: col.width, minWidth: col.width }} className={`flex-shrink-0 px-6 py-3 border-l border-navy/[0.02] ${col.type === 'pec_dates' || col.type === 'select' ? '' : 'overflow-hidden'}`}>
-          <TableCell lead={lead} col={col} handleUpdate={handleUpdate} isActive={isActive && activePicker?.field === col.key} activePicker={activePicker} setActivePicker={setActivePicker} pickerRef={pickerRef} index={index} enrichLead={enrichLead} isEnriching={isEnriching && col.key === 'nom_entreprise'} />
+          <TableCell lead={lead} col={col} handleUpdate={handleUpdate} isActive={isActive && activePicker?.field === col.key} activePicker={activePicker} setActivePicker={setActivePicker} pickerRef={pickerRef} index={index} enrichLead={enrichLead} isEnriching={enrichingId === lead.id && col.key === 'nom_entreprise'} />
         </div>
       ))}
     </div>
@@ -798,6 +798,7 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     alert("Enrichissement en masse terminé !");
   };
 
+
   const fetchPage = useCallback(async (pageIndex, replace = false, searchQuery = '', filters = activeFilters) => {
     if (!supabase) return;
     const fetchId = ++lastFetchId.current;
@@ -805,7 +806,7 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     if (pageIndex === 0) setLoading(true); else setLoadingMore(true);
     const from = pageIndex * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-    let query = supabase.from('crm_leads').select('*', { count: pageIndex === 0 ? 'exact' : 'estimated' });
+    let query = supabase.from('crm_leads').select('*', { count: pageIndex === 0 ? 'estimated' : 'estimated' });
     if (searchQuery) query = query.or(`nom_entreprise.ilike.%${searchQuery}%,siret.ilike.%${searchQuery}%,projet.ilike.%${searchQuery}%`);
     // Column Filters - Case-Insensitive + Wildcard matching to handle broken accents
     Object.entries(filters).forEach(([field, values]) => {
@@ -934,6 +935,10 @@ const MondayTable = React.memo(({ activeTab, user }) => {
       updates.custom_fields = { ...(lead.custom_fields || {}), [field]: dbValue };
     } else {
       updates[field] = dbValue;
+      // Auto-trigger Nouveau for Pipeline when status is set to RDV
+      if (field === 'status' && dbValue === 'RDV') {
+        updates.status_rdv = 'Nouveau';
+      }
     }
     updates.date_modification = new Date().toISOString();
 
@@ -1017,6 +1022,7 @@ const MondayTable = React.memo(({ activeTab, user }) => {
           >
             <Wand2 className={`w-5 h-5 ${enrichingId !== null ? 'animate-spin' : 'group-hover:rotate-12 transition-transform'}`} />
           </button>
+          
 
           <a href="https://quel-est-mon-opco.francecompetences.fr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3.5 bg-navy text-white rounded-2xl text-sm font-bold hover:bg-navy/90 transition-all shadow-lg shadow-navy/10 group">Vérif OPCO<ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>
           
