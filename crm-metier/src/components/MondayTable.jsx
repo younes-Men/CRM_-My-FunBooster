@@ -104,8 +104,8 @@ const COLUMNS = [
   { label: 'IDCC',         key: 'idcc',              width: 100, type: 'editable' },
   { label: 'Code NAF',     key: 'code_naf',          width: 130, type: 'editable' },
   { label: 'Pappers',      key: 'pappers',           width: 130, type: 'pappers' },
-  { label: 'Téléphone',    key: 'tel',               width: 140 },
-  { label: 'Mobile',       key: 'mobile',            width: 140, type: 'editable' },
+  { label: 'Téléphone',    key: 'tel',               width: 180, type: 'editable' },
+  { label: 'Mobile',       key: 'mobile',            width: 180, type: 'editable' },
   { label: 'Adresse',      key: 'adresse',           width: 260, type: 'editable' },
   { label: 'Code Postal',  key: 'code_postal',       width: 100, type: 'auto' },
   { label: 'Code Dépt.',   key: 'code_departement',  width: 100, type: 'auto' },
@@ -338,7 +338,33 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     const url = `https://www.pappers.fr/entreprise/${slug}-${siren}`;
     return <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-blue-400 text-[10px] font-bold uppercase tracking-wider transition-all group shadow-sm active:scale-95" onClick={(e) => e.stopPropagation()}>Pappers<ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>;
   }
-  if (col.type === 'editable') return <input type="text" key={`${lead.id}-${col.key}-${displayRaw}`} defaultValue={displayRaw || ''} onBlur={e => e.target.value !== (displayRaw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="—" />;
+  if (col.type === 'editable' || col.key === 'tel' || col.key === 'mobile') {
+    const isValUrl = typeof displayRaw === 'string' && (displayRaw.startsWith('http://') || displayRaw.startsWith('https://'));
+    if (isValUrl) {
+      return (
+        <div className="flex items-center gap-2 group/url min-w-0">
+          <a 
+            href={displayRaw} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="flex-1 flex items-center gap-1.5 text-primary hover:text-primary-dark font-medium transition-colors group/link min-w-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="truncate block text-sm" title={displayRaw}>{displayRaw}</span>
+            <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+          </a>
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleUpdate(lead.id, col.key, '', col.is_custom); }}
+            className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg opacity-0 group-hover/url:opacity-100 transition-all shadow-sm flex-shrink-0"
+            title="Supprimer le lien"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      );
+    }
+    return <input type="text" key={`${lead.id}-${col.key}-${displayRaw}`} defaultValue={displayRaw || ''} onBlur={e => e.target.value !== (displayRaw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="—" />;
+  }
   if (col.type === 'number') return <input type="number" defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="0" />;
   if (col.type === 'currency' || col.type === 'auto_currency') {
     const isAuto = col.type === 'auto_currency';
@@ -414,16 +440,25 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
 
   if (isUrl) {
     return (
-      <a 
-        href={displayVal} 
-        target="_blank" 
-        rel="noopener noreferrer" 
-        className="flex items-center gap-1.5 text-primary hover:text-primary-dark font-medium transition-colors group/link min-w-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <span className="truncate block text-sm" title={displayVal}>{displayVal}</span>
-        <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
-      </a>
+      <div className="flex items-center gap-2 group/url min-w-0">
+        <a 
+          href={displayVal} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="flex-1 flex items-center gap-1.5 text-primary hover:text-primary-dark font-medium transition-colors group/link min-w-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="truncate block text-sm" title={displayVal}>{displayVal}</span>
+          <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+        </a>
+        <button 
+          onClick={(e) => { e.stopPropagation(); handleUpdate(lead.id, col.key, '', col.is_custom); }}
+          className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg opacity-0 group-hover/url:opacity-100 transition-all shadow-sm flex-shrink-0"
+          title="Supprimer le lien"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
     );
   }
 
@@ -639,7 +674,7 @@ const MondayTable = React.memo(({ activeTab, user }) => {
           const baseCol = COLUMNS.find(oc => oc.key === c.key);
           return {
             ...c,
-            width: c.key === 'gerant' ? 300 : (c.width || baseCol?.width || 150),
+            width: (c.key === 'tel' || c.key === 'mobile') ? 180 : (c.key === 'gerant' ? 300 : (c.width || baseCol?.width || 150)),
             label: c.label || baseCol?.label,
             type: c.type || baseCol?.type || 'text',
             options: c.options || baseCol?.options
@@ -806,7 +841,7 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     if (pageIndex === 0) setLoading(true); else setLoadingMore(true);
     const from = pageIndex * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-    let query = supabase.from('crm_leads').select('*', { count: pageIndex === 0 ? 'estimated' : 'estimated' });
+    let query = supabase.from('crm_leads').select('*', { count: pageIndex === 0 ? 'exact' : 'estimated' });
     if (searchQuery) query = query.or(`nom_entreprise.ilike.%${searchQuery}%,siret.ilike.%${searchQuery}%,projet.ilike.%${searchQuery}%`);
     // Column Filters - Case-Insensitive + Wildcard matching to handle broken accents
     Object.entries(filters).forEach(([field, values]) => {
