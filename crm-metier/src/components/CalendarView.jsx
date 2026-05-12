@@ -232,7 +232,7 @@ const CalendarView = ({ user }) => {
   };
 
   const getEventsForDay = (day) => {
-    const dateStr = day.toISOString().split('T')[0];
+    const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
     return events.filter(e => {
       if (e.date_rdv !== dateStr) return false;
       if (!activeFilters.includes(e.client_of?.toLowerCase())) return false;
