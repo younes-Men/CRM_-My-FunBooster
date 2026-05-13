@@ -1002,6 +1002,7 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     
     if (supabase) {
       await supabase.from('crm_leads').update(updates).eq('id', id);
+
       if (field === 'observation' && value) {
         await supabase.from('crm_observations_history').insert({ 
           lead_id: id, 

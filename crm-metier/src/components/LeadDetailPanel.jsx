@@ -236,6 +236,7 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
       if (error) throw error;
 
       const updatedLead = { ...lead, ...finalPayload };
+
       setLead(updatedLead);
       setIsEditing(false);
       if (onUpdate) onUpdate(lead.id, updatedLead);
