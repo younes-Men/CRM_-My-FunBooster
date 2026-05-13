@@ -397,7 +397,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
           }
         }} 
         onKeyDown={e => e.key === 'Enter' && e.target.blur()}
-        className="w-full px-2 py-1.5 bg-white border border-primary focus:outline-none rounded-lg text-navy text-sm transition-all" 
+        className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20"
         placeholder="—" 
       />
     );
