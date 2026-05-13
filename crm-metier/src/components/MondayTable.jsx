@@ -4,7 +4,7 @@ import { FixedSizeList as List } from 'react-window';
 import { 
   Search, Filter, ChevronDown, ChevronUp, Download, Eye, Plus, 
   Trash2, X, Check, Save, Calendar, Phone, Mail, User, 
-  AlertCircle, MoreVertical, LayoutGrid, RefreshCw, Settings,
+  AlertCircle, MoreVertical, LayoutGrid, RefreshCw, Settings, Pencil,
   MapPin, Hash, Briefcase, FileText, ArrowRight, ArrowLeft, Clock, ExternalLink, Copy, Sparkles, Wand2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -88,31 +88,35 @@ const slugify = (text) => {
 };
 
 const COLUMNS = [
-  { label: 'ID',           key: 'lead_id',           width: 100, mono: true },
   { label: 'Funbooster',   key: 'funebooster',       width: 160, type: 'select', options: [
     'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA'
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
-  { label: 'Gérant',       key: 'gerant',            width: 300, type: 'editable' },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
-  { label: 'Secteur Act.',  key: 'secteur_activite',  width: 180, type: 'editable' },
-  { label: 'Libellé Act.',  key: 'libelle_activite',  width: 200, type: 'editable' },
-  { label: 'Opco',         key: 'nom_opco',          width: 150, type: 'select', options: [
-    'OPCOMMERCE', 'OPCO EP', 'OPCO AKTO', 'OPCO ATLAS', 'AFDAS', 'CONSTRUCTYS', 
-    'MOBILITÉ', 'OPCO 2i', 'UNIFORMATION', 'OPCO SANTÉ', 'OCAPIAT'
-  ]},
-  { label: 'IDCC',         key: 'idcc',              width: 100, type: 'editable' },
-  { label: 'Code NAF',     key: 'code_naf',          width: 130, type: 'editable' },
-  { label: 'Pappers',      key: 'pappers',           width: 130, type: 'pappers' },
   { label: 'Téléphone',    key: 'tel',               width: 180, type: 'editable' },
-  { label: 'Mobile',       key: 'mobile',            width: 180, type: 'editable' },
-  { label: 'Adresse',      key: 'adresse',           width: 260, type: 'editable' },
-  { label: 'Code Postal',  key: 'code_postal',       width: 100, type: 'auto' },
-  { label: 'Code Dépt.',   key: 'code_departement',  width: 100, type: 'auto' },
   { label: 'Statut',       key: 'status',            width: 180, type: 'select', options: [
     'A TRAITER', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
   ]},
+  { label: 'Opco',         key: 'nom_opco',          width: 150, type: 'select', options: [
+    'OPCOMMERCE', 'OPCO EP', 'OPCO AKTO', 'OPCO ATLAS', 'AFDAS', 'CONSTRUCTYS', 
+    'MOBILITÉ', 'OPCO 2i', 'UNIFORMATION', 'OPCO SANTÉ', 'OCAPIAT'
+  ]},
+  { label: 'Client OF',    key: 'client_of',         width: 180, type: 'select', options: [
+    'CA CONSEILS', 'HORS ZONE', 'TB FORMATIONS', 'IT PERFORMANCE', 'GO CONSEILS'
+  ]},
+  { label: 'Opcosign',     key: 'opcosign',          width: 180, type: 'editable' },
+  { label: 'ID',           key: 'lead_id',           width: 100, mono: true },
+  { label: 'Gérant',       key: 'gerant',            width: 300, type: 'editable' },
+  { label: 'Secteur Act.',  key: 'secteur_activite',  width: 180, type: 'editable' },
+  { label: 'Libellé Act.',  key: 'libelle_activite',  width: 200, type: 'editable' },
+  { label: 'IDCC',         key: 'idcc',              width: 100, type: 'editable' },
+  { label: 'Code NAF',     key: 'code_naf',          width: 130, type: 'editable' },
+  { label: 'Pappers',      key: 'pappers',           width: 130, type: 'pappers' },
+  { label: 'Mobile',       key: 'mobile',            width: 180, type: 'editable' },
+  { label: 'Adresse',      key: 'adresse',           width: 260, type: 'editable' },
+  { label: 'Code Postal',  key: 'code_postal',       width: 100, type: 'auto' },
+  { label: 'Code Dépt.',   key: 'code_departement',  width: 100, type: 'auto' },
   { label: 'Statut RDV',   key: 'status_rdv',        width: 180, type: 'select', options: [
     'Nouveau', 'RAP', 'Proposition', 'Signé', 'PEC', 'Gagné', 'ORGANISÉ'
   ]},
@@ -122,10 +126,6 @@ const COLUMNS = [
   { label: 'Nb Salariés',  key: 'nb_salaries',       width: 100, type: 'number' },
   { label: 'Nb Apprentis', key: 'nb_apprentis',      width: 110, type: 'number' },
   { label: 'Date Modif',   key: 'date_modification', width: 150, type: 'date' },
-  { label: 'Client OF',    key: 'client_of',         width: 180, type: 'select', options: [
-    'CA CONSEILS', 'HORS ZONE', 'TB FORMATIONS', 'IT PERFORMANCE', 'GO CONSEILS'
-  ]},
-  { label: 'Opcosign',     key: 'opcosign',          width: 180, type: 'editable' },
   { label: 'Budget Opco',  key: 'budget_opco',       width: 120, type: 'currency' },
   { label: 'Année Budget', key: 'annee_budget',      width: 110, type: 'number' },
   { label: 'Date RDV',     key: 'date_rdv',          width: 130, type: 'date_picker' },
@@ -144,7 +144,6 @@ const COLUMNS = [
   { label: 'Suivi Form.',  key: 'suivi_formation',   width: 150, type: 'select', options: ['PLANIFIÉE', 'ORGANISÉE', 'EN COURS', 'TERMINÉE'] },
   { label: 'Commentaires', key: 'observation',       width: 260, type: 'editable' },
 ];
-
 const PAGE_SIZE = 100;
 
 const SearchInput = React.memo(({ value: externalValue, onSearch }) => {
@@ -339,7 +338,11 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     return <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-blue-400 text-[10px] font-bold uppercase tracking-wider transition-all group shadow-sm active:scale-95" onClick={(e) => e.stopPropagation()}>Pappers<ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>;
   }
   if (col.type === 'editable' || col.key === 'tel' || col.key === 'mobile') {
+    const [localEdit, setLocalEdit] = useState(false);
+    const isPhone = col.key === 'tel' || col.key === 'mobile';
     const isValUrl = typeof displayRaw === 'string' && (displayRaw.startsWith('http://') || displayRaw.startsWith('https://'));
+    
+    // Si c'est un lien, on l'affiche en priorité comme un lien cliquable
     if (isValUrl) {
       return (
         <div className="flex items-center gap-2 group/url min-w-0">
@@ -363,7 +366,41 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
         </div>
       );
     }
-    return <input type="text" key={`${lead.id}-${col.key}-${displayRaw}`} defaultValue={displayRaw || ''} onBlur={e => e.target.value !== (displayRaw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="—" />;
+
+    // Si c'est un téléphone, on l'affiche en texte brut (pour Ringover) avec le style original
+    if (isPhone && !localEdit) {
+      return (
+        <div className="flex items-center justify-between group/tel w-full px-2 py-1.5">
+          <span className="text-sm text-navy/60 whitespace-nowrap">
+            {displayRaw || '—'}
+          </span>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setLocalEdit(true); }}
+            className="p-1 hover:bg-navy/5 rounded-md transition-all opacity-0 group-hover/tel:opacity-100 text-navy/20 hover:text-navy/50"
+            title="Modifier le numéro"
+          >
+            <Pencil className="w-3 h-3" />
+          </button>
+        </div>
+      );
+    }
+    return (
+      <input 
+        type="text" 
+        autoFocus={localEdit}
+        key={`${lead.id}-${col.key}-${displayRaw}`} 
+        defaultValue={displayRaw || ''} 
+        onBlur={e => {
+          setLocalEdit(false);
+          if (e.target.value !== (displayRaw || '')) {
+            handleUpdate(lead.id, col.key, e.target.value, col.is_custom);
+          }
+        }} 
+        onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+        className="w-full px-2 py-1.5 bg-white border border-primary focus:outline-none rounded-lg text-navy text-sm transition-all" 
+        placeholder="—" 
+      />
+    );
   }
   if (col.type === 'number') return <input type="number" defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="0" />;
   if (col.type === 'currency' || col.type === 'auto_currency') {
@@ -472,7 +509,7 @@ const TableRow = React.memo(({ data, index, style }) => {
   const isActive = activePicker?.id === lead.id;
   const isEnriching = enrichingId === lead.id;
   return (
-    <div style={{ ...style, zIndex: isActive ? 100 : 1 }} className={`flex items-center hover:bg-[#fff5f7] transition-colors group/row cursor-pointer ${isClicked ? 'bg-[#fff5f7]' : ''}`} onClick={() => onClick(lead.id)} onDoubleClick={() => onDoubleClick(lead.id)}>
+    <div style={{ ...style, zIndex: isActive ? 100 : 1 }} className={`flex items-center hover:bg-[#ffdee4] transition-colors group/row cursor-pointer ${isClicked ? 'bg-[#ffdee4]' : ''}`} onClick={() => onClick(lead.id)} onDoubleClick={() => onDoubleClick(lead.id)}>
       {columns.map(col => (
         <div key={col.key} style={{ width: col.width, minWidth: col.width }} className={`flex-shrink-0 px-6 py-3 border-l border-navy/[0.02] ${col.type === 'pec_dates' || col.type === 'select' ? '' : 'overflow-hidden'}`}>
           <TableCell lead={lead} col={col} handleUpdate={handleUpdate} isActive={isActive && activePicker?.field === col.key} activePicker={activePicker} setActivePicker={setActivePicker} pickerRef={pickerRef} index={index} enrichLead={enrichLead} isEnriching={enrichingId === lead.id && col.key === 'nom_entreprise'} />
@@ -643,14 +680,23 @@ const MondayTable = React.memo(({ activeTab, user }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [search, setSearch] = useState('');
-  const [activeFilters, setActiveFilters] = useState({});
+  
+  // Persistance des filtres et de la recherche
+  const [search, setSearch] = useState(() => localStorage.getItem(`crm_search_${activeTab}`) || '');
+  const [activeFilters, setActiveFilters] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`crm_filters_${activeTab}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
   const [activePicker, setActivePicker] = useState(null);
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [clickedRowId, setClickedRowId] = useState(null);
   const [filterMenu, setFilterMenu] = useState(null);
   const [error, setError] = useState(null);
   const lastFetchId = useRef(0);
+  const initialScrollRestored = useRef(false);
   const [columns, setColumns] = useState(COLUMNS);
   const listRef = useRef(null);
   const pickerRef = useRef(null);
@@ -909,10 +955,36 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     const newFilters = { ...activeFilters, [field]: values };
     if (!values || values.length === 0) delete newFilters[field];
     setActiveFilters(newFilters);
+    localStorage.setItem(`crm_filters_${activeTab}`, JSON.stringify(newFilters));
     setFilterMenu(null);
     setPage(0);
     fetchPage(0, true, search, newFilters);
-  }, [activeFilters, fetchPage, search]);
+  }, [activeFilters, fetchPage, search, activeTab]);
+
+  // Sauvegarder la recherche
+  useEffect(() => {
+    localStorage.setItem(`crm_search_${activeTab}`, search);
+  }, [search, activeTab]);
+
+  // Restaurer le scroll après le chargement des données
+  useEffect(() => {
+    if (!loading && leads.length > 0 && !initialScrollRestored.current && listRef.current) {
+      const savedScroll = localStorage.getItem(`crm_scroll_${activeTab}`);
+      if (savedScroll) {
+        setTimeout(() => {
+          listRef.current?.scrollTo(parseFloat(savedScroll));
+          initialScrollRestored.current = true;
+        }, 100);
+      } else {
+        initialScrollRestored.current = true;
+      }
+    }
+  }, [loading, leads.length, activeTab]);
+
+  // Reset scroll restoration flag when tab changes
+  useEffect(() => {
+    initialScrollRestored.current = false;
+  }, [activeTab]);
 
   useEffect(() => {
     const timer = setTimeout(() => { setPage(0); fetchPage(0, true, search, activeFilters); }, search ? 500 : 0);
@@ -1142,6 +1214,12 @@ const MondayTable = React.memo(({ activeTab, user }) => {
                 itemSize={48}
                 itemData={itemData}
                 style={{ overflowY: 'auto', overflowX: 'hidden' }}
+                onScroll={({ scrollOffset }) => {
+                  // Sauvegarder le scroll avec un petit throttle pour la performance
+                  if (scrollOffset > 0) {
+                    localStorage.setItem(`crm_scroll_${activeTab}`, scrollOffset);
+                  }
+                }}
                 onItemsRendered={({ visibleStopIndex }) => {
                   if (hasMore && !search && !loadingMore && visibleStopIndex >= leads.length - 10) {
                     loadMore();
