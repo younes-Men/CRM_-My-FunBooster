@@ -232,6 +232,19 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     return null;
   };
 
+  const isLocked = useMemo(() => {
+    if (!lead || !user) return false;
+    const userRole = String(user.role || '').toLowerCase().trim();
+    const isAdmin = userRole === 'admin';
+    const isCommercial = userRole === 'commercial';
+    
+    if (isAdmin || isCommercial) return false;
+
+    const status = String(lead.status || '').toUpperCase().trim();
+    const lockedStatuses = ['RDV', 'SIGNE', 'EN ATTENTE RDV'];
+    return lockedStatuses.includes(status);
+  }, [lead, user]);
+
   // Grouping logic for dynamic columns
   const allowedConfigs = useMemo(() => {
     return currentConfigs.filter(c => isVisible(c.key) && c.is_visible !== false);
@@ -340,6 +353,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           type="text"
                           onChange={handleAutoSave}
                           readOnly={readOnlyKeys.includes(col.key)}
+                          disabled={isLocked}
                         />
                       ))}
                     </div>
@@ -361,6 +375,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           options={getOptions(col.key)}
                           onChange={handleAutoSave}
                           readOnly={readOnlyKeys.includes(col.key)}
+                          disabled={isLocked}
                         />
                       ))}
                     </div>
@@ -384,6 +399,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           type={col.type === 'number' || col.type === 'currency' ? 'number' : col.type === 'date_picker' || col.type === 'date' ? 'date' : 'text'}
                           onChange={handleAutoSave}
                           readOnly={readOnlyKeys.includes(col.key)}
+                          disabled={isLocked}
                         />
                       ))}
                     </div>
@@ -404,6 +420,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           type={col.type === 'number' ? 'number' : col.type === 'date_picker' ? 'date' : 'text'}
                           onChange={handleAutoSave}
                           readOnly={readOnlyKeys.includes(col.key)}
+                          disabled={isLocked}
                         />
                       ))}
                     </div>
@@ -451,6 +468,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
               </div>
               <textarea
                 value={localComment}
+                disabled={isLocked}
                 onChange={e => {
                   const val = e.target.value;
                   setLocalComment(val);
@@ -461,7 +479,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                   }, 1000);
                 }}
                 placeholder="Saisissez vos commentaires ici..."
-                className="w-full h-[calc(100vh-250px)] p-6 bg-navy/[0.02] border border-navy/10 rounded-[2rem] text-sm focus:outline-none focus:border-primary/30 transition-all resize-none font-medium leading-relaxed"
+                className={`w-full h-[calc(100vh-250px)] p-6 bg-navy/[0.02] border border-navy/10 rounded-[2rem] text-sm focus:outline-none focus:border-primary/30 transition-all resize-none font-medium leading-relaxed ${isLocked ? 'cursor-not-allowed opacity-50' : ''}`}
               />
               <div className="flex items-center justify-between px-4">
                 <span className="text-[9px] font-bold text-navy/20 uppercase">Enregistrement automatique</span>
@@ -513,7 +531,7 @@ const SectionTitle = ({ icon: Icon, label }) => (
   </div>
 );
 
-const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR —" }) => {
+const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR —", disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -530,8 +548,9 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR �
   return (
     <div className="relative" ref={containerRef}>
       <button
+        disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full min-w-[140px] px-3 py-1.5 border border-navy/5 rounded-lg transition-all shadow-sm"
+        className={`flex items-center justify-between w-full min-w-[140px] px-3 py-1.5 border border-navy/5 rounded-lg transition-all shadow-sm ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
         style={{ 
           backgroundColor: value ? currentStyle.bg : 'rgba(15, 23, 42, 0.03)', 
           color: value ? currentStyle.text : 'rgba(15, 23, 42, 0.4)' 
@@ -587,7 +606,7 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR �
   );
 };
 
-const EditableField = ({ label, value, onChange, name, isMono, type = 'text', options, readOnly }) => {
+const EditableField = ({ label, value, onChange, name, isMono, type = 'text', options, readOnly, disabled }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value || '');
 
@@ -602,7 +621,6 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
     setIsEditing(false);
   };
 
-  // Case-insensitive matching for select value
   const matchedValue = useMemo(() => {
     if (!options || !localValue) return localValue;
     const match = options.find(opt => opt.toLowerCase() === String(localValue).toLowerCase());
@@ -610,20 +628,20 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
   }, [localValue, options]);
 
   const isUrl = typeof value === 'string' && (value.startsWith('http') || value.includes('.com') || value.includes('.fr'));
-  const isPhone = name === 'tel' || name === 'mobile';
 
   return (
     <div className="flex items-start gap-4 group/field">
       <span className="w-32 text-[10px] font-black text-navy/20 uppercase tracking-widest shrink-0 pt-1.5">{label}</span>
       <div className="flex-1 min-w-0">
-        {readOnly ? (
-          <div className={`py-1 text-sm font-bold text-navy/60 ${isMono ? 'font-mono tracking-tighter' : ''}`}>
+        {(readOnly || (disabled && !isEditing)) ? (
+          <div className={`py-1 text-sm font-bold ${disabled ? 'text-navy/30 cursor-not-allowed' : 'text-navy/60'} ${isMono ? 'font-mono tracking-tighter' : ''}`}>
             {value || '—'}
           </div>
         ) : options ? (
           <CustomDropdown 
             value={matchedValue} 
             options={options} 
+            disabled={disabled}
             onChange={(val) => onChange(name, val)} 
           />
         ) : isEditing ? (
@@ -634,7 +652,6 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
             onChange={(e) => setLocalValue(e.target.value)}
             onBlur={handleBlur}
             onKeyDown={(e) => e.key === 'Enter' && handleBlur()}
-            placeholder="—"
             className={`w-full bg-navy/[0.02] border-b border-primary px-1 py-1 text-sm font-bold text-navy focus:outline-none transition-all ${isMono ? 'font-mono tracking-tighter' : ''}`}
           />
         ) : (
@@ -655,7 +672,7 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
                 </span>
               )}
             </div>
-            {!readOnly && (
+            {!disabled && (
               <button 
                 onClick={() => setIsEditing(true)}
                 className="p-1 opacity-0 group-hover/field:opacity-100 text-navy/20 hover:text-primary transition-all"

@@ -260,10 +260,29 @@ const formatNaf = (val) => {
   return val;
 };
 
-const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker, setActivePicker, pickerRef, index, enrichLead, isEnriching }) => {
+const isLeadLocked = (lead, user) => {
+  if (!lead || !user) return false;
+  
+  const userRole = String(user.role || '').toLowerCase().trim();
+  const isAdmin = userRole === 'admin';
+  const isCommercial = userRole === 'commercial';
+  
+  // Si c'est un Admin ou un Commercial, on ne verrouille JAMAIS rien pour eux
+  if (isAdmin || isCommercial) return false;
+
+  // Pour TOUS les autres (Funboosters, etc.), on verrouille ces statuts
+  const status = String(lead.status || '').toUpperCase().trim();
+  const lockedStatuses = ['RDV', 'SIGNE', 'EN ATTENTE RDV'];
+  
+  return lockedStatuses.includes(status);
+};
+
+const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker, setActivePicker, pickerRef, index, enrichLead, isEnriching, user }) => {
   const [copied, setCopied] = useState(false);
   const [localEdit, setLocalEdit] = useState(false);
   const containerRef = useRef(null);
+
+  const isLocked = isLeadLocked(lead, user);
 
   // Check if data is in native column or custom_fields
   let raw = lead[col.key];
@@ -374,13 +393,15 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
           <span className="text-sm text-navy/60 whitespace-nowrap">
             {displayRaw || '—'}
           </span>
-          <button 
-            onClick={(e) => { e.stopPropagation(); setLocalEdit(true); }}
-            className="p-1 hover:bg-navy/5 rounded-md transition-all opacity-0 group-hover/tel:opacity-100 text-navy/20 hover:text-navy/50"
-            title="Modifier le numéro"
-          >
-            <Pencil className="w-3 h-3" />
-          </button>
+          {!isLocked && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setLocalEdit(true); }}
+              className="p-1 hover:bg-navy/5 rounded-md transition-all opacity-0 group-hover/tel:opacity-100 text-navy/20 hover:text-navy/50"
+              title="Modifier le numéro"
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          )}
         </div>
       );
     }
@@ -390,6 +411,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
         autoFocus={localEdit}
         key={`${lead.id}-${col.key}-${displayRaw}`} 
         defaultValue={displayRaw || ''} 
+        disabled={isLocked}
         onBlur={e => {
           setLocalEdit(false);
           if (e.target.value !== (displayRaw || '')) {
@@ -397,12 +419,12 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
           }
         }} 
         onKeyDown={e => e.key === 'Enter' && e.target.blur()}
-        className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20"
+        className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-white hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none text-navy/60 focus:text-navy'}`}
         placeholder="—" 
       />
     );
   }
-  if (col.type === 'number') return <input type="number" defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className="w-full px-2 py-1.5 bg-transparent hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20" placeholder="0" />;
+  if (col.type === 'number') return <input type="number" disabled={isLocked} defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-white hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none text-navy/60 focus:text-navy'}`} placeholder="0" />;
   if (col.type === 'currency' || col.type === 'auto_currency') {
     const isAuto = col.type === 'auto_currency';
     let displayValue = raw;
@@ -413,7 +435,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     }
     return (
       <div className="flex items-center gap-1 group/currency">
-        <input type="number" readOnly={isAuto} defaultValue={displayValue || ''} onBlur={e => { if (!isAuto && e.target.value !== String(raw || '')) handleUpdate(lead.id, col.key, e.target.value, col.is_custom); }} className={`w-full px-2 py-1.5 bg-transparent ${isAuto ? '' : 'hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary'} focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''}`} placeholder="0.00" />
+        <input type="number" readOnly={isAuto} disabled={isLocked} defaultValue={displayValue || ''} onBlur={e => { if (!isAuto && e.target.value !== String(raw || '')) handleUpdate(lead.id, col.key, e.target.value, col.is_custom); }} className={`w-full px-2 py-1.5 bg-transparent ${isAuto || isLocked ? '' : 'hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary'} focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''} ${isLocked ? 'cursor-not-allowed text-navy/40' : ''}`} placeholder="0.00" />
         <span className="text-[10px] font-bold text-navy/30 pr-1">€</span>
       </div>
     );
@@ -422,7 +444,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     return (
       <div className="relative group/picker w-full flex items-center">
         <div className="absolute inset-0 flex items-center justify-center text-navy text-[11px] font-bold pointer-events-none group-hover/picker:opacity-0 transition-opacity">{formatDateFr(raw)}</div>
-        <input type="date" defaultValue={raw || ''} onChange={e => handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className="w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] hover:bg-navy/[0.06] border border-transparent hover:border-navy/10 rounded-lg text-transparent hover:text-navy text-[11px] font-bold cursor-pointer transition-all" />
+        <input type="date" disabled={isLocked} defaultValue={raw || ''} onChange={e => handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className={`w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] border border-transparent rounded-lg text-transparent text-[11px] font-bold transition-all ${isLocked ? 'cursor-not-allowed' : 'hover:bg-navy/[0.06] hover:border-navy/10 hover:text-navy cursor-pointer'}`} />
       </div>
     );
   }
@@ -431,7 +453,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     const displayValue = formatTime(raw);
     return (
       <div className="flex justify-center p-1">
-        <input type="text" defaultValue={displayValue} key={`${lead.id}-${col.key}-${displayValue}`} onBlur={e => { const val = e.target.value; if (val !== displayValue) handleUpdate(lead.id, col.key, val, col.is_custom); }} placeholder="--h--" className="w-[70px] px-2 py-1.5 bg-navy/5 border border-transparent hover:border-navy/10 rounded-xl text-navy text-[11px] font-black focus:bg-white focus:border-primary focus:outline-none transition-all font-mono text-center placeholder:text-navy/20" />
+        <input type="text" disabled={isLocked} defaultValue={displayValue} key={`${lead.id}-${col.key}-${displayValue}`} onBlur={e => { const val = e.target.value; if (val !== displayValue) handleUpdate(lead.id, col.key, val, col.is_custom); }} placeholder="--h--" className={`w-[70px] px-2 py-1.5 bg-navy/5 border border-transparent rounded-xl text-[11px] font-black focus:outline-none transition-all font-mono text-center placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:border-navy/10 focus:bg-white focus:border-primary text-navy'}`} />
       </div>
     );
   }
@@ -503,18 +525,28 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
 });
 
 const TableRow = React.memo(({ data, index, style }) => {
-  const { leads, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick, clickedRowId, onClick, enrichLead, enrichingId } = data;
+  const { leads, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick, clickedRowId, onClick, enrichLead, enrichingId, user } = data;
   const lead = leads[index];
   const isClicked = clickedRowId === lead.id;
   const isActive = activePicker?.id === lead.id;
   const isEnriching = enrichingId === lead.id;
   return (
     <div style={{ ...style, zIndex: isActive ? 100 : 1 }} className={`flex items-center hover:bg-[#ffdee4] transition-colors group/row cursor-pointer ${isClicked ? 'bg-[#ffdee4]' : ''}`} onClick={() => onClick(lead.id)} onDoubleClick={() => onDoubleClick(lead.id)}>
-      {columns.map(col => (
-        <div key={col.key} style={{ width: col.width, minWidth: col.width }} className={`flex-shrink-0 px-6 py-3 border-l border-navy/[0.02] ${col.type === 'pec_dates' || col.type === 'select' ? '' : 'overflow-hidden'}`}>
-          <TableCell lead={lead} col={col} handleUpdate={handleUpdate} isActive={isActive && activePicker?.field === col.key} activePicker={activePicker} setActivePicker={setActivePicker} pickerRef={pickerRef} index={index} enrichLead={enrichLead} isEnriching={enrichingId === lead.id && col.key === 'nom_entreprise'} />
-        </div>
-      ))}
+      {columns.map(col => {
+        const isLocked = isLeadLocked(lead, user);
+        return (
+          <div 
+            key={col.key} 
+            style={{ width: col.width, minWidth: col.width }} 
+            className={`flex-shrink-0 px-6 py-3 border-l border-navy/[0.02] ${col.type === 'pec_dates' || col.type === 'select' ? '' : 'overflow-hidden'} ${isLocked ? 'cursor-not-allowed' : ''}`}
+            title={isLocked ? "Ce lead est verrouillé (RDV/SIGNE/ATTENTE)" : ""}
+          >
+            <div className={isLocked ? "pointer-events-none opacity-60" : ""}>
+              <TableCell lead={lead} col={col} handleUpdate={handleUpdate} isActive={isActive && activePicker?.field === col.key} activePicker={activePicker} setActivePicker={setActivePicker} pickerRef={pickerRef} index={index} enrichLead={enrichLead} isEnriching={enrichingId === lead.id && col.key === 'nom_entreprise'} user={user} />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 });
@@ -1105,8 +1137,9 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     clickedRowId,
     onClick: setClickedRowId,
     enrichLead,
-    enrichingId
-  }), [leads, columns, handleUpdate, activePicker, clickedRowId, enrichLead, enrichingId, setSelectedLeadId, setClickedRowId]);
+    enrichingId,
+    user
+  }), [leads, columns, handleUpdate, activePicker, clickedRowId, enrichLead, enrichingId, user, setSelectedLeadId, setClickedRowId]);
 
   return (
     <div className="flex flex-col gap-6 w-full h-full animate-in fade-in duration-700">
