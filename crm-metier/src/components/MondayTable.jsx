@@ -8,7 +8,7 @@ import {
   MapPin, Hash, Briefcase, FileText, ArrowRight, ArrowLeft, Clock, ExternalLink, Copy, Sparkles, Wand2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import LeadDetailPanel from './LeadDetailPanel';
+import LeadFullDetail from './LeadFullDetail';
 import ColumnManagerModal from './ColumnManagerModal';
 import opcoMapping from '../data/opco_mapping.json';
 import nafMapping from '../data/naf_mapping.json';
@@ -1098,12 +1098,15 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     activePicker,
     setActivePicker,
     pickerRef,
-    onDoubleClick: setSelectedLeadId,
+    onDoubleClick: (id) => {
+      setClickedRowId(id);
+      setSelectedLeadId(id);
+    },
     clickedRowId,
     onClick: setClickedRowId,
     enrichLead,
     enrichingId
-  }), [leads, columns, handleUpdate, activePicker, clickedRowId, enrichLead, enrichingId]);
+  }), [leads, columns, handleUpdate, activePicker, clickedRowId, enrichLead, enrichingId, setSelectedLeadId, setClickedRowId]);
 
   return (
     <div className="flex flex-col gap-6 w-full h-full animate-in fade-in duration-700">
@@ -1233,13 +1236,14 @@ const MondayTable = React.memo(({ activeTab, user }) => {
         </div>
       </div>
       {selectedLeadId && (
-        <LeadDetailPanel 
+        <LeadFullDetail 
           leadId={selectedLeadId} 
-          lead={leads.find(l => l.id === selectedLeadId)} 
+          leads={leads}
+          columns={columns}
           onClose={() => setSelectedLeadId(null)} 
-          userName={user?.name}
+          onLeadChange={setClickedRowId}
+          user={user}
           permissions={user?.permissions}
-          userRole={user?.role}
           onUpdate={(id, updates) => {
             setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
           }}

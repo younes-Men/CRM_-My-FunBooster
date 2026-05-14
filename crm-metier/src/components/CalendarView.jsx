@@ -12,6 +12,7 @@ import {
   CalendarDays
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import PipelineDetail from './PipelineDetail';
 import LeadDetailPanel from './LeadDetailPanel';
 
 const CALENDAR_COLORS = {
@@ -438,19 +439,31 @@ const CalendarView = ({ user }) => {
         </div>
       </div>
 
-      {/* ── Reuse Detail Panel ── */}
+      {/* ── Conditional Detail Panel ── */}
       {selectedLeadId && (
-        <LeadDetailPanel 
-          leadId={selectedLeadId}
-          lead={events.find(l => l.id === selectedLeadId)}
-          onClose={() => setSelectedLeadId(null)}
-          userName={user?.name}
-          userRole={user?.role}
-          permissions={user?.permissions}
-          onUpdate={(id, updates) => {
-            setEvents(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
-          }}
-        />
+        user?.role === 'funebooster' || user?.role === 'funbooster' ? (
+          <LeadDetailPanel 
+            leadId={selectedLeadId}
+            lead={events.find(l => l.id === selectedLeadId)}
+            onClose={() => setSelectedLeadId(null)}
+            userName={user?.name}
+            userRole={user?.role}
+            permissions={user?.permissions}
+            onUpdate={(id, updates) => {
+              setEvents(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+            }}
+          />
+        ) : (
+          <PipelineDetail 
+            lead={events.find(l => l.id === selectedLeadId)}
+            onClose={() => setSelectedLeadId(null)}
+            user={user}
+            source="Agenda"
+            onUpdateLead={(id, updates) => {
+              setEvents(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+            }}
+          />
+        )
       )}
     </div>
   );

@@ -1,0 +1,673 @@
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { 
+  X, Clock, User, Building2, MapPin, Hash, Briefcase, 
+  Calendar, MessageSquare, History, Phone, Save, Check,
+  ExternalLink, Layers, Send, Copy, ArrowLeft, ArrowRight,
+  ChevronLeft, ChevronRight, Pencil, Mail, Trash2, Sparkles,
+  Smartphone, ChevronDown
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../lib/supabase';
+import { teamService } from '../lib/teamService';
+import nafMapping from '../data/naf_mapping.json';
+import opcoMapping from '../data/opco_mapping.json';
+import secteurMapping from '../data/secteur_mapping.json';
+
+const formatNaf = (val) => {
+  if (!val) return val;
+  const clean = String(val).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (clean.length === 5) {
+    return `${clean.substring(0, 2)}.${clean.substring(2, 4)}${clean.substring(4)}`;
+  }
+  if (clean.length === 4) {
+    const matches = Object.keys(nafMapping).filter(k => k.startsWith(clean));
+    if (matches.length === 1) {
+      const full = matches[0];
+      return `${full.substring(0, 2)}.${full.substring(2, 4)}${full.substring(4)}`;
+    }
+    return `${clean.substring(0, 2)}.${clean.substring(2)}`;
+  }
+  return val;
+};
+
+const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permissions, onUpdate, onLeadChange }) => {
+  const nativeKeys = [
+    'lead_id', 'funebooster', 'nom_entreprise', 'gerant', 'siret', 
+    'secteur_activite', 'libelle_activite', 'nom_opco', 'idcc', 
+    'code_naf', 'tel', 'mobile', 'adresse', 'code_postal', 
+    'code_departement', 'status', 'status_rdv', 'email', 'site_web', 
+    'statut_gerant', 'nb_salaries', 'nb_apprentis', 'date_modification', 
+    'client_of', 'opcosign', 'budget_opco', 'annee_budget', 'date_rdv', 
+    'heure_rdv', 'type_rdv', 'rdv_honore', 'proposition', 'signe', 
+    'date_signe', 'ca_signe_ht', 'nb_heures_formation', 'tx_horaire_ca', 
+    'campagne_act', 'pec', 'pappers', 'observation'
+  ];
+
+  const [currentLeadId, setCurrentLeadId] = useState(leadId);
+  const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [newNote, setNewNote] = useState('');
+  const [currentConfigs, setCurrentConfigs] = useState([]);
+  const [messageCopied, setMessageCopied] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [clients, setClients] = useState([]);
+  // Find current lead and navigation leads
+  const currentIndex = useMemo(() => leads.findIndex(l => l.id === currentLeadId), [leads, currentLeadId]);
+  const lead = useMemo(() => leads[currentIndex] || {}, [leads, currentIndex]);
+  const prevLead = leads[currentIndex - 1];
+  const nextLead = leads[currentIndex + 1];
+
+  const [localComment, setLocalComment] = useState(lead?.observation || '');
+  const saveTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: configs } = await supabase
+        .from('crm_column_configs')
+        .select('*')
+        .order('display_order', { ascending: true });
+      if (configs) setCurrentConfigs(configs);
+
+      try {
+        const members = await teamService.getAllMembers();
+        setTeamMembers(members || []);
+        const allClients = await teamService.getAllClients();
+        setClients(allClients || []);
+      } catch (err) {
+        console.error('Error fetching team/clients:', err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (currentLeadId) {
+      fetchHistory();
+      if (onLeadChange) onLeadChange(currentLeadId);
+      // Only set localComment when lead ID changes, not when content updates in parent
+      setLocalComment(leads.find(l => l.id === currentLeadId)?.observation || '');
+    }
+  }, [currentLeadId, onLeadChange]); // Removed lead?.observation from dependencies
+
+  const fetchHistory = async () => {
+    const { data, error } = await supabase
+      .from('crm_observations_history')
+      .select('*')
+      .eq('lead_id', currentLeadId)
+      .order('created_at', { ascending: false });
+    if (!error) setHistory(data || []);
+  };
+
+  const addNote = async () => {
+    if (!newNote.trim()) return;
+    const { error } = await supabase.from('crm_observations_history').insert([{
+      lead_id: currentLeadId,
+      observation_text: newNote,
+      created_by: user?.name || user?.email || 'Système'
+    }]);
+    if (!error) {
+      setNewNote('');
+      fetchHistory();
+    }
+  };
+
+  const handleAutoSave = async (field, value) => {
+    setLoading(true);
+    try {
+      const isCustom = !nativeKeys.includes(field);
+      const updates = isCustom 
+        ? { custom_fields: { ...(lead.custom_fields || {}), [field]: value } }
+        : { [field]: value };
+      
+      updates.date_modification = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('crm_leads')
+        .update(updates)
+        .eq('id', lead.id);
+
+      if (error) throw error;
+
+      // Also insert into history if it's an observation/comment
+      if (field === 'observation' && value) {
+        await supabase.from('crm_observations_history').insert([{
+          lead_id: lead.id,
+          observation_text: value,
+          created_by: user?.name || user?.email || 'Système'
+        }]);
+        fetchHistory();
+      }
+
+      if (onUpdate) onUpdate(lead.id, { ...lead, ...updates });
+    } catch (error) {
+      console.error('Auto-save error:', error);
+    }
+    setLoading(false);
+  };
+
+  const isVisible = (key) => {
+    if (!permissions?.leads_columns) return true;
+    if (permissions.leads_columns.includes('all')) return true;
+    return permissions.leads_columns.includes(key);
+  };
+
+  const getLeadValue = (key) => {
+    let val = lead[key];
+    // Check both root and custom_fields, and handle empty strings/placeholder
+    if (val === undefined || val === null || val === '' || val === '---' || val === '-') {
+      if (lead.custom_fields && lead.custom_fields[key]) {
+        val = lead.custom_fields[key];
+      }
+    }
+
+    if (key === 'date_modification' && val) {
+      try {
+        const date = new Date(val);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        }
+      } catch (e) {}
+    }
+
+    return val;
+  };
+
+  const formatDateFr = (d) => {
+    if (!d) return '—';
+    try {
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return d;
+      return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    } catch (e) { return d; }
+  };
+
+  const generateMessage = () => {
+    if (!lead) return "";
+    const clientValue = getLeadValue('client_of');
+    const client = String(clientValue || '').toUpperCase();
+    const isCA = client.includes('CA CONSEILS') || client.includes('CA');
+    const isGO = client.includes('GO CONSEILS') || client.includes('GO');
+    const isTB = client.includes('TB FORMATION') || client.includes('TB');
+    if (client === 'HORS ZONE' || !client) return "";
+    if (!isCA && !isGO && !isTB) return "";
+
+    let msg = "";
+    if (isCA || isGO) msg += `SOURCE : PS ${client}\nID \n`;
+    msg += `RDV TÉLÉPHONIQUE POUR LE ${formatDateFr(getLeadValue('date_rdv'))}\n`;
+    msg += `Etablissement: ${getLeadValue('nom_entreprise') || '—'}\n`;
+    msg += `Activité: ${getLeadValue('secteur_activite') || '—'}\n`;
+    msg += `ADRESSE: ${getLeadValue('adresse') || '—'}\n`;
+    msg += `Nom du gérant : ${getLeadValue('gerant') || '—'}\n`;
+    msg += `MAIL : ${getLeadValue('email') || '—'}\n`;
+    msg += `Tél : ${getLeadValue('mobile') || getLeadValue('tel') || '—'}\n`;
+    msg += `Nbr salariés: ${getLeadValue('nb_salaries') || '—'}\n`;
+    msg += `APPRENTIS : ${getLeadValue('nb_apprentis') || '0'}\n`;
+    msg += `Siret : ${getLeadValue('siret') || '—'}\n`;
+    msg += `Opco : ${getLeadValue('nom_opco') || '—'} IDCC ${getLeadValue('idcc') || '—'}\n`;
+    const observation = history.length > 0 ? history[0].observation_text : (getLeadValue('observation') || "");
+    if (observation) msg += `Observation : ${observation}\n`;
+    return msg;
+  };
+
+  const getOptions = (key) => {
+    // Priority 1: Use the exact same options as the main table rows
+    const tableCol = columns.find(c => c.key === key);
+    if (tableCol?.options && tableCol.options.length > 0) return tableCol.options;
+
+    // Priority 2: Fallback to direct DB config
+    const config = currentConfigs.find(c => c.key === key);
+    if (config?.options && config.options.length > 0) return config.options;
+    
+    // Legacy fallback for Opcosign if not in columns
+    if (key === 'opcosign') {
+      const commercials = teamMembers.filter(m => (m.role || '').toLowerCase() === 'commercial');
+      if (user?.permissions?.assigned_commercials?.length > 0) {
+        return commercials
+          .filter(m => user.permissions.assigned_commercials.includes(m.name))
+          .map(m => m.name);
+      }
+      return commercials.map(m => m.name);
+    }
+    
+    return null;
+  };
+
+  // Grouping logic for dynamic columns
+  const allowedConfigs = useMemo(() => {
+    return currentConfigs.filter(c => isVisible(c.key) && c.is_visible !== false);
+  }, [currentConfigs, permissions]);
+
+  const readOnlyKeys = ['nom_entreprise', 'siret', 'adresse', 'code_postal', 'code_departement', 'code_naf', 'libelle_activite', 'pappers'];
+
+  const groups = useMemo(() => {
+    const enterpriseKeys = ['nom_entreprise', 'gerant', 'siret', 'code_naf', 'libelle_activite', 'secteur_activite', 'nom_opco', 'idcc', 'adresse', 'code_postal', 'code_departement', 'site_web', 'statut_gerant', 'nb_salaries', 'nb_apprentis', 'pappers'];
+    const contactKeys = ['email', 'tel', 'mobile'];
+    const commercialKeys = ['funebooster', 'opcosign', 'status', 'status_rdv', 'client_of', 'date_rdv', 'heure_rdv', 'type_rdv', 'rdv_honore', 'proposition', 'signe', 'date_signe', 'ca_signe_ht', 'nb_heures_formation', 'tx_horaire_ca', 'campagne_act', 'pec', 'echeances_pec', 'suivi_formation', 'budget_opco', 'annee_budget'];
+
+    const categorized = {
+      enterprise: allowedConfigs.filter(c => enterpriseKeys.includes(c.key)),
+      contact: allowedConfigs.filter(c => contactKeys.includes(c.key)),
+      commercial: allowedConfigs.filter(c => commercialKeys.includes(c.key)),
+      others: allowedConfigs.filter(c => !enterpriseKeys.includes(c.key) && !contactKeys.includes(c.key) && !commercialKeys.includes(c.key))
+    };
+    return categorized;
+  }, [allowedConfigs]);
+
+  return (
+    <div className="fixed inset-0 bg-[#f8f9fa] z-[200] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+      
+      {/* Top Navigation Bar */}
+      <div className="h-14 bg-white border-b border-navy/5 flex items-center justify-between px-6 shadow-sm shrink-0">
+        <div className="flex items-center gap-6">
+          <button onClick={onClose} className="p-2 hover:bg-navy/5 rounded-lg transition-all text-navy/40">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <button 
+              disabled={!prevLead}
+              onClick={() => setCurrentLeadId(prevLead.id)}
+              className="p-1.5 rounded-md hover:bg-navy/5 disabled:opacity-20 transition-all text-navy"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="flex flex-col items-center min-w-[100px]">
+              <span className="text-[10px] font-black text-navy/20 uppercase tracking-widest leading-none">Lead</span>
+              <span className="text-sm font-black text-navy tracking-tighter">{currentIndex + 1} / {leads.length}</span>
+            </div>
+            <button 
+              disabled={!nextLead}
+              onClick={() => setCurrentLeadId(nextLead.id)}
+              className="p-1.5 rounded-md hover:bg-navy/5 disabled:opacity-20 transition-all text-navy"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden relative">
+        
+        {/* Left Side: Form & Info */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar bg-white border-r border-navy/5 relative">
+          
+          <div className="px-12 pt-6 pb-12 space-y-12">
+            {/* Header Title */}
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-4xl font-black text-navy leading-tight tracking-tighter">
+                    {getLeadValue('nom_entreprise')}
+                  </h1>
+                  <span 
+                    className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm"
+                    style={{ 
+                      backgroundColor: getStatusStyle(getLeadValue('status')).bg, 
+                      color: getStatusStyle(getLeadValue('status')).text 
+                    }}
+                  >
+                    {getLeadValue('status') || 'PROSPECT'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-navy/40">
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
+                    <Hash className="w-3.5 h-3.5" /> {getLeadValue('siret') || '—'}
+                  </div>
+                  <div className="w-1 h-1 rounded-full bg-navy/10" />
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
+                    <MapPin className="w-3.5 h-3.5" /> {getLeadValue('adresse') || '—'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-20">
+              {/* Column 1: Core Info */}
+              <div className="space-y-10">
+                {groups.contact.length > 0 && (
+                  <div className="space-y-6">
+                    <SectionTitle icon={Smartphone} label="Contact" />
+                    <div className="space-y-4">
+                      {groups.contact.map(col => (
+                        <EditableField 
+                          key={col.key}
+                          label={col.label}
+                          value={getLeadValue(col.key)}
+                          name={col.key}
+                          type="text"
+                          onChange={handleAutoSave}
+                          readOnly={readOnlyKeys.includes(col.key)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {groups.enterprise.length > 0 && (
+                  <div className="space-y-6">
+                    <SectionTitle icon={Building2} label="Informations Entreprise" />
+                    <div className="space-y-4">
+                      {groups.enterprise.map(col => (
+                        <EditableField 
+                          key={col.key}
+                          label={col.label}
+                          value={getLeadValue(col.key)}
+                          name={col.key}
+                          isMono={['siret', 'code_naf', 'idcc'].includes(col.key)}
+                          type={col.type === 'number' || col.type === 'currency' ? 'number' : col.type === 'date_picker' || col.type === 'date' ? 'date' : 'text'}
+                          options={getOptions(col.key)}
+                          onChange={handleAutoSave}
+                          readOnly={readOnlyKeys.includes(col.key)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Column 2: Status & Custom */}
+              <div className="space-y-10">
+                {groups.commercial.length > 0 && (
+                  <div className="space-y-6">
+                    <SectionTitle icon={Calendar} label="Suivi Commercial" />
+                    <div className="space-y-4">
+                      {groups.commercial.map(col => (
+                        <EditableField 
+                          key={col.key}
+                          label={col.label}
+                          value={getLeadValue(col.key)}
+                          name={col.key}
+                          options={getOptions(col.key)}
+                          type={col.type === 'number' || col.type === 'currency' ? 'number' : col.type === 'date_picker' || col.type === 'date' ? 'date' : 'text'}
+                          onChange={handleAutoSave}
+                          readOnly={readOnlyKeys.includes(col.key)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {groups.others.length > 0 && (
+                  <div className="space-y-6">
+                    <SectionTitle icon={Layers} label="Champs Spécifiques" />
+                    <div className="space-y-4">
+                      {groups.others.map(col => (
+                        <EditableField 
+                          key={col.key}
+                          label={col.label}
+                          value={getLeadValue(col.key)}
+                          name={col.key}
+                          options={getOptions(col.key)}
+                          type={col.type === 'number' ? 'number' : col.type === 'date_picker' ? 'date' : 'text'}
+                          onChange={handleAutoSave}
+                          readOnly={readOnlyKeys.includes(col.key)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Message Template Section */}
+            {generateMessage() !== "" && (
+              <div className="pt-10 border-t border-navy/5">
+                <div className="flex items-center justify-between mb-6">
+                  <SectionTitle icon={MessageSquare} label="Template de Transmission" />
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(generateMessage());
+                      setMessageCopied(true);
+                      setTimeout(() => setMessageCopied(false), 2000);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-navy/5 text-navy hover:bg-navy hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  >
+                    {messageCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {messageCopied ? 'Copié' : 'Copier le message'}
+                  </button>
+                </div>
+                <div className="bg-navy/[0.02] p-8 rounded-[2rem] border border-navy/5 font-mono text-xs leading-relaxed text-navy/60 whitespace-pre-wrap">
+                  {generateMessage()}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Side: Dedicated Commentary */}
+        <div className="w-[400px] bg-[#f8f9fa] flex flex-col shrink-0 border-l border-navy/5">
+          <div className="h-14 border-b border-navy/5 flex items-center px-6 bg-white shrink-0">
+            <h3 className="text-[10px] font-black text-navy uppercase tracking-[0.2em]">Commentaires</h3>
+          </div>
+
+          <div className="flex-1 p-6 bg-white overflow-y-auto custom-scrollbar">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-navy/30">
+                <MessageSquare className="w-4 h-4" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Note sur l'entreprise</span>
+              </div>
+              <textarea
+                value={localComment}
+                onChange={e => {
+                  const val = e.target.value;
+                  setLocalComment(val);
+                  
+                  if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+                  saveTimeoutRef.current = setTimeout(() => {
+                    handleAutoSave('observation', val);
+                  }, 1000);
+                }}
+                placeholder="Saisissez vos commentaires ici..."
+                className="w-full h-[calc(100vh-250px)] p-6 bg-navy/[0.02] border border-navy/10 rounded-[2rem] text-sm focus:outline-none focus:border-primary/30 transition-all resize-none font-medium leading-relaxed"
+              />
+              <div className="flex items-center justify-between px-4">
+                <span className="text-[9px] font-bold text-navy/20 uppercase">Enregistrement automatique</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-[9px] font-bold text-green-600 uppercase">Synchronisé</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const STATUS_COLORS = {
+  'a traiter':            { bg: '#f1f5f9', text: '#64748b' }, 
+  'absent':               { bg: '#64748b', text: '#fff' },
+  'deja pec':             { bg: '#8b5cf6', text: '#fff' },
+  'faux num':             { bg: '#dc2626', text: '#fff' },
+  'hors cible opco':      { bg: '#374151', text: '#9ca3af' },
+  'hors cible siège':     { bg: '#374151', text: '#9ca3af' },
+  'hors cible salariés':  { bg: '#374151', text: '#9ca3af' },
+  'nrp':                  { bg: '#1d4ed8', text: '#fff' },
+  'occupé':               { bg: '#0891b2', text: '#fff' },
+  'pas de num':           { bg: '#7c3aed', text: '#fff' },
+  'pi':                   { bg: '#0f172a', text: '#ff007f' },
+  'rappel':               { bg: '#d97706', text: '#fff' },
+  'rdv':                  { bg: '#16a34a', text: '#fff' },
+  'en attente rdv':       { bg: '#f97316', text: '#fff' },
+  'repondeur':            { bg: '#475569', text: '#fff' },
+  'signe':                { bg: '#ff007f', text: '#fff' },
+  'default':              { bg: '#f1f5f9', text: '#94a3b8' }
+};
+
+const getStatusStyle = (raw) => {
+  if (!raw) return STATUS_COLORS['default'];
+  const key = raw.toLowerCase().trim();
+  return STATUS_COLORS[key] || STATUS_COLORS['default'];
+};
+
+const SectionTitle = ({ icon: Icon, label }) => (
+  <div className="flex items-center gap-3">
+    <div className="w-8 h-8 rounded-xl bg-navy/5 flex items-center justify-center text-navy/40">
+      <Icon className="w-4 h-4" />
+    </div>
+    <h3 className="text-xs font-black text-navy uppercase tracking-widest">{label}</h3>
+  </div>
+);
+
+const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR —" }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const currentStyle = getStatusStyle(value);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full min-w-[140px] px-3 py-1.5 border border-navy/5 rounded-lg transition-all shadow-sm"
+        style={{ 
+          backgroundColor: value ? currentStyle.bg : 'rgba(15, 23, 42, 0.03)', 
+          color: value ? currentStyle.text : 'rgba(15, 23, 42, 0.4)' 
+        }}
+      >
+        <span className="text-[10px] font-black uppercase tracking-widest truncate mr-2">
+          {value || placeholder}
+        </span>
+        <ChevronDown 
+          className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          style={{ color: value ? currentStyle.text : 'inherit', opacity: 0.5 }}
+        />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="absolute z-[100] mt-1 w-full min-w-[200px] bg-white border border-navy/10 rounded-xl shadow-2xl overflow-hidden p-1"
+          >
+            <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
+              <button
+                onClick={() => { onChange(''); setIsOpen(false); }}
+                className="w-full text-left px-3 py-2 text-[10px] font-black text-navy/30 uppercase tracking-widest hover:bg-navy/5 rounded-lg transition-colors"
+              >
+                {placeholder}
+              </button>
+              {options.map(opt => {
+                const style = getStatusStyle(opt);
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => { onChange(opt); setIsOpen(false); }}
+                    className="w-full text-left px-3 py-1.5 hover:bg-navy/5 rounded-lg flex items-center justify-between group transition-all"
+                  >
+                    <span 
+                      className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full transition-all group-hover:scale-105"
+                      style={{ backgroundColor: style.bg, color: style.text }}
+                    >
+                      {opt}
+                    </span>
+                    {value === opt && <Check className="w-3 h-3 text-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const EditableField = ({ label, value, onChange, name, isMono, type = 'text', options, readOnly }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [localValue, setLocalValue] = useState(value || '');
+
+  useEffect(() => {
+    setLocalValue(value || '');
+  }, [value]);
+
+  const handleBlur = () => {
+    if (localValue !== value) {
+      onChange(name, localValue);
+    }
+    setIsEditing(false);
+  };
+
+  // Case-insensitive matching for select value
+  const matchedValue = useMemo(() => {
+    if (!options || !localValue) return localValue;
+    const match = options.find(opt => opt.toLowerCase() === String(localValue).toLowerCase());
+    return match || localValue;
+  }, [localValue, options]);
+
+  const isUrl = typeof value === 'string' && (value.startsWith('http') || value.includes('.com') || value.includes('.fr'));
+  const isPhone = name === 'tel' || name === 'mobile';
+
+  return (
+    <div className="flex items-start gap-4 group/field">
+      <span className="w-32 text-[10px] font-black text-navy/20 uppercase tracking-widest shrink-0 pt-1.5">{label}</span>
+      <div className="flex-1 min-w-0">
+        {readOnly ? (
+          <div className={`py-1 text-sm font-bold text-navy/60 ${isMono ? 'font-mono tracking-tighter' : ''}`}>
+            {value || '—'}
+          </div>
+        ) : options ? (
+          <CustomDropdown 
+            value={matchedValue} 
+            options={options} 
+            onChange={(val) => onChange(name, val)} 
+          />
+        ) : isEditing ? (
+          <input 
+            autoFocus
+            type={type} 
+            value={localValue} 
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={(e) => e.key === 'Enter' && handleBlur()}
+            placeholder="—"
+            className={`w-full bg-navy/[0.02] border-b border-primary px-1 py-1 text-sm font-bold text-navy focus:outline-none transition-all ${isMono ? 'font-mono tracking-tighter' : ''}`}
+          />
+        ) : (
+          <div className="flex items-center justify-between gap-2 group/inner">
+            <div className="truncate flex-1">
+              {isUrl ? (
+                <a 
+                  href={value.startsWith('http') ? value : `https://${value}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline font-bold text-sm truncate block"
+                >
+                  {value}
+                </a>
+              ) : (
+                <span className={`text-sm font-bold text-navy truncate block ${isMono ? 'font-mono tracking-tighter' : ''}`}>
+                  {value || '—'}
+                </span>
+              )}
+            </div>
+            {!readOnly && (
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="p-1 opacity-0 group-hover/field:opacity-100 text-navy/20 hover:text-primary transition-all"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default LeadFullDetail;

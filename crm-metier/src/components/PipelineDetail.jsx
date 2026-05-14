@@ -48,7 +48,8 @@ const RDV_STATUS_OPTIONS = [
   'ORGANISÉ'
 ];
 
-const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead }) => {
+const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, source = 'Pipeline' }) => {
+
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [newNote, setNewNote] = useState('');
@@ -168,7 +169,7 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead }) =
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-navy/30 uppercase tracking-widest">Pipeline /</span>
+            <span className="text-xs font-bold text-navy/30 uppercase tracking-widest">{source} /</span>
             <span className="text-xs font-bold text-navy">Opportunité de {lead.nom_entreprise}</span>
           </div>
         </div>
@@ -303,7 +304,8 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead }) =
               </div>
               <div className="space-y-6">
                 <EditableRow label="Vendeur" value={lead.funebooster} icon={User} onSave={(val) => handleFieldUpdate('funebooster', val)} />
-                <EditableRow label="Date de clôture" value={lead.date_rdv} icon={Calendar} onSave={(val) => handleFieldUpdate('date_rdv', val)} />
+                <EditableRow label="DATE DE RDV" value={lead.date_rdv} icon={Calendar} onSave={(val) => handleFieldUpdate('date_rdv', val)} />
+                <EditableRow label="HEURE DE RDV" value={lead.heure_rdv} icon={Clock} onSave={(val) => handleFieldUpdate('heure_rdv', val)} />
                 <div className="flex items-start gap-4">
                   <span className="w-32 text-[10px] font-black text-navy/30 uppercase tracking-widest shrink-0 pt-1">Statut RDV</span>
                   <select 
