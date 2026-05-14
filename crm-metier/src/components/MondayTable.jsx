@@ -262,6 +262,7 @@ const formatNaf = (val) => {
 
 const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker, setActivePicker, pickerRef, index, enrichLead, isEnriching }) => {
   const [copied, setCopied] = useState(false);
+  const [localEdit, setLocalEdit] = useState(false);
   const containerRef = useRef(null);
 
   // Check if data is in native column or custom_fields
@@ -338,7 +339,6 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     return <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-full gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-blue-400 text-[10px] font-bold uppercase tracking-wider transition-all group shadow-sm active:scale-95" onClick={(e) => e.stopPropagation()}>Pappers<ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>;
   }
   if (col.type === 'editable' || col.key === 'tel' || col.key === 'mobile') {
-    const [localEdit, setLocalEdit] = useState(false);
     const isPhone = col.key === 'tel' || col.key === 'mobile';
     const isValUrl = typeof displayRaw === 'string' && (displayRaw.startsWith('http://') || displayRaw.startsWith('https://'));
     
