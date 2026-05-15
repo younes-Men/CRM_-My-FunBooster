@@ -109,17 +109,22 @@ const StatusConfigModal = ({ isOpen, onClose, column, onRefresh }) => {
         </div>
 
         {/* Draggable List */}
-        <div className="flex-1 overflow-y-auto max-h-[450px] p-4 custom-scrollbar">
-          <Reorder.Group axis="y" values={options} onReorder={setOptions} className="space-y-2">
+        <div className="flex-1 overflow-y-auto max-h-[450px] p-6 custom-scrollbar">
+          <Reorder.Group axis="y" values={options} onReorder={setOptions} className="space-y-3">
             {options.map((opt) => (
               <Reorder.Item 
                 key={opt.id} 
                 value={opt}
-                className={`flex items-center gap-3 p-2 bg-card border border-navy/[0.05] rounded-xl hover:border-primary/20 transition-all group ${opt.isHidden ? 'opacity-50 grayscale' : ''}`}
+                whileDrag={{ 
+                  scale: 1.03, 
+                  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                  zIndex: 50
+                }}
+                className={`flex items-center gap-4 p-3 bg-card border border-navy/[0.08] rounded-2xl cursor-grab active:cursor-grabbing transition-colors group ${opt.isHidden ? 'opacity-50 grayscale' : 'shadow-sm hover:border-primary/30'}`}
               >
                 {/* Drag Handle */}
-                <div className="cursor-grab active:cursor-grabbing p-1 text-navy/10 group-hover:text-navy/30">
-                  <GripVertical className="w-4 h-4" />
+                <div className="shrink-0 text-navy/10 group-hover:text-navy/30 transition-colors">
+                  <GripVertical className="w-5 h-5" />
                 </div>
 
                 {/* Color Input (Styled) */}
@@ -128,7 +133,7 @@ const StatusConfigModal = ({ isOpen, onClose, column, onRefresh }) => {
                     type="color" 
                     value={opt.color}
                     onChange={(e) => handleUpdate(opt.id, { color: e.target.value })}
-                    className="w-8 h-8 rounded-lg cursor-pointer border-2 border-white shadow-sm appearance-none bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-lg"
+                    className="w-10 h-10 rounded-xl cursor-pointer border-2 border-white shadow-sm appearance-none bg-transparent [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-xl transition-transform hover:scale-110"
                   />
                 </div>
 
@@ -137,24 +142,24 @@ const StatusConfigModal = ({ isOpen, onClose, column, onRefresh }) => {
                   type="text" 
                   value={opt.label}
                   onChange={(e) => handleUpdate(opt.id, { label: e.target.value.toUpperCase() })}
-                  className="flex-1 bg-transparent border-none text-xs font-black text-navy focus:ring-0 p-1 placeholder:text-navy/10"
-                  placeholder="NOM..."
+                  className="flex-1 bg-transparent border-none text-xs font-black text-navy focus:ring-0 p-1 placeholder:text-navy/10 tracking-wider"
+                  placeholder="NOM DU STATUT..."
                 />
 
                 {/* Actions */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                   <button 
                     onClick={() => handleUpdate(opt.id, { isHidden: !opt.isHidden })}
-                    className={`p-2 rounded-lg transition-all ${opt.isHidden ? 'text-primary' : 'text-navy/20 hover:text-navy'}`}
+                    className={`p-2 rounded-xl transition-all ${opt.isHidden ? 'text-primary bg-primary/5' : 'text-navy/20 hover:text-navy hover:bg-navy/5'}`}
                     title={opt.isHidden ? "Afficher" : "Masquer"}
                   >
-                    {opt.isHidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    {opt.isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                   <button 
                     onClick={() => handleRemove(opt.id)}
-                    className="p-2 text-navy/20 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    className="p-2 text-navy/20 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </Reorder.Item>
