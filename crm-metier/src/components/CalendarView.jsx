@@ -15,17 +15,42 @@ import { supabase } from '../lib/supabase';
 import PipelineDetail from './PipelineDetail';
 import LeadDetailPanel from './LeadDetailPanel';
 
-const CALENDAR_COLORS = {
-  'ca conseils':  { bg: '#fff7ed', border: '#f97316', dot: '#f97316', text: '#9a3412' },
-  'tb formations': { bg: '#eff6ff', border: '#3b82f6', dot: '#3b82f6', text: '#1e40af' },
-  'go conseils':   { bg: '#f0fdf4', border: '#22c55e', dot: '#22c55e', text: '#166534' },
-  'hors zone':     { bg: '#fdf2f8', border: '#ec4899', dot: '#ec4899', text: '#9d174d' },
-  'default':       { bg: '#f1f5f9', border: '#94a3b8', dot: '#94a3b8', text: '#475569' },
-};
+const getCalendarColors = (isDarkMode) => ({
+  'ca conseils':  { 
+    bg: isDarkMode ? 'rgba(249, 115, 22, 0.1)' : '#fff7ed', 
+    border: '#f97316', 
+    dot: '#f97316', 
+    text: isDarkMode ? '#fdba74' : '#9a3412' 
+  },
+  'tb formations': { 
+    bg: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff', 
+    border: '#3b82f6', 
+    dot: '#3b82f6', 
+    text: isDarkMode ? '#93c5fd' : '#1e40af' 
+  },
+  'go conseils':   { 
+    bg: isDarkMode ? 'rgba(34, 197, 94, 0.1)' : '#f0fdf4', 
+    border: '#22c55e', 
+    dot: '#22c55e', 
+    text: isDarkMode ? '#86efac' : '#166534' 
+  },
+  'hors zone':     { 
+    bg: isDarkMode ? 'rgba(236, 72, 153, 0.1)' : '#fdf2f8', 
+    border: '#ec4899', 
+    dot: '#ec4899', 
+    text: isDarkMode ? '#f9a8d4' : '#9d174d' 
+  },
+  'default':       { 
+    bg: isDarkMode ? 'rgba(148, 163, 184, 0.1)' : '#f1f5f9', 
+    border: '#94a3b8', 
+    dot: '#94a3b8', 
+    text: isDarkMode ? '#cbd5e1' : '#475569' 
+  },
+});
 
-const CLIENTS = Object.keys(CALENDAR_COLORS).filter(c => c !== 'default');
+const CLIENTS = ['ca conseils', 'tb formations', 'go conseils', 'hors zone'];
 
-const CalendarView = ({ user }) => {
+const CalendarView = ({ user, isDarkMode }) => {
   const isCommercial = user?.role === 'commercial';
   
   const allowedClients = useMemo(() => {
@@ -257,7 +282,7 @@ const CalendarView = ({ user }) => {
     <div className="flex flex-col h-[calc(100vh-80px)] gap-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
       {/* ── Integrated Google-style Header ── */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border border-navy/5 rounded-3xl shadow-sm">
+      <div className="flex items-center justify-between px-4 py-3 bg-card border border-navy/5 rounded-3xl shadow-sm">
         <div className="flex items-center gap-8">
           {/* Month & Nav */}
           <div className="flex items-center gap-4">
@@ -265,13 +290,13 @@ const CalendarView = ({ user }) => {
               {monthName}
             </h2>
             <div className="flex items-center gap-1 bg-navy/5 p-1 rounded-xl">
-              <button onClick={prevMonth} className="p-2 hover:bg-white hover:text-primary rounded-lg transition-all text-navy/40">
+              <button onClick={prevMonth} className="p-2 hover:bg-card hover:text-primary rounded-lg transition-all text-navy/40">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <button onClick={goToToday} className="px-4 py-1.5 text-[10px] font-black uppercase text-navy hover:bg-white rounded-lg transition-all tracking-wider">
+              <button onClick={goToToday} className="px-4 py-1.5 text-[10px] font-black uppercase text-navy hover:bg-card rounded-lg transition-all tracking-wider">
                 Aujourd'hui
               </button>
-              <button onClick={nextMonth} className="p-2 hover:bg-white hover:text-primary rounded-lg transition-all text-navy/40">
+              <button onClick={nextMonth} className="p-2 hover:bg-card hover:text-primary rounded-lg transition-all text-navy/40">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -284,14 +309,14 @@ const CalendarView = ({ user }) => {
           <div className="flex items-center bg-navy/[0.03] p-1.5 rounded-[1rem] border border-navy/5">
             {allowedClients.map(client => {
               const isActive = activeFilters[0] === client;
-              const color = CALENDAR_COLORS[client] || CALENDAR_COLORS.default;
+              const color = getCalendarColors(isDarkMode)[client] || getCalendarColors(isDarkMode).default;
               return (
                 <button
                   key={client}
                   onClick={() => toggleFilter(client)}
                   className={`relative flex items-center gap-2.5 px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
                     isActive 
-                      ? 'bg-white text-navy shadow-md shadow-navy/5 ring-1 ring-navy/5' 
+                      ? 'bg-card text-navy shadow-md shadow-navy/5 ring-1 ring-navy/5' 
                       : 'text-navy/40 hover:text-navy hover:bg-navy/5'
                   }`}
                 >
@@ -319,8 +344,8 @@ const CalendarView = ({ user }) => {
                     onClick={() => setActiveCommercials([])}
                     className={`px-3 py-1.5 border shadow-sm rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-300 ${
                       activeCommercials.length === 0
-                        ? 'bg-navy text-white scale-105 shadow-lg shadow-navy/20'
-                        : 'bg-white border-navy/10 text-navy/40 hover:bg-navy/5 hover:text-navy/70'
+                        ? 'bg-active text-white scale-105 shadow-lg shadow-active/20'
+                        : 'bg-card border-navy/10 text-navy/40 hover:bg-navy/5 hover:text-navy/70'
                     }`}
                   >
                     Tous
@@ -333,8 +358,8 @@ const CalendarView = ({ user }) => {
                         onClick={() => toggleCommercial(comm)}
                         className={`px-3 py-1.5 border shadow-sm rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-300 ${
                           isCommActive
-                            ? 'bg-primary text-white border-primary scale-105 shadow-lg shadow-primary/20'
-                            : 'bg-white border-navy/10 text-navy/40 hover:bg-navy/5 hover:text-navy/70'
+                            ? 'bg-active text-white border-active scale-105 shadow-lg shadow-active/20'
+                            : 'bg-card border-navy/10 text-navy/40 hover:bg-navy/5 hover:text-navy/70'
                         }`}
                       >
                         {comm}
@@ -356,7 +381,7 @@ const CalendarView = ({ user }) => {
       </div>
 
       {/* ── Main Calendar Grid ── */}
-      <div className="flex-1 flex flex-col bg-white border border-navy/5 overflow-hidden shadow-xl rounded-[2rem]">
+      <div className="flex-1 flex flex-col bg-card border border-navy/5 overflow-hidden shadow-xl rounded-[2rem]">
 
         {/* Days of Week */}
         <div className="grid grid-cols-7 border-b border-navy/5 bg-navy/[0.01]">
@@ -381,12 +406,12 @@ const CalendarView = ({ user }) => {
               <div 
                 key={i} 
                 className={`p-2 border-r border-b border-navy/5 flex flex-col gap-1 transition-colors ${
-                  isCurrentMonth ? 'bg-white' : 'bg-navy/[0.01] opacity-60'
+                  isCurrentMonth ? 'bg-card' : 'bg-navy/[0.01] opacity-60'
                 } ${isToday ? 'bg-primary/[0.02]' : ''}`}
               >
                 <div className="flex items-center justify-between px-1">
                   <span className={`text-xs font-black p-1 w-6 h-6 flex items-center justify-center rounded-lg ${
-                    isToday ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 'text-navy/30'
+                    isToday ? 'bg-active text-white shadow-lg shadow-active/20 scale-110' : 'text-navy/30'
                   }`}>
                     {day.getDate()}
                   </span>
@@ -395,7 +420,7 @@ const CalendarView = ({ user }) => {
                 <div className="flex flex-col gap-1 overflow-hidden">
                   {dayEvents.slice(0, 4).map(event => {
                     const client = event.client_of?.toLowerCase();
-                    const style = CALENDAR_COLORS[client] || { bg: '#f1f5f9', border: '#cbd5e1', text: '#475569' };
+                    const style = getCalendarColors(isDarkMode)[client] || { bg: '#f1f5f9', border: '#cbd5e1', text: '#475569' };
                     
                     return (
                       <button

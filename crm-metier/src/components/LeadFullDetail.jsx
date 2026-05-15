@@ -30,7 +30,7 @@ const formatNaf = (val) => {
   return val;
 };
 
-const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permissions, onUpdate, onLeadChange }) => {
+const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permissions, onUpdate, onLeadChange, isDarkMode }) => {
   const nativeKeys = [
     'lead_id', 'funebooster', 'nom_entreprise', 'gerant', 'siret', 
     'secteur_activite', 'libelle_activite', 'nom_opco', 'idcc', 
@@ -267,10 +267,10 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
   }, [allowedConfigs]);
 
   return (
-    <div className="fixed inset-0 bg-[#f8f9fa] z-[200] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+    <div className="fixed inset-0 bg-background z-[200] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
       
       {/* Top Navigation Bar */}
-      <div className="h-14 bg-white border-b border-navy/5 flex items-center justify-between px-6 shadow-sm shrink-0">
+      <div className="h-14 bg-card border-b border-navy/5 flex items-center justify-between px-6 shadow-sm shrink-0">
         <div className="flex items-center gap-6">
           <button onClick={onClose} className="p-2 hover:bg-navy/5 rounded-lg transition-all text-navy/40">
             <ArrowLeft className="w-5 h-5" />
@@ -305,7 +305,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* Left Side: Form & Info */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar bg-white border-r border-navy/5 relative">
+        <div className="flex-1 overflow-y-auto custom-scrollbar bg-card border-r border-navy/5 relative">
           
           <div className="px-12 pt-6 pb-12 space-y-12">
             {/* Header Title */}
@@ -318,8 +318,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                   <span 
                     className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm"
                     style={{ 
-                      backgroundColor: getStatusStyle(getLeadValue('status')).bg, 
-                      color: getStatusStyle(getLeadValue('status')).text 
+                      backgroundColor: getStatusStyle(getLeadValue('status'), isDarkMode).bg, 
+                      color: getStatusStyle(getLeadValue('status'), isDarkMode).text 
                     }}
                   >
                     {getLeadValue('status') || 'PROSPECT'}
@@ -354,6 +354,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           onChange={handleAutoSave}
                           readOnly={readOnlyKeys.includes(col.key)}
                           disabled={isLocked}
+                          isDarkMode={isDarkMode}
                         />
                       ))}
                     </div>
@@ -376,6 +377,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           onChange={handleAutoSave}
                           readOnly={readOnlyKeys.includes(col.key)}
                           disabled={isLocked}
+                          isDarkMode={isDarkMode}
                         />
                       ))}
                     </div>
@@ -400,6 +402,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           onChange={handleAutoSave}
                           readOnly={readOnlyKeys.includes(col.key)}
                           disabled={isLocked}
+                          isDarkMode={isDarkMode}
                         />
                       ))}
                     </div>
@@ -421,6 +424,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           onChange={handleAutoSave}
                           readOnly={readOnlyKeys.includes(col.key)}
                           disabled={isLocked}
+                          isDarkMode={isDarkMode}
                         />
                       ))}
                     </div>
@@ -440,7 +444,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                       setMessageCopied(true);
                       setTimeout(() => setMessageCopied(false), 2000);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-navy/5 text-navy hover:bg-navy hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-navy/5 text-navy hover:bg-active hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                   >
                     {messageCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                     {messageCopied ? 'Copié' : 'Copier le message'}
@@ -455,12 +459,12 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
         </div>
 
         {/* Right Side: Dedicated Commentary */}
-        <div className="w-[400px] bg-[#f8f9fa] flex flex-col shrink-0 border-l border-navy/5">
-          <div className="h-14 border-b border-navy/5 flex items-center px-6 bg-white shrink-0">
+        <div className="w-[400px] bg-background flex flex-col shrink-0 border-l border-navy/5">
+          <div className="h-14 border-b border-navy/5 flex items-center px-6 bg-card shrink-0">
             <h3 className="text-[10px] font-black text-navy uppercase tracking-[0.2em]">Commentaires</h3>
           </div>
 
-          <div className="flex-1 p-6 bg-white overflow-y-auto custom-scrollbar">
+          <div className="flex-1 p-6 bg-card overflow-y-auto custom-scrollbar">
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-navy/30">
                 <MessageSquare className="w-4 h-4" />
@@ -496,27 +500,27 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
   );
 };
 
-const STATUS_COLORS = {
-  'a traiter':            { bg: '#f1f5f9', text: '#64748b' }, 
-  'absent':               { bg: '#64748b', text: '#fff' },
-  'deja pec':             { bg: '#8b5cf6', text: '#fff' },
-  'faux num':             { bg: '#dc2626', text: '#fff' },
-  'hors cible opco':      { bg: '#374151', text: '#9ca3af' },
-  'hors cible siège':     { bg: '#374151', text: '#9ca3af' },
-  'hors cible salariés':  { bg: '#374151', text: '#9ca3af' },
-  'nrp':                  { bg: '#1d4ed8', text: '#fff' },
-  'occupé':               { bg: '#0891b2', text: '#fff' },
-  'pas de num':           { bg: '#7c3aed', text: '#fff' },
-  'pi':                   { bg: '#0f172a', text: '#ff007f' },
-  'rappel':               { bg: '#d97706', text: '#fff' },
-  'rdv':                  { bg: '#16a34a', text: '#fff' },
-  'en attente rdv':       { bg: '#f97316', text: '#fff' },
-  'repondeur':            { bg: '#475569', text: '#fff' },
-  'signe':                { bg: '#ff007f', text: '#fff' },
-  'default':              { bg: '#f1f5f9', text: '#94a3b8' }
-};
-
-const getStatusStyle = (raw) => {
+const getStatusStyle = (raw, isDarkMode) => {
+  const STATUS_COLORS = {
+    'a traiter':            { bg: isDarkMode ? '#1e293b' : '#f1f5f9', text: isDarkMode ? '#94a3b8' : '#64748b' }, 
+    'absent':               { bg: '#64748b', text: '#fff' },
+    'deja pec':             { bg: '#8b5cf6', text: '#fff' },
+    'faux num':             { bg: '#dc2626', text: '#fff' },
+    'hors cible opco':      { bg: '#374151', text: '#9ca3af' },
+    'hors cible siège':     { bg: '#374151', text: '#9ca3af' },
+    'hors cible salariés':  { bg: '#374151', text: '#9ca3af' },
+    'nrp':                  { bg: '#1d4ed8', text: '#fff' },
+    'occupé':               { bg: '#0891b2', text: '#fff' },
+    'pas de num':           { bg: '#7c3aed', text: '#fff' },
+    'pi':                   { bg: '#0f172a', text: '#ff007f' },
+    'rappel':               { bg: '#d97706', text: '#fff' },
+    'rdv':                  { bg: '#16a34a', text: '#fff' },
+    'en attente rdv':       { bg: '#f97316', text: '#fff' },
+    'repondeur':            { bg: '#475569', text: '#fff' },
+    'signe':                { bg: '#ff007f', text: '#fff' },
+    'à renseigner':         { bg: isDarkMode ? '#1a1a1a' : '#e2e8f0', text: isDarkMode ? '#475569' : '#475569' },
+    'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#94a3b8' : '#94a3b8' }
+  };
   if (!raw) return STATUS_COLORS['default'];
   const key = raw.toLowerCase().trim();
   return STATUS_COLORS[key] || STATUS_COLORS['default'];
@@ -531,7 +535,7 @@ const SectionTitle = ({ icon: Icon, label }) => (
   </div>
 );
 
-const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR —", disabled }) => {
+const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR —", disabled, isDarkMode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -543,7 +547,7 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR �
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentStyle = getStatusStyle(value);
+  const currentStyle = getStatusStyle(value, false); // Temporarily used to detect if it's a known status
 
   return (
     <div className="relative" ref={containerRef}>
@@ -552,8 +556,8 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR �
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between w-full min-w-[140px] px-3 py-1.5 border border-navy/5 rounded-lg transition-all shadow-sm ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
         style={{ 
-          backgroundColor: value ? currentStyle.bg : 'rgba(15, 23, 42, 0.03)', 
-          color: value ? currentStyle.text : 'rgba(15, 23, 42, 0.4)' 
+          backgroundColor: value ? getStatusStyle(value, isDarkMode).bg : 'transparent', 
+          color: value ? getStatusStyle(value, isDarkMode).text : 'inherit' 
         }}
       >
         <span className="text-[10px] font-black uppercase tracking-widest truncate mr-2">
@@ -571,7 +575,7 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR �
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            className="absolute z-[100] mt-1 w-full min-w-[200px] bg-white border border-navy/10 rounded-xl shadow-2xl overflow-hidden p-1"
+            className="absolute z-[100] mt-1 w-full min-w-[200px] bg-card border border-navy/10 rounded-xl shadow-2xl overflow-hidden p-1"
           >
             <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
               <button
@@ -581,7 +585,6 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR �
                 {placeholder}
               </button>
               {options.map(opt => {
-                const style = getStatusStyle(opt);
                 return (
                   <button
                     key={opt}
@@ -590,7 +593,7 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR �
                   >
                     <span 
                       className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full transition-all group-hover:scale-105"
-                      style={{ backgroundColor: style.bg, color: style.text }}
+                      style={{ backgroundColor: getStatusStyle(opt, isDarkMode).bg, color: getStatusStyle(opt, isDarkMode).text }}
                     >
                       {opt}
                     </span>
@@ -606,7 +609,7 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR �
   );
 };
 
-const EditableField = ({ label, value, onChange, name, isMono, type = 'text', options, readOnly, disabled }) => {
+const EditableField = ({ label, value, onChange, name, isMono, type = 'text', options, readOnly, disabled, isDarkMode }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value || '');
 
@@ -643,6 +646,7 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
             options={options} 
             disabled={disabled}
             onChange={(val) => onChange(name, val)} 
+            isDarkMode={isDarkMode}
           />
         ) : isEditing ? (
           <input 

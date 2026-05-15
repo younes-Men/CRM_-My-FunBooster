@@ -330,11 +330,11 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
 
   return (
     <>
-      <div className="fixed inset-0 bg-navy/50 z-[100] animate-in fade-in duration-200" onClick={onClose} />
-      <div className="fixed top-0 right-0 h-screen w-full max-w-xl bg-white shadow-2xl z-[101] animate-in slide-in-from-right duration-300 flex flex-col overflow-hidden border-l border-navy/5 transform-gpu">
+      <div className="fixed inset-0 bg-black/50 z-[100] animate-in fade-in duration-200" onClick={onClose} />
+      <div className="fixed top-0 right-0 h-screen w-full max-w-xl bg-card shadow-2xl z-[101] animate-in slide-in-from-right duration-300 flex flex-col overflow-hidden border-l border-navy/5 transform-gpu">
         
         {/* Header */}
-        <div className="p-8 border-b border-navy/5 flex items-center justify-between bg-white sticky top-0 z-10">
+        <div className="p-8 border-b border-navy/5 flex items-center justify-between bg-card sticky top-0 z-10">
           <div className="flex flex-col gap-1">
             <h2 className="text-2xl font-black text-navy tracking-tight font-outfit uppercase">Détails du Lead</h2>
             <div className="flex items-center gap-2">
@@ -425,7 +425,7 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
                 {isVisible('adresse') && (
                   <div className="flex flex-col gap-1.5">
                     <span className="text-[10px] font-bold text-navy/30 uppercase tracking-widest">Adresse Complète</span>
-                    {isEditing ? <input type="text" value={editValues.adresse || ''} onChange={(e) => handleInputChange('adresse', e.target.value)} className="bg-white border border-navy/10 rounded-lg px-3 py-2 text-sm font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 w-full" /> : <p className="text-navy font-bold">{lead.adresse || '—'}</p>}
+                    {isEditing ? <input type="text" value={editValues.adresse || ''} onChange={(e) => handleInputChange('adresse', e.target.value)} className="bg-card border border-navy/10 rounded-lg px-3 py-2 text-sm font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 w-full" /> : <p className="text-navy font-bold">{lead.adresse || '—'}</p>}
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-6 pt-4 border-t border-navy/5">
@@ -459,7 +459,7 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
             <section className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-navy text-white shadow-lg ring-1 ring-navy/5">
+                  <div className="p-2.5 rounded-xl bg-active text-white shadow-lg ring-1 ring-active/20">
                     <History className="w-5 h-5" />
                   </div>
                   <h3 className="text-sm font-black text-navy uppercase tracking-widest">Historique</h3>
@@ -471,7 +471,7 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
                     {history.map((item) => (
                       <div key={item.id} className="relative group">
                         <div className="absolute -left-[19px] top-1.5 w-2 h-2 rounded-full bg-white ring-4 ring-navy/[0.04] shadow-sm" />
-                        <div className="p-5 bg-white border border-navy/5 rounded-2xl shadow-sm">
+                        <div className="p-5 bg-card border border-navy/5 rounded-2xl shadow-sm">
                           <div className="flex items-center justify-between mb-2"><span className="text-[10px] font-black text-navy uppercase tracking-widest">{item.created_by}</span><span className="text-[9px] font-bold text-navy/30 uppercase">{formatDate(item.created_at)}</span></div>
                           <p className="text-sm text-navy/80 font-medium">{item.observation_text}</p>
                         </div>
@@ -519,7 +519,7 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
 
         {/* Footer */}
         <div className="p-8 border-t border-navy/5 bg-navy/[0.01]">
-          <button onClick={onClose} className="w-full py-4 bg-navy text-white rounded-2xl font-black text-[13px] uppercase tracking-[0.2em] hover:bg-navy/90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-navy/20">Fermer le Panel</button>
+          <button onClick={onClose} className="w-full py-4 bg-active text-white rounded-2xl font-black text-[13px] uppercase tracking-[0.2em] hover:bg-active/90 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-active/20">Fermer le Panel</button>
         </div>
       </div>
     </>
@@ -532,7 +532,7 @@ const InfoItem = ({ label, value, icon: Icon, isMono, isEditing, onChange, name,
       {Icon && <Icon className="w-3.5 h-3.5 text-navy/20" />}
       <span className="text-[10px] font-bold text-navy/30 uppercase tracking-widest">{label}</span>
     </div>
-    {isEditing ? <input type={type} name={name} value={value || ''} onChange={(e) => onChange(name, e.target.value)} className="bg-white border border-navy/10 rounded-lg px-2 py-1.5 text-sm font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 w-full" /> : <span className={`text-navy font-bold break-words leading-snug ${isMono ? 'font-mono tracking-tighter text-sm' : 'text-[13px]'}`}>{value || '—'}</span>}
+    {isEditing ? <input type={type} name={name} value={value || ''} onChange={(e) => onChange(name, e.target.value)} className="bg-card border border-navy/10 rounded-lg px-2 py-1.5 text-sm font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 w-full" /> : <span className={`text-navy font-bold break-words leading-snug ${isMono ? 'font-mono tracking-tighter text-sm' : 'text-[13px]'}`}>{value || '—'}</span>}
   </div>
 );
 

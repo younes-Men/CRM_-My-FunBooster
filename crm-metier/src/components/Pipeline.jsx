@@ -33,7 +33,7 @@ const PipelineFunnel = ({ stats }) => {
   ].filter(Boolean);
 
   return (
-    <div className="bg-white p-10 rounded-[2.5rem] border border-navy/5 shadow-sm mb-10 overflow-hidden relative group">
+    <div className="bg-card p-10 rounded-[2.5rem] border border-navy/5 shadow-sm mb-10 overflow-hidden relative group">
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/[0.02] rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-primary/[0.05] transition-colors duration-1000" />
       
       <div className="flex items-center justify-between mb-10 relative z-10">
@@ -57,7 +57,7 @@ const PipelineFunnel = ({ stats }) => {
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.2 }}
-                className="px-3 py-1 rounded-full bg-navy text-white text-[10px] font-black shadow-lg shadow-navy/20"
+                className="px-3 py-1 rounded-full bg-active text-white text-[10px] font-black shadow-lg shadow-active/20"
               >
                 {step.count}
               </motion.div>
@@ -138,14 +138,14 @@ const PipelineStats = ({ leads, getLeadsByStatus }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white p-6 rounded-[2rem] border border-navy/5 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative"
+            className="bg-card p-6 rounded-[2rem] border border-navy/5 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative"
           >
             {/* Background Gradient Detail */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-navy/[0.02] rounded-bl-[4rem] -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700" />
             
             <div className="flex flex-col gap-4 relative z-10">
               <div className="flex items-center justify-between">
-                <div className="p-3 rounded-2xl bg-navy/[0.03] text-navy/40 group-hover:text-white group-hover:bg-navy transition-all duration-300">
+                <div className="p-3 rounded-2xl bg-navy/[0.03] text-navy/40 group-hover:text-white group-hover:bg-active transition-all duration-300">
                   <s.icon className="w-5 h-5" />
                 </div>
                 <div className="flex flex-col items-end">
@@ -401,16 +401,16 @@ const Pipeline = ({ user }) => {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Rechercher une opportunité..."
-              className="pl-11 pr-5 py-3.5 bg-white border border-navy/10 rounded-2xl text-sm text-navy placeholder:text-navy/20 focus:outline-none focus:ring-4 focus:ring-primary/5 w-80 transition-all shadow-sm"
+              className="pl-11 pr-5 py-3.5 bg-card border border-navy/10 rounded-2xl text-sm text-navy placeholder:text-navy/20 focus:outline-none focus:ring-4 focus:ring-primary/5 w-80 transition-all shadow-sm"
             />
           </div>
-          <div className="flex items-center gap-1.5 px-4 py-2 bg-white border border-navy/5 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-1.5 px-4 py-2 bg-card border border-navy/5 rounded-2xl shadow-sm">
             <TrendingUp className="w-3.5 h-3.5 text-green-500" />
             <span className="text-[10px] font-black text-navy uppercase tracking-widest">Performance Directe</span>
           </div>
           <button 
             onClick={fetchLeads}
-            className="p-3 bg-white border border-navy/5 text-navy/40 hover:text-primary hover:border-primary/20 rounded-2xl transition-all shadow-sm active:scale-95"
+            className="p-3 bg-card border border-navy/5 text-navy/40 hover:text-primary hover:border-primary/20 rounded-2xl transition-all shadow-sm active:scale-95"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -472,7 +472,7 @@ const Pipeline = ({ user }) => {
                       }}
                       onDragEnd={() => setDraggedId(null)}
                       onClick={() => setSelectedLead(lead)}
-                      className={`relative bg-white p-4 rounded-xl border border-navy/5 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-xl hover:border-primary/20 transition-all ${draggedId === lead.id ? 'opacity-0' : 'opacity-100'}`}
+                      className={`relative bg-card p-4 rounded-xl border border-navy/5 shadow-sm cursor-grab active:cursor-grabbing hover:shadow-xl hover:border-primary/20 transition-all ${draggedId === lead.id ? 'opacity-0' : 'opacity-100'}`}
                     >
                       <div className="flex flex-col gap-3">
                         <div className="flex flex-col gap-1">

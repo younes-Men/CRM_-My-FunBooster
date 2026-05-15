@@ -218,7 +218,7 @@ const TempRdvZone = ({ user }) => {
   return (
     <div className="flex flex-col gap-8 w-full animate-in fade-in duration-700">
       {/* Header Section */}
-      <div className="flex items-center justify-between bg-white p-8 rounded-[2.5rem] border border-navy/5 shadow-xl shadow-navy/[0.02]">
+      <div className="flex items-center justify-between bg-card p-8 rounded-[2.5rem] border border-navy/5 shadow-xl shadow-navy/[0.02]">
         <div className="flex items-center gap-6">
           <div className="w-16 h-16 rounded-3xl bg-orange-500/10 flex items-center justify-center relative">
             <Bell className="w-8 h-8 text-orange-500" />
@@ -243,7 +243,7 @@ const TempRdvZone = ({ user }) => {
       </div>
 
       {leads.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border border-dashed border-navy/10">
+        <div className="flex flex-col items-center justify-center py-32 bg-card rounded-[3rem] border border-dashed border-navy/10">
           <div className="w-20 h-20 rounded-full bg-navy/5 flex items-center justify-center mb-6">
             <CheckCircle className="w-10 h-10 text-navy/10" />
           </div>
@@ -255,7 +255,7 @@ const TempRdvZone = ({ user }) => {
           {leads.map((lead) => (
             <div 
               key={lead.id}
-              className="bg-white rounded-[2.5rem] border border-navy/5 p-6 shadow-xl hover:shadow-2xl hover:border-primary/20 transition-all group flex flex-col gap-6 relative overflow-hidden"
+              className="bg-card rounded-[2.5rem] border border-navy/5 p-6 shadow-xl hover:shadow-2xl hover:border-primary/20 transition-all group flex flex-col gap-6 relative overflow-hidden"
             >
               {/* Top Section */}
               <div className="flex items-start justify-between gap-4">
@@ -274,7 +274,7 @@ const TempRdvZone = ({ user }) => {
               <div className="bg-navy/[0.02] rounded-3xl p-5 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                    <div className="w-8 h-8 rounded-xl bg-card flex items-center justify-center shadow-sm">
                       <Calendar className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex flex-col">
@@ -285,7 +285,7 @@ const TempRdvZone = ({ user }) => {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                    <div className="w-8 h-8 rounded-xl bg-card flex items-center justify-center shadow-sm">
                       <Clock className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex flex-col">
@@ -299,7 +299,7 @@ const TempRdvZone = ({ user }) => {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                    <div className="w-8 h-8 rounded-xl bg-card flex items-center justify-center shadow-sm">
                       <User className="w-4 h-4 text-navy/40" />
                     </div>
                     <div className="flex flex-col">
@@ -320,10 +320,10 @@ const TempRdvZone = ({ user }) => {
                   <select 
                     value={selectedCommercials[lead.id] || ''}
                     onChange={(e) => setSelectedCommercials(prev => ({ ...prev, [lead.id]: e.target.value }))}
-                    className="w-full bg-white border border-navy/10 rounded-2xl px-4 py-3 text-xs font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                    className="w-full bg-card border border-navy/10 rounded-2xl px-4 py-3 text-xs font-bold text-navy focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                   >
-                    <option value="">Sélectionner un commercial...</option>
-                    {(user.permissions.assigned_commercials).map(c => <option key={c} value={c}>{c}</option>)}
+                    <option className="bg-card text-navy" value="">Sélectionner un commercial...</option>
+                    {(user.permissions.assigned_commercials).map(c => <option className="bg-card text-navy" key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               )}
@@ -382,7 +382,7 @@ const TempRdvZone = ({ user }) => {
       {validatedLead && (
         <>
           <div className="fixed inset-0 bg-navy/60 backdrop-blur-sm z-[200] animate-in fade-in duration-300" onClick={() => setValidatedLead(null)} />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl z-[201] animate-in zoom-in-95 duration-300 flex flex-col overflow-hidden border border-navy/5">
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-card rounded-[2.5rem] shadow-2xl z-[201] animate-in zoom-in-95 duration-300 flex flex-col overflow-hidden border border-navy/5">
             <div className="p-8 text-center border-b border-navy/5 bg-navy/[0.01]">
               <div className="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/20 animate-bounce">
                 <Check className="w-8 h-8 text-white" />
@@ -404,7 +404,7 @@ const TempRdvZone = ({ user }) => {
                     <div className="flex gap-2">
                       <button 
                         onClick={() => handleCopyMessage(validatedLead)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-navy/5 text-navy hover:bg-navy hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-navy/5 text-navy hover:bg-active hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
                       >
                         {messageCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         {messageCopied ? 'Copié' : 'Copier'}
@@ -440,7 +440,7 @@ const TempRdvZone = ({ user }) => {
             <div className="p-6 border-t border-navy/5 bg-navy/[0.01]">
               <button 
                 onClick={() => setValidatedLead(null)}
-                className="w-full py-4 bg-navy text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-navy/90 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-lg shadow-navy/10"
+                className="w-full py-4 bg-active text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-active/90 hover:scale-[1.01] active:scale-[0.99] transition-all shadow-lg shadow-active/10"
               >
                 Fermer
               </button>

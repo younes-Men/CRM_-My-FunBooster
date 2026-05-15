@@ -129,7 +129,7 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
   };
 
   return (
-    <div className="fixed inset-0 bg-[#f8f9fa] z-[200] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+    <div className="fixed inset-0 bg-background z-[200] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
       
       {/* Celebration Animation Overlay */}
       <AnimatePresence>
@@ -143,7 +143,7 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
             <motion.div 
               initial={{ scale: 0, rotate: -20 }}
               animate={{ scale: 1, rotate: 0 }}
-              className="bg-white/90 backdrop-blur-xl p-12 rounded-[3rem] shadow-2xl border-4 border-green-500/20 flex flex-col items-center gap-6"
+              className="bg-card/90 backdrop-blur-xl p-12 rounded-[3rem] shadow-2xl border-4 border-green-500/20 flex flex-col items-center gap-6"
             >
               <div className="relative">
                 <Trophy className="w-24 h-24 text-yellow-500 animate-bounce" />
@@ -163,7 +163,7 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
       </AnimatePresence>
 
       {/* Top Navigation Bar */}
-      <div className="h-14 bg-white border-b border-navy/5 flex items-center justify-between px-6 shadow-sm shrink-0">
+      <div className="h-14 bg-card border-b border-navy/5 flex items-center justify-between px-6 shadow-sm shrink-0">
         <div className="flex items-center gap-4">
           <button onClick={onClose} className="p-2 hover:bg-navy/5 rounded-lg transition-all text-navy/40">
             <ArrowLeft className="w-5 h-5" />
@@ -185,10 +185,10 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* Left Side: Form & Info */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar bg-white border-r border-navy/5 relative">
+        <div className="flex-1 overflow-y-auto custom-scrollbar bg-card border-r border-navy/5 relative">
           
           {/* Status Progress Bar */}
-          <div className="p-6 bg-white border-b border-navy/5 sticky top-0 z-[60] flex items-center justify-between">
+          <div className="p-6 bg-card border-b border-navy/5 sticky top-0 z-[60] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => handleStatusChange('Gagné')}
@@ -226,12 +226,12 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
                         ? 'bg-primary text-white shadow-inner' 
                         : isPassed
                           ? 'bg-primary/10 text-primary'
-                          : 'bg-white text-navy/30 hover:text-navy/60'
+                          : 'bg-card text-navy/30 hover:text-navy/60'
                     } ${idx !== 0 ? 'border-l border-navy/5' : ''}`}
                   >
                     <span className="text-[10px] font-black uppercase tracking-wider">{step.label}</span>
                     {isActive && (
-                      <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rotate-45 z-10 border-t border-r border-white/20" />
+                      <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rotate-45 z-10 border-t border-r border-background/20" />
                     )}
                   </button>
                 );
@@ -313,9 +313,9 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
                     onChange={(e) => handleFieldUpdate('status_rdv', e.target.value)}
                     className="bg-navy/[0.02] border border-navy/10 rounded-lg px-2 py-1 text-sm font-bold text-navy focus:outline-none focus:border-primary/30 transition-all"
                   >
-                    <option value="">— CHOISIR —</option>
+                    <option className="bg-card text-navy" value="">— CHOISIR —</option>
                     {RDV_STATUS_OPTIONS.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
+                      <option className="bg-card text-navy" key={opt} value={opt}>{opt}</option>
                     ))}
                   </select>
                 </div>
@@ -329,13 +329,13 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
         </div>
 
         {/* Right Side: Activity/History Log */}
-        <div className="w-[450px] bg-[#f8f9fa] flex flex-col shrink-0">
-          <div className="h-14 border-b border-navy/5 flex items-center px-6 gap-4 shrink-0 bg-white">
+        <div className="w-[450px] bg-background flex flex-col shrink-0">
+          <div className="h-14 border-b border-navy/5 flex items-center px-6 gap-4 shrink-0 bg-card">
             <button className="text-[10px] font-black text-primary uppercase tracking-[0.2em] border-b-2 border-primary h-full px-2">Envoyer message</button>
           </div>
 
           {/* Activity Composer */}
-          <div className="p-6 bg-white border-b border-navy/5">
+          <div className="p-6 bg-card border-b border-navy/5">
             <div className="relative">
               <textarea
                 value={newNote}
@@ -356,7 +356,7 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
           <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
             {history.map((item, idx) => (
               <div key={item.id} className="flex gap-4 group">
-                <div className="w-8 h-8 rounded-lg bg-white border border-navy/10 flex items-center justify-center text-[11px] font-black text-navy/40 shrink-0 shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-card border border-navy/10 flex items-center justify-center text-[11px] font-black text-navy/40 shrink-0 shadow-sm">
                   {item.created_by?.charAt(0) || 'L'}
                 </div>
                 <div className="flex-1 space-y-1">
@@ -364,7 +364,7 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
                     <span className="text-[11px] font-black text-navy uppercase tracking-wider">{item.created_by}</span>
                     <span className="text-[10px] text-navy/20 italic">{new Date(item.created_at).toLocaleDateString('fr-FR')}</span>
                   </div>
-                  <div className="p-3 bg-white border border-navy/5 rounded-xl shadow-sm text-xs text-navy/70 leading-relaxed">
+                  <div className="p-3 bg-card border border-navy/5 rounded-xl shadow-sm text-xs text-navy/70 leading-relaxed">
                     {item.observation_text}
                   </div>
                 </div>

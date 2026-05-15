@@ -75,16 +75,11 @@ const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsEx
         className={`pointer-events-auto relative h-[calc(100vh-48px)] glass-pill rounded-[2.5rem] flex flex-col items-start py-8 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${
           isExpanded ? 'w-64 px-6' : 'w-24 items-center px-4'
         }`}
-        style={{ 
-          background: 'rgba(255, 255, 255, 0.95)',
-          boxShadow: '0 20px 50px -12px rgba(14, 27, 77, 0.15)',
-          border: '1px solid rgba(14, 27, 77, 0.05)'
-        }}
       >
         {/* Toggle Flèche Centrée */}
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
-          className="absolute top-1/2 -translate-y-1/2 -right-3.5 p-1.5 rounded-full bg-white border border-navy/10 text-navy hover:text-primary hover:border-primary shadow-lg shadow-navy/10 transition-all duration-300 z-50 flex items-center justify-center"
+          className="absolute top-1/2 -translate-y-1/2 -right-3.5 p-1.5 rounded-full bg-card border border-navy/10 text-navy hover:text-primary hover:border-primary shadow-lg shadow-navy/10 transition-all duration-300 z-50 flex items-center justify-center"
         >
           {isExpanded ? <ChevronLeft className="w-4 h-4 ml-[-2px]" /> : <ChevronRight className="w-4 h-4 mr-[-2px]" />}
         </button>
@@ -116,7 +111,7 @@ const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsEx
               onClick={() => setActiveTab(item.id)}
               className={`group relative flex items-center gap-4 w-full h-14 rounded-2xl transition-all duration-300 ${
                 activeTab === item.id 
-                  ? 'bg-navy text-white shadow-xl shadow-navy/20' 
+                  ? 'bg-active text-white shadow-xl shadow-active/20' 
                   : 'text-navy/40 hover:text-navy hover:bg-navy/5'
               } ${isExpanded ? 'px-4' : 'justify-center'}`}
             >
@@ -130,7 +125,7 @@ const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsEx
 
               {/* Active Indicator */}
               {activeTab === item.id && !isExpanded && (
-                <div className="absolute -left-1 w-1.5 h-6 bg-navy rounded-full shadow-lg shadow-navy/40" />
+                <div className="absolute -left-1 w-1.5 h-6 bg-active rounded-full shadow-lg shadow-active/40" />
               )}
             </button>
           ))}

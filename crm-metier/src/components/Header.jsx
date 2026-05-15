@@ -1,7 +1,6 @@
-import React from 'react';
-import { Layers, User, Bell, Search } from 'lucide-react';
+import { Layers, User, Bell, Search, Sun, Moon } from 'lucide-react';
 
-const Header = ({ activeTab, user }) => {
+const Header = ({ activeTab, user, isDarkMode, setIsDarkMode }) => {
   const isAdmin = user?.role === 'admin';
   return (
     <header className="relative z-50 px-8 py-6 transition-all duration-300 w-full">
@@ -22,6 +21,21 @@ const Header = ({ activeTab, user }) => {
         <div className="flex items-center gap-4">
           <div className="glass-panel px-6 h-16 rounded-2xl flex items-center gap-6 shadow-xl border-white/40">
             
+            {/* Dark Mode Toggle */}
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2.5 rounded-xl bg-navy/5 border border-navy/5 text-navy hover:bg-primary/10 hover:text-primary transition-all duration-300 group/theme"
+              title={isDarkMode ? "Passer au mode clair" : "Passer au mode sombre"}
+            >
+              {isDarkMode ? (
+                <Sun className="w-4 h-4 group-hover/theme:rotate-90 transition-transform duration-500" />
+              ) : (
+                <Moon className="w-4 h-4 group-hover/theme:-rotate-12 transition-transform duration-500" />
+              )}
+            </button>
+
+            <div className="h-6 w-px bg-navy/10" />
+
             {/* Active View Label */}
             <div className="hidden sm:flex items-center gap-2 bg-navy/5 px-4 py-2 rounded-xl border border-navy/5">
               <Layers className="w-3.5 h-3.5 text-navy" />
@@ -42,7 +56,7 @@ const Header = ({ activeTab, user }) => {
                   {user?.name}
                 </span>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-navy text-white flex items-center justify-center shadow-lg shadow-navy/20 group-hover:scale-105 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-active text-white flex items-center justify-center shadow-lg shadow-active/20 group-hover:scale-105 transition-transform">
                 <User className="w-5 h-5" />
               </div>
             </div>

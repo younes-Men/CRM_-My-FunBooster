@@ -17,6 +17,19 @@ function App() {
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState('leads');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('crm_theme') === 'dark';
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('crm_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('crm_theme', 'light');
+    }
+  }, [isDarkMode]);
 
   // Check for existing session
   useEffect(() => {
@@ -113,7 +126,7 @@ function App() {
 
           <button 
             type="submit"
-            className="bg-navy text-white font-black py-4 rounded-2xl shadow-xl shadow-navy/20 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-sm"
+            className="bg-active text-white font-black py-4 rounded-2xl shadow-xl shadow-active/20 hover:scale-[1.02] active:scale-[0.98] transition-all uppercase tracking-widest text-sm"
           >
             Se Connecter
           </button>
@@ -123,7 +136,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-navy font-sans flex transition-colors duration-500">
+    <div className={`min-h-screen bg-background text-navy font-sans flex transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
       {/* Subtle background glow */}
       <div className="fixed inset-0 pointer-events-none opacity-20">
         <div className="absolute top-0 left-[20%] w-[50%] h-[30%] bg-primary/10 rounded-full blur-[150px]" />
@@ -144,6 +157,8 @@ function App() {
         <Header 
           activeTab={activeTab} 
           user={user} 
+          isDarkMode={isDarkMode}
+          setIsDarkMode={setIsDarkMode}
         />
 
         <main className={`flex-1 min-w-0 overflow-x-auto ${activeTab === 'calendar' ? 'pt-0 px-4 pb-4' : 'pt-4 px-10 pb-12'}`}>
@@ -177,11 +192,11 @@ function App() {
             ) : activeTab === 'temp-rdv' ? (
               <TempRdvZone user={user} />
             ) : activeTab === 'calendar' ? (
-              <CalendarView user={user} />
+              <CalendarView user={user} isDarkMode={isDarkMode} />
             ) : activeTab === 'pipeline' ? (
               <Pipeline user={user} />
             ) : (
-              <MondayTable activeTab={activeTab} user={user} />
+              <MondayTable activeTab={activeTab} user={user} isDarkMode={isDarkMode} />
             )}
           </div>
         </main>

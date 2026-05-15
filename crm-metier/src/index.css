@@ -1,13 +1,46 @@
 @import "tailwindcss";
 
-@theme {
+:root {
   --color-primary: #D12D8C;
   --color-primary-glow: rgba(209, 45, 140, 0.15);
-  --color-navy: #0E1B4D;
-  --color-background: #F8FAFC;
-  --color-card: #ffffff;
-  --color-glass-bg: rgba(255, 255, 255, 0.7);
-  --color-glass-border: rgba(14, 27, 77, 0.08);
+  --navy: #0E1B4D;
+  --active-bg: #0E1B4D;
+  --background: #F8FAFC;
+  --card: #ffffff;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(14, 27, 77, 0.08);
+  --glass-pill-bg: rgba(255, 255, 255, 0.8);
+  --glass-pill-border: rgba(14, 27, 77, 0.05);
+  --glass-pill-shadow: rgba(14, 27, 77, 0.1);
+  --text-muted: rgba(14, 27, 77, 0.4);
+  --border-muted: rgba(14, 27, 77, 0.05);
+}
+
+.dark {
+  --navy: #F8FAFC;
+  --active-bg: #D12D8C;
+  --background: #020617;
+  --card: #0F172A;
+  --glass-bg: rgba(15, 23, 42, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-pill-bg: rgba(15, 23, 42, 0.9);
+  --glass-pill-border: rgba(255, 255, 255, 0.1);
+  --glass-pill-shadow: rgba(0, 0, 0, 0.4);
+  --text-muted: rgba(248, 250, 252, 0.4);
+  --border-muted: rgba(255, 255, 255, 0.05);
+  
+  color-scheme: dark;
+}
+
+@theme {
+  --color-primary: var(--color-primary);
+  --color-primary-glow: var(--color-primary-glow);
+  --color-navy: var(--navy);
+  --color-active: var(--active-bg);
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-glass-bg: var(--glass-bg);
+  --color-glass-border: var(--glass-border);
 }
 
 :root {
@@ -53,11 +86,11 @@ body {
 }
 
 .glass-pill {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--glass-pill-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(14, 27, 77, 0.05);
-  box-shadow: 0 12px 40px -12px rgba(14, 27, 77, 0.1);
+  border: 1px solid var(--glass-pill-border);
+  box-shadow: 0 12px 40px -12px var(--glass-pill-shadow);
 }
 
 .mask-fade-right {

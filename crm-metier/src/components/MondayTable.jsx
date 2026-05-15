@@ -15,61 +15,48 @@ import nafMapping from '../data/naf_mapping.json';
 import secteurMapping from '../data/secteur_mapping.json';
 
 
-// Status badge colors (case-insensitive match)
-const STATUS_COLORS = {
-  'a traiter':            { bg: '#f1f5f9', text: '#64748b' }, 
-  'absent':               { bg: '#64748b', text: '#fff' },
-  'deja pec':             { bg: '#8b5cf6', text: '#fff' },
-  'faux num':             { bg: '#dc2626', text: '#fff' },
-  'hors cible opco':      { bg: '#374151', text: '#9ca3af' },
-  'hors cible siège':     { bg: '#374151', text: '#9ca3af' },
-  'hors cible salariés':  { bg: '#374151', text: '#9ca3af' },
-  'nrp':                  { bg: '#1d4ed8', text: '#fff' },
-  'occupé':               { bg: '#0891b2', text: '#fff' },
-  'pas de num':           { bg: '#7c3aed', text: '#fff' },
-  'pi':                   { bg: '#0f172a', text: '#ff007f' },
-  'rappel':               { bg: '#d97706', text: '#fff' },
-  'rdv':                  { bg: '#16a34a', text: '#fff' },
-  'en attente rdv':       { bg: '#f97316', text: '#fff' }, // Orange pour l'attente
-  'repondeur':            { bg: '#475569', text: '#fff' },
-  'signe':                { bg: '#ff007f', text: '#fff' },
-  // Status Gérant colors (matching user image)
-  'à renseigner':         { bg: '#e2e8f0', text: '#475569' },
-  'tns':                  { bg: '#c084fc', text: '#fff' },
-  '2 tns':                { bg: '#e9d5ff', text: '#7e22ce' },
-  'gérant salarié':       { bg: '#facc15', text: '#713f12' },
-  '2 gérants salariés':   { bg: '#a3e635', text: '#365314' },
-  // RDV / Formation / Campagne colors
-  'téléphonique':         { bg: '#e0f2fe', text: '#0369a1' },
-  'physique':             { bg: '#dcfce7', text: '#15803d' },
-  'planifiée':            { bg: '#eff6ff', text: '#1d4ed8' },
-  'organisée':            { bg: '#f0fdf4', text: '#15803d' },
-  'en cours':             { bg: '#fef9c3', text: '#a16207' },
-  'terminée':             { bg: '#f1f5f9', text: '#475569' },
-  'conquête':             { bg: '#fee2e2', text: '#b91c1c' },
-  'fidélisation':         { bg: '#dcfce7', text: '#15803d' },
-  're-conquête':          { bg: '#fef3c7', text: '#b45309' },
-  'oui':                  { bg: '#dcfce7', text: '#15803d' },
-  'non':                  { bg: '#fee2e2', text: '#b91c1c' },
-  // RDV Status Commercial (Sync with Pipeline Stages)
-  'nouveau':              { bg: '#f3e8ff', text: '#6d28d9' },
-  'rap':                  { bg: '#f1f5f9', text: '#64748b' },
-  'proposition':          { bg: '#fee2e2', text: '#ef4444' },
-  'signé':                { bg: '#eff6ff', text: '#3b82f6' },
-  'pec':                  { bg: '#f1f5f9', text: '#1e293b' },
-  'gagné':                { bg: '#dcfce7', text: '#22c55e' },
-  'organisé':             { bg: '#ecfeff', text: '#06b6d4' },
-  // Client OF specific colors
-  'ca conseils':          { bg: '#fff7ed', text: '#c2410c' }, // Orange
-  'tb formations':        { bg: '#eff6ff', text: '#1d4ed8' }, // Blue
-  'go conseils':          { bg: '#f0fdf4', text: '#15803d' }, // Green
-  'hors zone':            { bg: '#fdf2f8', text: '#be185d' }, // Pink
-  'it performance':       { bg: '#fefce8', text: '#a16207' }, // Yellow
-  // Default fallback
-  'default':              { bg: '#f1f5f9', text: '#94a3b8' }
-};
-
-const getStatusStyle = (raw) => {
+// Refactor status style getter to be theme-aware
+const getStatusStyle = (raw, isDarkMode) => {
+  const STATUS_COLORS = {
+    'a traiter':            { bg: isDarkMode ? '#1e293b' : '#f1f5f9', text: isDarkMode ? '#94a3b8' : '#64748b' }, 
+    'absent':               { bg: '#64748b', text: '#fff' },
+    'deja pec':             { bg: '#8b5cf6', text: '#fff' },
+    'faux num':             { bg: '#dc2626', text: '#fff' },
+    'hors cible opco':      { bg: '#374151', text: '#9ca3af' },
+    'hors cible siège':     { bg: '#374151', text: '#9ca3af' },
+    'hors cible salariés':  { bg: '#374151', text: '#9ca3af' },
+    'nrp':                  { bg: '#1d4ed8', text: '#fff' },
+    'occupé':               { bg: '#0891b2', text: '#fff' },
+    'pas de num':           { bg: '#7c3aed', text: '#fff' },
+    'pi':                   { bg: '#0f172a', text: '#ff007f' },
+    'rappel':               { bg: '#d97706', text: '#fff' },
+    'rdv':                  { bg: '#16a34a', text: '#fff' },
+    'en attente rdv':       { bg: '#f97316', text: '#fff' },
+    'repondeur':            { bg: '#475569', text: '#fff' },
+    'signe':                { bg: '#ff007f', text: '#fff' },
+    'à renseigner':         { bg: isDarkMode ? '#1a1a1a' : '#e2e8f0', text: isDarkMode ? '#475569' : '#475569' },
+    'tns':                  { bg: '#c084fc', text: '#fff' },
+    '2 tns':                { bg: '#e9d5ff', text: '#7e22ce' },
+    'gérant salarié':       { bg: '#facc15', text: '#713f12' },
+    '2 gérants salariés':   { bg: '#a3e635', text: '#365314' },
+    'téléphonique':         { bg: isDarkMode ? '#0c4a6e' : '#e0f2fe', text: isDarkMode ? '#bae6fd' : '#0369a1' },
+    'physique':             { bg: isDarkMode ? '#064e3b' : '#dcfce7', text: isDarkMode ? '#d1fae5' : '#15803d' },
+    'planifiée':            { bg: isDarkMode ? '#1e3a8a' : '#eff6ff', text: isDarkMode ? '#dbeafe' : '#1d4ed8' },
+    'organisée':            { bg: isDarkMode ? '#064e3b' : '#f0fdf4', text: isDarkMode ? '#d1fae5' : '#15803d' },
+    'en cours':             { bg: isDarkMode ? '#713f12' : '#fef9c3', text: isDarkMode ? '#fef08a' : '#a16207' },
+    'terminée':             { bg: isDarkMode ? '#1e293b' : '#f1f5f9', text: isDarkMode ? '#94a3b8' : '#475569' },
+    'conquête':             { bg: isDarkMode ? '#7f1d1d' : '#fee2e2', text: isDarkMode ? '#fecaca' : '#b91c1c' },
+    'fidélisation':         { bg: isDarkMode ? '#064e3b' : '#dcfce7', text: isDarkMode ? '#d1fae5' : '#15803d' },
+    're-conquête':          { bg: isDarkMode ? '#78350f' : '#fef3c7', text: isDarkMode ? '#fde68a' : '#b45309' },
+    'oui':                  { bg: isDarkMode ? '#064e3b' : '#dcfce7', text: isDarkMode ? '#d1fae5' : '#15803d' },
+    'non':                  { bg: isDarkMode ? '#7f1d1d' : '#fee2e2', text: isDarkMode ? '#fecaca' : '#b91c1c' },
+    'ca conseils':          { bg: isDarkMode ? '#431407' : '#fff7ed', text: isDarkMode ? '#fdba74' : '#c2410c' },
+    'tb formations':        { bg: isDarkMode ? '#172554' : '#eff6ff', text: isDarkMode ? '#bfdbfe' : '#1d4ed8' },
+    'go conseils':          { bg: isDarkMode ? '#052e16' : '#f0fdf4', text: isDarkMode ? '#bbf7d0' : '#15803d' },
+    'hors zone':            { bg: isDarkMode ? '#500724' : '#fdf2f8', text: isDarkMode ? '#fbcfe8' : '#be185d' },
+    'it performance':       { bg: isDarkMode ? '#422006' : '#fefce8', text: isDarkMode ? '#fef08a' : '#a16207' },
+    'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#64748b' : '#94a3b8' }
+  };
   if (!raw) return STATUS_COLORS['à renseigner'] || STATUS_COLORS['default'];
   const key = raw.toLowerCase().trim();
   return STATUS_COLORS[key] || STATUS_COLORS['default'];
@@ -161,7 +148,7 @@ const SearchInput = React.memo(({ value: externalValue, onSearch }) => {
         value={localValue}
         onChange={e => setLocalValue(e.target.value)}
         placeholder="Rechercher une entreprise, SIRET..."
-        className="pl-11 pr-5 py-3.5 bg-white border border-navy/10 rounded-2xl text-sm text-navy placeholder:text-navy/20 focus:outline-none focus:ring-4 focus:ring-primary/5 w-80 transition-all shadow-sm"
+        className="pl-11 pr-5 py-3.5 bg-card border border-navy/10 rounded-2xl text-sm text-navy placeholder:text-navy/20 focus:outline-none focus:ring-4 focus:ring-primary/5 w-80 transition-all shadow-sm"
       />
     </div>
   );
@@ -181,7 +168,7 @@ const formatDateFr = (d) => {
   } catch (e) { return d; }
 };
 
-const CustomSelect = React.memo(({ value, options, onChange, colorCfg }) => {
+const CustomSelect = React.memo(({ value, options, onChange, colorCfg, isDarkMode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [rect, setRect] = useState(null);
   const containerRef = useRef(null);
@@ -214,12 +201,12 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg }) => {
       </button>
       {isOpen && (
         <DropdownPortal targetRect={rect}>
-          <div ref={dropdownRef} className="absolute top-0 left-0 w-full min-w-[200px] z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(14,27,77,0.3)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top" onClick={(e) => e.stopPropagation()}>
+          <div ref={dropdownRef} className="absolute top-0 left-0 w-full min-w-[200px] z-[9999] bg-card border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(14,27,77,0.3)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top" onClick={(e) => e.stopPropagation()}>
             <div className="py-1 max-h-64 overflow-y-auto custom-scrollbar">
               <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onChange(''); setIsOpen(false); }} className="w-full px-4 py-1.5 text-left text-[9px] font-black text-navy/30 hover:bg-navy/5 hover:text-navy uppercase tracking-[0.2em] transition-colors">— RÉINITIALISER —</button>
               <div className="h-px bg-navy/5 mx-2 my-1" />
               {options.map((opt) => (
-                <button key={opt} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onChange(opt); setIsOpen(false); }} className={`w-full px-4 py-1.5 text-left text-[11px] font-bold transition-all flex items-center justify-between group/opt ${value === opt ? 'bg-navy text-white' : 'text-navy/70 hover:bg-primary/5 hover:text-primary'}`}>
+                <button key={opt} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onChange(opt); setIsOpen(false); }} className={`w-full px-4 py-1.5 text-left text-[11px] font-bold transition-all flex items-center justify-between group/opt ${value === opt ? 'bg-active text-white' : 'text-navy/70 hover:bg-navy/5 hover:text-navy'}`}>
                   {opt}
                   {value === opt && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
                 </button>
@@ -277,7 +264,7 @@ const isLeadLocked = (lead, user) => {
   return lockedStatuses.includes(status);
 };
 
-const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker, setActivePicker, pickerRef, index, enrichLead, isEnriching, user }) => {
+const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker, setActivePicker, pickerRef, index, enrichLead, isEnriching, user, isDarkMode }) => {
   const [copied, setCopied] = useState(false);
   const [localEdit, setLocalEdit] = useState(false);
   const containerRef = useRef(null);
@@ -347,8 +334,8 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
   }
   
   if (col.type === 'status' || col.type === 'select') {
-    const cfg = getStatusStyle(raw);
-    return <CustomSelect value={raw} options={col.options} onChange={(val) => handleUpdate(lead.id, col.key, val, col.is_custom)} colorCfg={cfg} />;
+    const cfg = getStatusStyle(raw, isDarkMode);
+    return <CustomSelect value={raw} options={col.options} onChange={(val) => handleUpdate(lead.id, col.key, val, col.is_custom)} colorCfg={cfg} isDarkMode={isDarkMode} />;
   }
   if (col.type === 'date') return <span className="flex items-center gap-1.5 text-navy/40 text-xs whitespace-nowrap"><Clock className="w-3 h-3 flex-shrink-0" />{formatDate(raw)}</span>;
   if (col.type === 'pappers') {
@@ -419,7 +406,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
           }
         }} 
         onKeyDown={e => e.key === 'Enter' && e.target.blur()}
-        className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-white hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none text-navy/60 focus:text-navy'}`}
+        className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy/60 focus:text-navy'}`}
         placeholder="—" 
       />
     );
@@ -435,7 +422,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     }
     return (
       <div className="flex items-center gap-1 group/currency">
-        <input type="number" readOnly={isAuto} disabled={isLocked} defaultValue={displayValue || ''} onBlur={e => { if (!isAuto && e.target.value !== String(raw || '')) handleUpdate(lead.id, col.key, e.target.value, col.is_custom); }} className={`w-full px-2 py-1.5 bg-transparent ${isAuto || isLocked ? '' : 'hover:bg-white border border-transparent hover:border-navy/10 focus:bg-white focus:border-primary'} focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''} ${isLocked ? 'cursor-not-allowed text-navy/40' : ''}`} placeholder="0.00" />
+        <input type="number" readOnly={isAuto} disabled={isLocked} defaultValue={displayValue || ''} onBlur={e => { if (!isAuto && e.target.value !== String(raw || '')) handleUpdate(lead.id, col.key, e.target.value, col.is_custom); }} className={`w-full px-2 py-1.5 bg-transparent ${isAuto || isLocked ? '' : 'hover:bg-card border border-transparent hover:border-navy/10 focus:bg-card focus:border-primary'} focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''} ${isLocked ? 'cursor-not-allowed text-navy/40' : ''}`} placeholder="0.00" />
         <span className="text-[10px] font-bold text-navy/30 pr-1">€</span>
       </div>
     );
@@ -453,7 +440,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     const displayValue = formatTime(raw);
     return (
       <div className="flex justify-center p-1">
-        <input type="text" disabled={isLocked} defaultValue={displayValue} key={`${lead.id}-${col.key}-${displayValue}`} onBlur={e => { const val = e.target.value; if (val !== displayValue) handleUpdate(lead.id, col.key, val, col.is_custom); }} placeholder="--h--" className={`w-[70px] px-2 py-1.5 bg-navy/5 border border-transparent rounded-xl text-[11px] font-black focus:outline-none transition-all font-mono text-center placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:border-navy/10 focus:bg-white focus:border-primary text-navy'}`} />
+        <input type="text" disabled={isLocked} defaultValue={displayValue} key={`${lead.id}-${col.key}-${displayValue}`} onBlur={e => { const val = e.target.value; if (val !== displayValue) handleUpdate(lead.id, col.key, val, col.is_custom); }} placeholder="--h--" className={`w-[70px] px-2 py-1.5 bg-navy/5 border border-transparent rounded-xl text-[11px] font-black focus:outline-none transition-all font-mono text-center placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:border-navy/10 focus:bg-card focus:border-primary text-navy'}`} />
       </div>
     );
   }
@@ -471,7 +458,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
         </button>
         {isActive && (
           <DropdownPortal targetRect={activePicker?.rect}>
-            <div ref={pickerRef} className={`absolute left-0 z-[9999] bg-white border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in-95 duration-200 ${index < 3 ? 'top-0' : 'bottom-0'}`}>
+            <div ref={pickerRef} className={`absolute left-0 z-[9999] bg-card border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in-95 duration-200 ${index < 3 ? 'top-0' : 'bottom-0'}`}>
               <div className="flex items-center justify-between border-b border-navy/5 pb-2 mb-1"><span className="text-[10px] font-black text-navy uppercase tracking-widest">Échéances PEC</span><button onClick={() => setActivePicker(null)} className="text-navy/20 hover:text-navy">×</button></div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 flex flex-col gap-1"><span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Début</span><input type="date" value={start} onChange={e => updatePec(e.target.value, end)} className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20" /></div>
@@ -525,13 +512,13 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
 });
 
 const TableRow = React.memo(({ data, index, style }) => {
-  const { leads, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick, clickedRowId, onClick, enrichLead, enrichingId, user } = data;
+  const { leads, columns, handleUpdate, activePicker, setActivePicker, pickerRef, onDoubleClick, clickedRowId, onClick, enrichLead, enrichingId, user, isDarkMode } = data;
   const lead = leads[index];
   const isClicked = clickedRowId === lead.id;
   const isActive = activePicker?.id === lead.id;
   const isEnriching = enrichingId === lead.id;
   return (
-    <div style={{ ...style, zIndex: isActive ? 100 : 1 }} className={`flex items-center hover:bg-[#ffdee4] transition-colors group/row cursor-pointer ${isClicked ? 'bg-[#ffdee4]' : ''}`} onClick={() => onClick(lead.id)} onDoubleClick={() => onDoubleClick(lead.id)}>
+    <div style={{ ...style, zIndex: isActive ? 100 : 1 }} className={`flex items-center hover:bg-primary/10 transition-colors group/row cursor-pointer ${isClicked ? 'bg-primary/20' : ''}`} onClick={() => onClick(lead.id)} onDoubleClick={() => onDoubleClick(lead.id)}>
       {columns.map(col => {
         const isLocked = isLeadLocked(lead, user);
         return (
@@ -542,7 +529,7 @@ const TableRow = React.memo(({ data, index, style }) => {
             title={isLocked ? "Ce lead est verrouillé (RDV/SIGNE/ATTENTE)" : ""}
           >
             <div className={isLocked ? "pointer-events-none opacity-60" : ""}>
-              <TableCell lead={lead} col={col} handleUpdate={handleUpdate} isActive={isActive && activePicker?.field === col.key} activePicker={activePicker} setActivePicker={setActivePicker} pickerRef={pickerRef} index={index} enrichLead={enrichLead} isEnriching={enrichingId === lead.id && col.key === 'nom_entreprise'} user={user} />
+              <TableCell lead={lead} col={col} handleUpdate={handleUpdate} isActive={isActive && activePicker?.field === col.key} activePicker={activePicker} setActivePicker={setActivePicker} pickerRef={pickerRef} index={index} enrichLead={enrichLead} isEnriching={enrichingId === lead.id && col.key === 'nom_entreprise'} user={user} isDarkMode={isDarkMode} />
             </div>
           </div>
         );
@@ -667,7 +654,7 @@ const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anch
   const handleToggle = (val) => setSelected(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
   const menuStyle = { position: 'fixed', top: anchorRect.bottom + 8, left: Math.min(anchorRect.left, window.innerWidth - 280), width: 260, zIndex: 9999 };
   return (
-    <div style={menuStyle} className="bg-white rounded-2xl shadow-2xl border border-navy/10 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200" onClick={(e) => e.stopPropagation()}>
+    <div style={menuStyle} className="bg-card rounded-2xl shadow-2xl border border-navy/10 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200" onClick={(e) => e.stopPropagation()}>
       <div className="p-4 border-b border-navy/5 bg-navy/[0.02]">
         <div className="flex items-center justify-between mb-3 text-[10px] font-black text-navy/40 uppercase tracking-widest">
           <span>Filtrer {label}</span>
@@ -678,7 +665,7 @@ const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anch
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy/30" />
-          <input autoFocus type="text" placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white border border-navy/10 rounded-xl text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
+          <input autoFocus type="text" placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-card border border-navy/10 rounded-xl text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" />
         </div>
       </div>
       <div className="flex-1 max-h-64 overflow-y-auto custom-scrollbar p-2">
@@ -690,7 +677,7 @@ const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anch
           <div className="space-y-0.5">
             {filtered.map(val => (
               <button key={val} onClick={() => handleToggle(val)} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-navy/5 transition-colors group text-left">
-                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${selected.includes(val) ? 'bg-primary border-primary' : 'bg-white border-navy/20 group-hover:border-navy/40'}`}>{selected.includes(val) && <Check className="w-2.5 h-2.5 text-white stroke-[4]" />}</div>
+                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${selected.includes(val) ? 'bg-primary border-primary' : 'bg-card border-navy/20 group-hover:border-navy/40'}`}>{selected.includes(val) && <Check className="w-2.5 h-2.5 text-white stroke-[4]" />}</div>
                 <span className={`text-xs truncate ${selected.includes(val) ? 'text-navy font-bold' : 'text-navy/60'}`}>{val || '(Vide)'}</span>
               </button>
             ))}
@@ -705,7 +692,7 @@ const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anch
   );
 };
 
-const MondayTable = React.memo(({ activeTab, user }) => {
+const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
   const [leads, setLeads] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -1138,8 +1125,9 @@ const MondayTable = React.memo(({ activeTab, user }) => {
     onClick: setClickedRowId,
     enrichLead,
     enrichingId,
-    user
-  }), [leads, columns, handleUpdate, activePicker, clickedRowId, enrichLead, enrichingId, user, setSelectedLeadId, setClickedRowId]);
+    user,
+    isDarkMode
+  }), [leads, columns, handleUpdate, activePicker, clickedRowId, enrichLead, enrichingId, user, setSelectedLeadId, setClickedRowId, isDarkMode]);
 
   return (
     <div className="flex flex-col gap-6 w-full h-full animate-in fade-in duration-700">
@@ -1168,7 +1156,7 @@ const MondayTable = React.memo(({ activeTab, user }) => {
           </button>
           
 
-          <a href="https://quel-est-mon-opco.francecompetences.fr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3.5 bg-navy text-white rounded-2xl text-sm font-bold hover:bg-navy/90 transition-all shadow-lg shadow-navy/10 group">Vérif OPCO<ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>
+          <a href="https://quel-est-mon-opco.francecompetences.fr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3.5 bg-active text-white rounded-2xl text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-active/10 group">Vérif OPCO<ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>
           
           {user?.role === 'admin' && (
             <button 
@@ -1192,9 +1180,9 @@ const MondayTable = React.memo(({ activeTab, user }) => {
           </button>
         </div>
       </div>
-      <div className="rounded-[2rem] border border-navy/5 shadow-2xl bg-white overflow-x-auto custom-scrollbar" style={{ height: 'calc(100vh - 180px)' }}>
+      <div className="rounded-[2rem] border border-navy/5 shadow-2xl bg-card overflow-x-auto custom-scrollbar" style={{ height: 'calc(100vh - 180px)' }}>
         <div style={{ width: tableTotalWidth }}>
-          <div className="sticky top-0 z-[60] flex items-center bg-[#f8f9ff] border-b border-navy/5 shadow-sm">
+          <div className="sticky top-0 z-[60] flex items-center bg-background border-b border-navy/5 shadow-sm">
             {columns.map(col => {
               const isFilterable = FILTERABLE_COLUMNS.includes(col.key);
               const isActive = activeFilters[col.key]?.length > 0;
@@ -1277,6 +1265,7 @@ const MondayTable = React.memo(({ activeTab, user }) => {
           onLeadChange={setClickedRowId}
           user={user}
           permissions={user?.permissions}
+          isDarkMode={isDarkMode}
           onUpdate={(id, updates) => {
             setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
           }}

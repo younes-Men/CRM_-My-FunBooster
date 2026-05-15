@@ -325,7 +325,7 @@ const TeamList = ({ currentUser }) => {
       </div>
 
       {/* Main Container */}
-      <div className="bg-white rounded-[2.5rem] border border-navy/5 shadow-2xl overflow-hidden min-h-[600px] flex flex-col">
+      <div className="bg-card rounded-[2.5rem] border border-navy/5 shadow-2xl overflow-hidden min-h-[600px] flex flex-col">
         
         {/* Actions Bar */}
         <div className="p-8 border-b border-navy/5 flex items-center justify-between gap-6">
@@ -342,7 +342,7 @@ const TeamList = ({ currentUser }) => {
 
           <button 
             onClick={() => activeTab === 'my_team' ? setIsClientModalOpen(true) : openAddModal(activeTab === 'equipe' ? 'funebooster' : activeTab === 'cabinet' ? 'admin' : 'commercial')}
-            className={`px-6 py-3 ${activeTab === 'my_team' ? 'bg-primary' : 'bg-navy'} text-white rounded-2xl text-sm font-black hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-navy/10`}
+            className={`px-6 py-3 ${activeTab === 'my_team' ? 'bg-active text-white' : 'bg-navy/10 text-navy'} rounded-2xl text-sm font-black hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-active/20`}
           >
             {activeTab === 'my_team' ? <Plus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
             {activeTab === 'my_team' ? 'NOUVEAU CLIENT' : 
@@ -375,9 +375,8 @@ const TeamList = ({ currentUser }) => {
                   return (
                     <div 
                       key={clientObj.id}
-                      className="bg-white p-8 rounded-[3rem] border border-navy/5 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all group relative overflow-hidden"
-                    >
-                      <div className="flex items-start justify-between mb-8">
+                      className="glass-panel p-8 rounded-[3rem] shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all group relative overflow-hidden">
+<div className="absolute inset-0 bg-gradient-to-br from-active/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" /><div className="flex items-start justify-between mb-8">
                         <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-inner">
                           <Building2 className="w-7 h-7" />
                         </div>
@@ -410,12 +409,12 @@ const TeamList = ({ currentUser }) => {
                         {/* Avatars */}
                         <div className="flex -space-x-3 pt-4">
                           {clientMembers.slice(0, 4).map((m, i) => (
-                            <div key={m.id} className="w-9 h-9 rounded-xl bg-navy/5 border-2 border-white flex items-center justify-center text-[10px] font-black text-navy uppercase shadow-sm">
+                            <div key={m.id} className="w-9 h-9 rounded-xl bg-navy/5 border-2 border-card flex items-center justify-center text-[10px] font-black text-navy uppercase shadow-sm">
                               {m.name?.substring(0, 2)}
                             </div>
                           ))}
                           {clientMembers.length > 4 && (
-                            <div className="w-9 h-9 rounded-xl bg-navy/5 border-2 border-white flex items-center justify-center text-[10px] font-black text-navy/40 uppercase shadow-sm">
+                            <div className="w-9 h-9 rounded-xl bg-navy/5 border-2 border-card flex items-center justify-center text-[10px] font-black text-navy/40 uppercase shadow-sm">
                               +{clientMembers.length - 4}
                             </div>
                           )}
@@ -424,7 +423,7 @@ const TeamList = ({ currentUser }) => {
 
                       <button 
                         onClick={() => setSelectedClient(client)}
-                        className="absolute bottom-8 right-8 w-10 h-10 rounded-xl bg-navy/5 text-navy opacity-0 group-hover:opacity-100 group-hover:bg-navy group-hover:text-white transition-all duration-300 flex items-center justify-center"
+                        className="absolute bottom-8 right-8 w-10 h-10 rounded-xl bg-active text-white opacity-0 group-hover:opacity-100 hover:scale-110 transition-all duration-300 flex items-center justify-center"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </button>
@@ -469,8 +468,8 @@ const TeamList = ({ currentUser }) => {
                       );
 
                       return (
-                        <div key={comm.id} className="bg-white p-8 rounded-[2.5rem] border border-navy/5 shadow-sm hover:shadow-xl transition-all group">
-                          <div className="flex items-center justify-between mb-6">
+                        <div key={comm.id} className="glass-panel p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
+<div className="absolute inset-0 bg-gradient-to-br from-active/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" /><div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 rounded-2xl bg-secondary/5 flex items-center justify-center text-secondary font-black text-sm uppercase">
                                 {comm.name?.substring(0, 2)}
@@ -519,8 +518,8 @@ const TeamList = ({ currentUser }) => {
                       (Array.isArray(m.client) ? m.client.includes(selectedClient) : m.client === selectedClient) && 
                       m.role === 'funebooster'
                     ).map(ast => (
-                      <div key={ast.id} className="bg-white p-6 rounded-[2rem] border border-navy/5 shadow-sm hover:shadow-lg transition-all flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary font-black text-xs uppercase">
+                      <div key={ast.id} className="glass-panel p-6 rounded-[2rem] shadow-sm hover:shadow-lg transition-all flex items-center gap-4 relative overflow-hidden group">
+<div className="absolute inset-0 bg-gradient-to-br from-active/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" /><div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary font-black text-xs uppercase">
                           {ast.name?.substring(0, 2)}
                         </div>
                         <div>
@@ -553,15 +552,15 @@ const TeamList = ({ currentUser }) => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {members.filter(m => Array.isArray(m.client) ? m.client.includes(selectedClient) : m.client === selectedClient).map(member => (
-                      <div key={member.id} className="bg-white p-6 rounded-[2rem] border border-navy/5 shadow-sm hover:shadow-xl transition-all group flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-navy/5 flex items-center justify-center text-navy font-black text-sm uppercase group-hover:bg-primary group-hover:text-white transition-all">
+                      <div key={member.id} className="glass-panel p-6 rounded-[2rem] shadow-sm hover:shadow-xl transition-all group flex items-center gap-4 relative overflow-hidden">
+<div className="absolute inset-0 bg-gradient-to-br from-active/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" /><div className="w-12 h-12 rounded-2xl bg-navy/5 flex items-center justify-center text-navy font-black text-sm uppercase group-hover:bg-primary group-hover:text-white transition-all">
                           {member.name?.substring(0, 2)}
                         </div>
                         <div>
                           <p className="text-sm font-black text-navy">{member.name}</p>
                           <div className="flex items-center gap-2 mt-1">
                             <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${
-                              member.role === 'admin' ? 'bg-navy text-white' : 
+                              member.role === 'admin' ? 'bg-active text-white' : 
                               member.role === 'funebooster' ? 'bg-primary/10 text-primary' : 
                               'bg-secondary/10 text-secondary'
                             }`}>{member.role}</span>
@@ -588,7 +587,7 @@ const TeamList = ({ currentUser }) => {
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
                         <h2 className="text-3xl font-black text-navy">{currentUser?.name}</h2>
-                        <span className="px-3 py-1 rounded-lg bg-navy text-white text-[10px] font-black uppercase tracking-widest">{currentUser?.role?.toUpperCase()}</span>
+                        <span className="px-3 py-1 rounded-lg bg-active text-white text-[10px] font-black uppercase tracking-widest">{currentUser?.role?.toUpperCase()}</span>
                       </div>
                       <p className="text-navy/40 font-bold flex items-center gap-2">
                         <Mail className="w-4 h-4" /> {currentUser?.email}
@@ -622,11 +621,11 @@ const TeamList = ({ currentUser }) => {
                       <div className="glass-panel p-8 rounded-[2rem] border border-navy/5 bg-navy/[0.01] space-y-4">
                         <h4 className="text-[10px] font-black text-navy/30 uppercase tracking-[0.2em]">Statistiques Équipe</h4>
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-white p-4 rounded-2xl border border-navy/5 shadow-sm">
+                          <div className="bg-card p-4 rounded-2xl border border-navy/5 shadow-sm">
                             <p className="text-2xl font-black text-navy">{members.filter(m => m.role === 'funebooster').length}</p>
                             <p className="text-[9px] font-bold text-navy/30 uppercase">FunBoosters</p>
                           </div>
-                          <div className="bg-white p-4 rounded-2xl border border-navy/5 shadow-sm">
+                          <div className="bg-card p-4 rounded-2xl border border-navy/5 shadow-sm">
                             <p className="text-2xl font-black text-navy">{members.filter(m => m.role === 'commercial').length}</p>
                             <p className="text-[9px] font-bold text-navy/30 uppercase">Commerciaux</p>
                           </div>
@@ -651,9 +650,8 @@ const TeamList = ({ currentUser }) => {
                           <button 
                             key={clientObj.id} 
                             onClick={() => setSelectedClient(client)}
-                            className="bg-white p-6 rounded-[2rem] border border-navy/5 shadow-sm hover:shadow-2xl hover:scale-[1.02] hover:border-primary/20 transition-all flex flex-col gap-4 group text-left relative overflow-hidden"
-                          >
-                            <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-inner">
+                            className="glass-panel p-6 rounded-[2rem] shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all flex flex-col gap-4 group text-left relative overflow-hidden">
+<div className="absolute inset-0 bg-gradient-to-br from-active/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" /><div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-inner">
                               <Building2 className="w-6 h-6" />
                             </div>
                             <div>
@@ -709,7 +707,7 @@ const TeamList = ({ currentUser }) => {
                       <span className={`px-3 py-1.5 rounded-xl text-[9px] font-extrabold font-outfit uppercase tracking-widest border transition-all ${
                         member.role === 'funebooster' ? 'bg-primary/5 text-primary border-primary/10' : 
                         member.role === 'commercial' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
-                        'bg-navy text-white border-navy'
+                        'bg-active text-white border-active'
                       }`}>
                         {member.role === 'funebooster' ? 'Assistante commerciale' : 
                          member.role === 'commercial' ? 'Commerciale' : member.role}
@@ -758,7 +756,7 @@ const TeamList = ({ currentUser }) => {
       {/* New Client Modal */}
       {isClientModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-navy/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl border border-white/20 overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="bg-card w-full max-w-md rounded-[3rem] shadow-2xl border border-white/20 overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="p-10">
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -1041,7 +1039,7 @@ const TeamList = ({ currentUser }) => {
                                 type="button"
                                 onClick={toggleAllClients}
                                 className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase border transition-all ${
-                                  selectedClients.includes('all') ? 'bg-navy text-white border-navy' : 'bg-white border-navy/10 text-navy/40 hover:border-navy/20'
+                                  selectedClients.includes('all') ? 'bg-active text-white border-transparent' : 'bg-white border-navy/10 text-navy/40 hover:border-navy/20'
                                 }`}
                               >Tous les clients</button>
                                 {allClients.map(clientObj => {
@@ -1070,7 +1068,7 @@ const TeamList = ({ currentUser }) => {
                                 type="button"
                                 onClick={toggleAllColumns}
                                 className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase border transition-all ${
-                                  (editingMember.permissions?.leads_columns || []).includes('all') ? 'bg-navy text-white border-navy shadow-lg shadow-navy/20' : 'bg-white border-navy/10 text-navy/40 hover:border-navy/20'
+                                  (editingMember.permissions?.leads_columns || []).includes('all') ? 'bg-active text-white border-transparent shadow-lg shadow-active/20' : 'bg-white border-navy/10 text-navy/40 hover:border-navy/20'
                                 }`}
                               >Toutes les colonnes</button>
                             </div>
@@ -1105,7 +1103,7 @@ const TeamList = ({ currentUser }) => {
               <button 
                 onClick={handleSaveMember}
                 disabled={saving}
-                className="px-12 py-4 bg-navy text-white font-black rounded-2xl shadow-2xl shadow-navy/20 hover:bg-primary active:scale-[0.98] transition-all uppercase tracking-widest text-[13px] flex items-center justify-center gap-3 min-w-[240px]"
+                className="px-12 py-4 bg-active text-white font-black rounded-2xl shadow-2xl shadow-active/20 hover:bg-active/90 active:scale-[0.98] transition-all uppercase tracking-widest text-[13px] flex items-center justify-center gap-3 min-w-[240px]"
               >
                 {saving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                 Enregistrer les modifications

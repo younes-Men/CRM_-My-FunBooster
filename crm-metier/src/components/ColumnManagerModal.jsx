@@ -86,11 +86,11 @@ const ColumnManagerModal = ({ isOpen, onClose, onRefresh }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-card w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
         
         {/* Header */}
-        <div className="p-8 border-b border-navy/5 flex items-center justify-between bg-gradient-to-r from-white to-navy/[0.02]">
+        <div className="p-8 border-b border-navy/5 flex items-center justify-between bg-gradient-to-r from-card to-navy/[0.02]">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-primary/10 rounded-2xl text-primary shadow-inner">
               <Settings className="w-6 h-6 animate-spin-slow" />
@@ -128,7 +128,7 @@ const ColumnManagerModal = ({ isOpen, onClose, onRefresh }) => {
                       placeholder="Ex: Source du Lead" 
                       value={newCol.label}
                       onChange={(e) => setNewCol({...newCol, label: e.target.value, key: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
-                      className="w-full bg-white border border-navy/10 rounded-2xl px-5 py-3.5 text-sm font-bold text-navy focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="w-full bg-card border border-navy/10 rounded-2xl px-5 py-3.5 text-sm font-bold text-navy focus:ring-2 focus:ring-primary/20 transition-all"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -149,15 +149,15 @@ const ColumnManagerModal = ({ isOpen, onClose, onRefresh }) => {
                     <select 
                       value={newCol.type}
                       onChange={(e) => setNewCol({...newCol, type: e.target.value})}
-                      className="w-full bg-white border border-navy/10 rounded-2xl px-5 py-3.5 text-sm font-bold text-navy focus:ring-2 focus:ring-primary/20 outline-none"
+                      className="w-full bg-card border border-navy/10 rounded-2xl px-5 py-3.5 text-sm font-bold text-navy focus:ring-2 focus:ring-primary/20 outline-none"
                     >
-                      <option value="text">Texte Libre</option>
-                      <option value="number">Nombre</option>
-                      <option value="currency">Montant (€)</option>
-                      <option value="date">Date (Simple)</option>
-                      <option value="date_picker">Sélecteur de Date</option>
-                      <option value="time">Heure</option>
-                      <option value="select">Liste déroulante</option>
+                      <option className="bg-card text-navy" value="text">Texte Libre</option>
+                      <option className="bg-card text-navy" value="number">Nombre</option>
+                      <option className="bg-card text-navy" value="currency">Montant (€)</option>
+                      <option className="bg-card text-navy" value="date">Date (Simple)</option>
+                      <option className="bg-card text-navy" value="date_picker">Sélecteur de Date</option>
+                      <option className="bg-card text-navy" value="time">Heure</option>
+                      <option className="bg-card text-navy" value="select">Liste déroulante</option>
                       <option value="editable">Texte Éditable</option>
                     </select>
                   </div>
@@ -167,7 +167,7 @@ const ColumnManagerModal = ({ isOpen, onClose, onRefresh }) => {
                       type="number" 
                       value={newCol.width}
                       onChange={(e) => setNewCol({...newCol, width: e.target.value})}
-                      className="w-full bg-white border border-navy/10 rounded-2xl px-5 py-3.5 text-sm font-bold text-navy"
+                      className="w-full bg-card border border-navy/10 rounded-2xl px-5 py-3.5 text-sm font-bold text-navy"
                     />
                   </div>
                   <div className="flex items-end gap-2">
@@ -194,7 +194,7 @@ const ColumnManagerModal = ({ isOpen, onClose, onRefresh }) => {
                       placeholder="Option 1, Option 2, Option 3..."
                       value={newCol.options}
                       onChange={(e) => setNewCol({...newCol, options: e.target.value})}
-                      className="w-full bg-white border border-navy/10 rounded-2xl px-5 py-3 text-sm font-bold text-navy min-h-[80px] focus:ring-2 focus:ring-primary/20"
+                      className="w-full bg-card border border-navy/10 rounded-2xl px-5 py-3 text-sm font-bold text-navy min-h-[80px] focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 )}
@@ -214,7 +214,7 @@ const ColumnManagerModal = ({ isOpen, onClose, onRefresh }) => {
             ) : columns.map((col, idx) => (
               <div 
                 key={col.id} 
-                className={`group flex items-center gap-4 p-4 rounded-3xl border transition-all ${col.is_visible ? 'bg-white border-navy/5 hover:border-primary/20 hover:shadow-xl hover:shadow-navy/5' : 'bg-navy/[0.02] border-transparent opacity-60'}`}
+                className={`group flex items-center gap-4 p-4 rounded-3xl border transition-all ${col.is_visible ? 'bg-card border-navy/5 hover:border-primary/20 hover:shadow-xl hover:shadow-navy/5' : 'bg-navy/[0.02] border-transparent opacity-60'}`}
               >
                 <div className="p-3 bg-navy/[0.03] rounded-2xl text-navy/20">
                   <GripVertical className="w-5 h-5" />
@@ -259,7 +259,7 @@ const ColumnManagerModal = ({ isOpen, onClose, onRefresh }) => {
           </p>
           <button 
             onClick={onClose}
-            className="px-10 py-4 bg-navy text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-navy/90 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-navy/20"
+            className="px-10 py-4 bg-active text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-active/90 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-active/20"
           >
             Fermer
           </button>
