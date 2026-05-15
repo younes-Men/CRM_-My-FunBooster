@@ -38,17 +38,9 @@ const STATUS_STEPS = [
   { id: 'ORGANISÉ', label: 'ORGANISÉ' },
 ];
 
-const RDV_STATUS_OPTIONS = [
-  'Nouveau', 
-  'RAP', 
-  'Proposition', 
-  'Signé', 
-  'PEC', 
-  'Gagné', 
-  'ORGANISÉ'
-];
+const RDV_STATUS_OPTIONS = []; // Will use dynamic columns
 
-const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, source = 'Pipeline' }) => {
+const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, source = 'Pipeline', pipelineColumns = [] }) => {
 
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -303,7 +295,7 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
                 <InfoRow label="Code NAF" value={lead.code_naf} icon={Briefcase} isMono />
               </div>
               <div className="space-y-6">
-                <EditableRow label="Vendeur" value={lead.funebooster} icon={User} onSave={(val) => handleFieldUpdate('funebooster', val)} />
+                <EditableRow label="FUNBOOSTER" value={lead.funebooster} icon={User} onSave={(val) => handleFieldUpdate('funebooster', val)} />
                 <EditableRow label="DATE DE RDV" value={lead.date_rdv} icon={Calendar} onSave={(val) => handleFieldUpdate('date_rdv', val)} />
                 <EditableRow label="HEURE DE RDV" value={lead.heure_rdv} icon={Clock} onSave={(val) => handleFieldUpdate('heure_rdv', val)} />
                 <div className="flex items-start gap-4">
@@ -314,8 +306,8 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
                     className="bg-navy/[0.02] border border-navy/10 rounded-lg px-2 py-1 text-sm font-bold text-navy focus:outline-none focus:border-primary/30 transition-all"
                   >
                     <option className="bg-card text-navy" value="">— CHOISIR —</option>
-                    {RDV_STATUS_OPTIONS.map(opt => (
-                      <option className="bg-card text-navy" key={opt} value={opt}>{opt}</option>
+                    {pipelineColumns.map(opt => (
+                      <option className="bg-card text-navy" key={opt.id} value={opt.id}>{opt.label}</option>
                     ))}
                   </select>
                 </div>
@@ -430,4 +422,3 @@ const EditableRow = ({ label, value, icon: Icon, onSave, isMono }) => {
 };
 
 export default PipelineDetail;
-

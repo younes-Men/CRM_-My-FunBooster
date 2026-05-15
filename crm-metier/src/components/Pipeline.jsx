@@ -181,15 +181,7 @@ const PipelineStats = ({ leads, getLeadsByStatus }) => {
 
 import { FileText, X } from 'lucide-react';
 
-const PIPELINE_COLUMNS = [
-  { id: 'Nouveau', label: 'Nouveau', color: '#6d28d9' }, // Purple
-  { id: 'RAP', label: 'RAP', color: '#94a3b8' }, // Grey
-  { id: 'Proposition', label: 'Proposition', color: '#ef4444' }, // Red
-  { id: 'Signé', label: 'Signé', color: '#3b82f6' }, // Blue
-  { id: 'PEC', label: 'PEC', color: '#1e293b' }, // Dark
-  { id: 'Gagné', label: 'Gagné', color: '#22c55e' }, // Green
-  { id: 'ORGANISÉ', label: 'ORGANISÉ', color: '#06b6d4' }, // Cyan
-];
+// Columns will be fetched dynamically from crm_column_configs
 
 const Pipeline = ({ user }) => {
   const [leads, setLeads] = useState([]);
@@ -197,6 +189,39 @@ const Pipeline = ({ user }) => {
   const [draggedId, setDraggedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
+  const [pipelineColumns, setPipelineColumns] = useState([]);
+
+  const fetchConfig = useCallback(async () => {
+    const { data } = await supabase
+      .from('crm_column_configs')
+      .select('*')
+      .eq('key', 'status_rdv')
+      .single();
+    
+    if (data && data.options) {
+      const cols = data.options.map(opt => {
+        const [label, color, visibility] = opt.split('::');
+        return { 
+          id: label, 
+          label: label, 
+          color: color || '#6d28d9', 
+          isHidden: visibility === 'h' 
+        };
+      }).filter(c => !c.isHidden);
+      setPipelineColumns(cols);
+    } else {
+      // Fallback to defaults if no config
+      setPipelineColumns([
+        { id: 'Nouveau', label: 'Nouveau', color: '#6d28d9' },
+        { id: 'RAP', label: 'RAP', color: '#94a3b8' },
+        { id: 'Proposition', label: 'Proposition', color: '#ef4444' },
+        { id: 'Signé', label: 'Signé', color: '#3b82f6' },
+        { id: 'PEC', label: 'PEC', color: '#1e293b' },
+        { id: 'Gagné', label: 'Gagné', color: '#22c55e' },
+        { id: 'ORGANISÉ', label: 'ORGANISÉ', color: '#06b6d4' },
+      ]);
+    }
+  }, []);
 
   const fetchLeads = useCallback(async () => {
     if (!supabase) return;
@@ -240,16 +265,20 @@ const Pipeline = ({ user }) => {
   }, [user]);
 
   useEffect(() => {
+    fetchConfig();
     fetchLeads();
     const channel = supabase
       .channel('pipeline_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_leads' }, () => {
         fetchLeads();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_column_configs' }, () => {
+        fetchConfig();
+      })
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [fetchLeads]);
+  }, [fetchLeads, fetchConfig]);
 
   const updateLeadStatus = async (id, newStatus) => {
     if (!supabase) return;
@@ -328,28 +357,7 @@ const Pipeline = ({ user }) => {
     return leads.filter(l => {
       const matchesSearch = !searchQuery || l.nom_entreprise?.toLowerCase().includes(searchQuery.toLowerCase()) || l.siret?.includes(searchQuery);
       if (!matchesSearch) return false;
-      // Priority 1: Direct match on status_rdv
-      if (l.status_rdv === status) return true;
-
-      // Strict logic: Rely EXCLUSIVELY on status_rdv for pipeline columns
-      switch (status) {
-        case 'Nouveau': 
-          return l.status_rdv === 'Nouveau';
-        case 'RAP': 
-          return l.status_rdv === 'RAP';
-        case 'Proposition': 
-          return l.status_rdv === 'Proposition';
-        case 'Signé': 
-          return l.status_rdv === 'Signé';
-        case 'PEC': 
-          return l.status_rdv === 'PEC';
-        case 'Gagné': 
-          return l.status_rdv === 'Gagné';
-        case 'ORGANISÉ': 
-          return l.status_rdv === 'ORGANISÉ';
-        default: 
-          return false;
-      }
+      return l.status_rdv?.toUpperCase() === status?.toUpperCase();
     });
   }
 
@@ -422,7 +430,7 @@ const Pipeline = ({ user }) => {
 
       {/* Pipeline Grid */}
       <div className="flex gap-4 overflow-x-auto pb-8 custom-scrollbar items-start">
-        {PIPELINE_COLUMNS.map(column => {
+        {pipelineColumns.map(column => {
           const columnLeads = getLeadsByStatus(column.id);
           const totalValue = columnLeads.reduce((acc, l) => acc + (parseFloat(l.ca_signe_ht) || 0), 0);
 
@@ -539,6 +547,7 @@ const Pipeline = ({ user }) => {
         <PipelineDetail 
           lead={selectedLead}
           user={user}
+          pipelineColumns={pipelineColumns}
           onClose={() => setSelectedLead(null)}
           onUpdateStatus={async (id, status) => {
             await updateLeadStatus(id, status);
