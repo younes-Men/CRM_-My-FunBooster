@@ -411,7 +411,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
       />
     );
   }
-  if (col.type === 'number') return <input type="number" disabled={isLocked} defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-white hover:border-navy/10 focus:bg-white focus:border-primary focus:outline-none text-navy/60 focus:text-navy'}`} placeholder="0" />;
+  if (col.type === 'number') return <input type="number" disabled={isLocked} defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy/60 focus:text-navy'}`} placeholder="0" />;
   if (col.type === 'currency' || col.type === 'auto_currency') {
     const isAuto = col.type === 'auto_currency';
     let displayValue = raw;
@@ -431,7 +431,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     return (
       <div className="relative group/picker w-full flex items-center">
         <div className="absolute inset-0 flex items-center justify-center text-navy text-[11px] font-bold pointer-events-none group-hover/picker:opacity-0 transition-opacity">{formatDateFr(raw)}</div>
-        <input type="date" disabled={isLocked} defaultValue={raw || ''} onChange={e => handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className={`w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] border border-transparent rounded-lg text-transparent text-[11px] font-bold transition-all ${isLocked ? 'cursor-not-allowed' : 'hover:bg-navy/[0.06] hover:border-navy/10 hover:text-navy cursor-pointer'}`} />
+        <input type="date" disabled={isLocked} defaultValue={raw || ''} onChange={e => handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className={`relative w-full pl-3 pr-8 py-1.5 bg-navy/[0.03] border border-transparent rounded-lg text-transparent text-[11px] font-bold transition-all ${isLocked ? 'cursor-not-allowed' : 'hover:bg-navy/[0.06] hover:border-navy/10 hover:text-navy cursor-pointer'}`} />
       </div>
     );
   }
@@ -458,11 +458,22 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
         </button>
         {isActive && (
           <DropdownPortal targetRect={activePicker?.rect}>
-            <div ref={pickerRef} className={`absolute left-0 z-[9999] bg-card border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in-95 duration-200 ${index < 3 ? 'top-0' : 'bottom-0'}`}>
-              <div className="flex items-center justify-between border-b border-navy/5 pb-2 mb-1"><span className="text-[10px] font-black text-navy uppercase tracking-widest">Échéances PEC</span><button onClick={() => setActivePicker(null)} className="text-navy/20 hover:text-navy">×</button></div>
+            <div ref={pickerRef} className={`absolute left-0 z-[9999] bg-card border border-navy/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-4 flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in-95 duration-200 ${index < 3 ? 'top-0' : 'bottom-0'}`} onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between border-b border-navy/5 pb-2 mb-1">
+                <span className="text-[10px] font-black text-navy uppercase tracking-widest">Échéances PEC</span>
+                <button onClick={(e) => { e.stopPropagation(); setActivePicker(null); }} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-navy/5 text-navy/40 hover:text-navy transition-all">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
               <div className="flex items-center gap-2">
-                <div className="flex-1 flex flex-col gap-1"><span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Début</span><input type="date" value={start} onChange={e => updatePec(e.target.value, end)} className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20" /></div>
-                <div className="flex-1 flex flex-col gap-1"><span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Fin</span><input type="date" value={end} onChange={e => updatePec(start, e.target.value)} className="w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20" /></div>
+                <div className="flex-1 flex flex-col gap-1 relative">
+                  <span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Début</span>
+                  <input type="date" value={start} onChange={e => updatePec(e.target.value, end)} className="relative w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20" />
+                </div>
+                <div className="flex-1 flex flex-col gap-1 relative">
+                  <span className="text-[9px] font-bold text-navy/40 uppercase ml-1">Fin</span>
+                  <input type="date" value={end} onChange={e => updatePec(start, e.target.value)} className="relative w-full bg-navy/5 border-none rounded-xl px-3 py-2 text-xs text-navy font-bold focus:ring-2 focus:ring-primary/20" />
+                </div>
               </div>
               <div className="px-3 py-2 bg-primary text-white rounded-xl text-center"><span className="text-[10px] font-black uppercase tracking-widest leading-none">{raw || 'DU ... AU ...'}</span></div>
             </div>
@@ -799,6 +810,25 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
   useEffect(() => {
     fetchColumnConfigs();
   }, [fetchColumnConfigs]);
+
+  // Click-outside listener for activePicker
+  useEffect(() => {
+    if (!activePicker) return;
+    const handleClickOutside = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) {
+        setActivePicker(null);
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setActivePicker(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [activePicker]);
 
   const [enrichingId, setEnrichingId] = useState(null);
 
