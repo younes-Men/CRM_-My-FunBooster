@@ -4,7 +4,7 @@ import {
   Calendar, MessageSquare, History, Phone, Save, Check,
   ExternalLink, Layers, Send, Copy, ArrowLeft, ArrowRight,
   ChevronLeft, ChevronRight, Pencil, Mail, Trash2, Sparkles,
-  Smartphone, ChevronDown
+  Smartphone, ChevronDown, Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -12,6 +12,7 @@ import { teamService } from '../lib/teamService';
 import nafMapping from '../data/naf_mapping.json';
 import opcoMapping from '../data/opco_mapping.json';
 import secteurMapping from '../data/secteur_mapping.json';
+import StatusConfigModal from './StatusConfigModal';
 
 const formatNaf = (val) => {
   if (!val) return val;
@@ -51,6 +52,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
   const [messageCopied, setMessageCopied] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
   const [clients, setClients] = useState([]);
+  const [statusModalConfig, setStatusModalConfig] = useState(null);
   // Find current lead and navigation leads
   const currentIndex = useMemo(() => leads.findIndex(l => l.id === currentLeadId), [leads, currentLeadId]);
   const lead = useMemo(() => leads[currentIndex] || {}, [leads, currentIndex]);
@@ -318,8 +320,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                   <span 
                     className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm"
                     style={{ 
-                      backgroundColor: getStatusStyle(getLeadValue('status'), isDarkMode).bg, 
-                      color: getStatusStyle(getLeadValue('status'), isDarkMode).text 
+                      backgroundColor: getStatusStyle(getLeadValue('status'), isDarkMode, getOptions('status')).bg, 
+                      color: getStatusStyle(getLeadValue('status'), isDarkMode, getOptions('status')).text 
                     }}
                   >
                     {getLeadValue('status') || 'PROSPECT'}
@@ -355,6 +357,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           readOnly={readOnlyKeys.includes(col.key)}
                           disabled={isLocked}
                           isDarkMode={isDarkMode}
+                          onConfigure={() => setStatusModalConfig(col)}
+                          isAdmin={user?.role === 'admin'}
                         />
                       ))}
                     </div>
@@ -378,6 +382,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           readOnly={readOnlyKeys.includes(col.key)}
                           disabled={isLocked}
                           isDarkMode={isDarkMode}
+                          onConfigure={() => setStatusModalConfig(col)}
+                          isAdmin={user?.role === 'admin'}
                         />
                       ))}
                     </div>
@@ -403,6 +409,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           readOnly={readOnlyKeys.includes(col.key)}
                           disabled={isLocked}
                           isDarkMode={isDarkMode}
+                          onConfigure={() => setStatusModalConfig(col)}
+                          isAdmin={user?.role === 'admin'}
                         />
                       ))}
                     </div>
@@ -425,6 +433,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           readOnly={readOnlyKeys.includes(col.key)}
                           disabled={isLocked}
                           isDarkMode={isDarkMode}
+                          onConfigure={() => setStatusModalConfig(col)}
+                          isAdmin={user?.role === 'admin'}
                         />
                       ))}
                     </div>
@@ -496,11 +506,23 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
           </div>
         </div>
       </div>
+
+      {statusModalConfig && (
+        <StatusConfigModal 
+          isOpen={true}
+          column={statusModalConfig}
+          onClose={() => setStatusModalConfig(null)}
+          onRefresh={() => {
+            // Need to trigger a reload of columns in parent or here
+            window.location.reload(); // Simple way to ensure everything syncs
+          }}
+        />
+      )}
     </div>
   );
 };
 
-const getStatusStyle = (raw, isDarkMode) => {
+const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
   const STATUS_COLORS = {
     'a traiter':            { bg: isDarkMode ? '#1e293b' : '#f1f5f9', text: isDarkMode ? '#94a3b8' : '#64748b' }, 
     'absent':               { bg: '#64748b', text: '#fff' },
@@ -523,6 +545,16 @@ const getStatusStyle = (raw, isDarkMode) => {
   };
   if (!raw) return STATUS_COLORS['default'];
   const key = raw.toLowerCase().trim();
+
+  // Check dynamic options (format: "LABEL::COLOR" or "LABEL::COLOR::VISIBILITY")
+  if (dynamicOptions && dynamicOptions.length > 0) {
+    const match = dynamicOptions.find(opt => opt.split('::')[0].toLowerCase().trim() === key);
+    if (match && match.includes('::')) {
+      const parts = match.split('::');
+      return { bg: parts[1], text: '#fff' };
+    }
+  }
+
   return STATUS_COLORS[key] || STATUS_COLORS['default'];
 };
 
@@ -556,12 +588,12 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "â€” CHOISIR â
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center justify-between w-full min-w-[140px] px-3 py-1.5 border border-navy/5 rounded-lg transition-all shadow-sm ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
         style={{ 
-          backgroundColor: value ? getStatusStyle(value, isDarkMode).bg : 'transparent', 
-          color: value ? getStatusStyle(value, isDarkMode).text : 'inherit' 
+          backgroundColor: value ? getStatusStyle(value, isDarkMode, options).bg : 'transparent', 
+          color: value ? getStatusStyle(value, isDarkMode, options).text : 'inherit' 
         }}
       >
         <span className="text-[10px] font-black uppercase tracking-widest truncate mr-2">
-          {value || placeholder}
+          {(value || placeholder).split('::')[0]}
         </span>
         <ChevronDown 
           className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -584,20 +616,27 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "â€” CHOISIR â
               >
                 {placeholder}
               </button>
-              {options.map(opt => {
+              {options.filter(opt => {
+                const parts = opt.split('::');
+                const label = parts[0];
+                const isHidden = parts[2] === 'h';
+                return !isHidden || label === value;
+              }).map(opt => {
+                const label = opt.split('::')[0];
+                const cfg = getStatusStyle(label, isDarkMode, options);
                 return (
                   <button
                     key={opt}
-                    onClick={() => { onChange(opt); setIsOpen(false); }}
+                    onClick={() => { onChange(label); setIsOpen(false); }}
                     className="w-full text-left px-3 py-1.5 hover:bg-navy/5 rounded-lg flex items-center justify-between group transition-all"
                   >
                     <span 
                       className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full transition-all group-hover:scale-105"
-                      style={{ backgroundColor: getStatusStyle(opt, isDarkMode).bg, color: getStatusStyle(opt, isDarkMode).text }}
+                      style={{ backgroundColor: cfg.bg, color: cfg.text }}
                     >
-                      {opt}
+                      {label}
                     </span>
-                    {value === opt && <Check className="w-3 h-3 text-primary" />}
+                    {value === label && <Check className="w-3 h-3 text-primary" />}
                   </button>
                 );
               })}
@@ -609,7 +648,7 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "â€” CHOISIR â
   );
 };
 
-const EditableField = ({ label, value, onChange, name, isMono, type = 'text', options, readOnly, disabled, isDarkMode }) => {
+const EditableField = ({ label, value, onChange, name, isMono, type = 'text', options, readOnly, disabled, isDarkMode, isAdmin, onConfigure }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value || '');
 
@@ -634,7 +673,17 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
 
   return (
     <div className="flex items-start gap-4 group/field">
-      <span className="w-32 text-[10px] font-black text-navy/20 uppercase tracking-widest shrink-0 pt-1.5">{label}</span>
+      <div className="w-32 flex items-center gap-1 shrink-0 pt-1.5">
+        <span className="text-[10px] font-black text-navy/20 uppercase tracking-widest">{label}</span>
+        {isAdmin && options && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onConfigure(); }}
+            className="opacity-0 group-hover/field:opacity-100 p-1 hover:bg-navy/5 rounded transition-all text-navy/20 hover:text-primary"
+          >
+            <Settings className="w-3 h-3" />
+          </button>
+        )}
+      </div>
       <div className="flex-1 min-w-0">
         {(readOnly || (disabled && !isEditing)) ? (
           <div className={`py-1 text-sm font-bold ${disabled ? 'text-navy/30 cursor-not-allowed' : 'text-navy/60'} ${isMono ? 'font-mono tracking-tighter' : ''}`}>

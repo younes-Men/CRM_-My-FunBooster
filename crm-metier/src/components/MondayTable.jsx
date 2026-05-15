@@ -13,10 +13,11 @@ import ColumnManagerModal from './ColumnManagerModal';
 import opcoMapping from '../data/opco_mapping.json';
 import nafMapping from '../data/naf_mapping.json';
 import secteurMapping from '../data/secteur_mapping.json';
+import StatusConfigModal from './StatusConfigModal';
 
 
-// Refactor status style getter to be theme-aware
-const getStatusStyle = (raw, isDarkMode) => {
+// Refactor status style getter to be theme-aware and support dynamic colors
+const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
   const STATUS_COLORS = {
     'a traiter':            { bg: isDarkMode ? '#1e293b' : '#f1f5f9', text: isDarkMode ? '#94a3b8' : '#64748b' }, 
     'absent':               { bg: '#64748b', text: '#fff' },
@@ -57,8 +58,20 @@ const getStatusStyle = (raw, isDarkMode) => {
     'it performance':       { bg: isDarkMode ? '#422006' : '#fefce8', text: isDarkMode ? '#fef08a' : '#a16207' },
     'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#64748b' : '#94a3b8' }
   };
+  
   if (!raw) return STATUS_COLORS['à renseigner'] || STATUS_COLORS['default'];
   const key = raw.toLowerCase().trim();
+
+  // Check dynamic options first (format: "LABEL::COLOR" or "LABEL::COLOR::VISIBILITY")
+  if (dynamicOptions && dynamicOptions.length > 0) {
+    const match = dynamicOptions.find(opt => opt.split('::')[0].toLowerCase().trim() === key);
+    if (match && match.includes('::')) {
+      const parts = match.split('::');
+      const color = parts[1];
+      return { bg: color, text: '#fff' }; // Default to white text for custom colors
+    }
+  }
+
   return STATUS_COLORS[key] || STATUS_COLORS['default'];
 };
 
@@ -205,12 +218,30 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg, isDarkMod
             <div className="py-1 max-h-64 overflow-y-auto custom-scrollbar">
               <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onChange(''); setIsOpen(false); }} className="w-full px-4 py-1.5 text-left text-[9px] font-black text-navy/30 hover:bg-navy/5 hover:text-navy uppercase tracking-[0.2em] transition-colors">— RÉINITIALISER —</button>
               <div className="h-px bg-navy/5 mx-2 my-1" />
-              {options.map((opt) => (
-                <button key={opt} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onChange(opt); setIsOpen(false); }} className={`w-full px-4 py-1.5 text-left text-[11px] font-bold transition-all flex items-center justify-between group/opt ${value === opt ? 'bg-active text-white' : 'text-navy/70 hover:bg-navy/5 hover:text-navy'}`}>
-                  {opt}
-                  {value === opt && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
-                </button>
-              ))}
+              {options.filter(opt => {
+                const parts = opt.split('::');
+                const label = parts[0];
+                const isHidden = parts[2] === 'h';
+                return !isHidden || label === value;
+              }).map((opt) => {
+                const label = opt.split('::')[0];
+                const cfg = getStatusStyle(label, isDarkMode, options);
+                return (
+                  <button 
+                    key={opt} 
+                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onChange(label); setIsOpen(false); }} 
+                    className={`w-full px-4 py-1.5 text-left text-[11px] font-bold transition-all flex items-center justify-between group/opt ${value === label ? 'bg-active text-white' : 'text-navy/70 hover:bg-navy/5 hover:text-navy'}`}
+                  >
+                    <span 
+                      className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter"
+                      style={{ backgroundColor: cfg.bg, color: cfg.text }}
+                    >
+                      {label}
+                    </span>
+                    {value === label && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </DropdownPortal>
@@ -334,7 +365,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
   }
   
   if (col.type === 'status' || col.type === 'select') {
-    const cfg = getStatusStyle(raw, isDarkMode);
+    const cfg = getStatusStyle(raw, isDarkMode, col.options);
     return <CustomSelect value={raw} options={col.options} onChange={(val) => handleUpdate(lead.id, col.key, val, col.is_custom)} colorCfg={cfg} isDarkMode={isDarkMode} />;
   }
   if (col.type === 'date') return <span className="flex items-center gap-1.5 text-navy/40 text-xs whitespace-nowrap"><Clock className="w-3 h-3 flex-shrink-0" />{formatDate(raw)}</span>;
@@ -730,6 +761,7 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
   const [columns, setColumns] = useState(COLUMNS);
   const listRef = useRef(null);
   const pickerRef = useRef(null);
+  const [statusModalConfig, setStatusModalConfig] = useState(null);
   const tableTotalWidth = useMemo(() => columns.reduce((acc, col) => acc + col.width, 0), [columns]);
 
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
@@ -1218,7 +1250,18 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
               const isActive = activeFilters[col.key]?.length > 0;
               return (
                 <div key={col.key} style={{ width: col.width, minWidth: col.width }} className="flex-shrink-0 px-6 py-4 text-[11px] font-black text-navy/60 uppercase tracking-[0.15em] border-l border-navy/[0.03] flex items-center justify-between group">
-                  <span className="break-words leading-tight pr-2">{col.label}</span>
+                  <div className="flex items-center gap-2 pr-2 overflow-hidden">
+                    <span className="break-words leading-tight">{col.label}</span>
+                    {user?.role === 'admin' && (col.type === 'select' || col.key === 'status') && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setStatusModalConfig(col); }}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-navy/5 rounded transition-all text-navy/20 hover:text-primary"
+                        title="Configurer les statuts"
+                      >
+                        <Settings className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                   {isFilterable && (
                     <button onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setFilterMenu({ field: col.key, label: col.label, anchorRect: rect }); }} className={`p-1.5 rounded-lg transition-all ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-navy/20 hover:bg-navy/5 hover:text-navy/40'}`}>
                       <Filter className={`w-3 h-3 ${isActive ? 'fill-current' : ''}`} />
@@ -1307,6 +1350,15 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
         onClose={() => setIsColumnModalOpen(false)} 
         onRefresh={fetchColumnConfigs}
       />
+
+      {statusModalConfig && (
+        <StatusConfigModal 
+          isOpen={true}
+          column={statusModalConfig}
+          onClose={() => setStatusModalConfig(null)}
+          onRefresh={fetchColumnConfigs}
+        />
+      )}
     </div>
   );
 });
