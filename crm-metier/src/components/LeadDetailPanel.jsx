@@ -277,6 +277,22 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
       msg += `ID \n`; // Left empty for manual entry
     }
     
+    // Logic for calculating total employees based on manager status
+    const baseSalaries = parseInt(lead.nb_salaries) || 0;
+    let statutGerant = String(lead.statut_gerant || lead.statut_gérant || lead.statutGerant || lead.custom_fields?.statut_gerant || '').toLowerCase();
+    if (!statutGerant) {
+      const possibleKey = Object.keys(lead).find(k => k.toLowerCase().includes('gerant') || k.toLowerCase().includes('gérant'));
+      if (possibleKey) statutGerant = String(lead[possibleKey]).toLowerCase();
+    }
+    let totalSalaries = baseSalaries;
+    if (statutGerant.includes('salari')) {
+      if (statutGerant.includes('2') || statutGerant.includes('deux')) {
+        totalSalaries += 2;
+      } else {
+        totalSalaries += 1;
+      }
+    }
+
     msg += `RDV TÉLÉPHONIQUE POUR LE ${formatDate(lead.date_rdv, lead.heure_rdv)}\n`;
     msg += `Etablissement: ${lead.nom_entreprise || '—'}\n`;
     msg += `Activité: ${lead.secteur_activite || '—'}\n`;
@@ -284,7 +300,7 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
     msg += `Nom du gérant : ${lead.gerant || '—'}\n`;
     msg += `MAIL : ${lead.email || '—'}\n`;
     msg += `Tél : ${lead.mobile || lead.tel || '—'}\n`;
-    msg += `Nbr salariés: ${lead.nb_salaries || '—'}\n`;
+    msg += `Nbr salariés: ${totalSalaries}\n`;
     msg += `APPRENTIS : ${lead.nb_apprentis || '0'}\n`;
     msg += `Siret : ${lead.siret || '—'}\n`;
     msg += `Opco : ${lead.nom_opco || '—'} IDCC ${lead.idcc || '—'}\n`;

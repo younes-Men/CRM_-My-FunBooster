@@ -193,6 +193,26 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     if (client === 'HORS ZONE' || !client) return "";
     if (!isCA && !isGO && !isTB) return "";
 
+    // Logic for calculating total employees based on manager status
+    const baseSalariesValue = getLeadValue('nb_salaries');
+    const baseSalaries = parseInt(baseSalariesValue) || 0;
+    let statutGerant = String(getLeadValue('statut_gerant') || '').toLowerCase();
+    
+    if (!statutGerant) {
+      // Robust search if native field is empty
+      const possibleKey = Object.keys(lead).find(k => k.toLowerCase().includes('gerant') || k.toLowerCase().includes('gérant'));
+      if (possibleKey) statutGerant = String(lead[possibleKey]).toLowerCase();
+    }
+
+    let totalSalaries = baseSalaries;
+    if (statutGerant.includes('salari')) {
+      if (statutGerant.includes('2') || statutGerant.includes('deux')) {
+        totalSalaries += 2;
+      } else {
+        totalSalaries += 1;
+      }
+    }
+
     let msg = "";
     if (isCA || isGO) msg += `SOURCE : PS ${client}\nID \n`;
     msg += `RDV TÉLÉPHONIQUE POUR LE ${formatDateFr(getLeadValue('date_rdv'))}\n`;
@@ -202,7 +222,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     msg += `Nom du gérant : ${getLeadValue('gerant') || '—'}\n`;
     msg += `MAIL : ${getLeadValue('email') || '—'}\n`;
     msg += `Tél : ${getLeadValue('mobile') || getLeadValue('tel') || '—'}\n`;
-    msg += `Nbr salariés: ${getLeadValue('nb_salaries') || '—'}\n`;
+    msg += `Nbr salariés: ${totalSalaries}\n`;
     msg += `APPRENTIS : ${getLeadValue('nb_apprentis') || '0'}\n`;
     msg += `Siret : ${getLeadValue('siret') || '—'}\n`;
     msg += `Opco : ${getLeadValue('nom_opco') || '—'} IDCC ${getLeadValue('idcc') || '—'}\n`;

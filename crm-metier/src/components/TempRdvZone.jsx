@@ -112,6 +112,23 @@ const TempRdvZone = ({ user }) => {
 
   const generateMessage = (lead) => {
     if (!lead) return "";
+
+    // Logic for calculating total employees based on manager status
+    const baseSalaries = parseInt(lead.nb_salaries) || 0;
+    let statutGerant = String(lead.statut_gerant || lead.statut_gérant || lead.statutGerant || lead.custom_fields?.statut_gerant || '').toLowerCase();
+    if (!statutGerant) {
+      const possibleKey = Object.keys(lead).find(k => k.toLowerCase().includes('gerant') || k.toLowerCase().includes('gérant'));
+      if (possibleKey) statutGerant = String(lead[possibleKey]).toLowerCase();
+    }
+    let totalSalaries = baseSalaries;
+    if (statutGerant.includes('salari')) {
+      if (statutGerant.includes('2') || statutGerant.includes('deux')) {
+        totalSalaries += 2;
+      } else {
+        totalSalaries += 1;
+      }
+    }
+
     const client = String(lead.client_of || '').toUpperCase();
     const isCA = client.includes('CA CONSEILS') || client.includes('CA');
     const isGO = client.includes('GO CONSEILS') || client.includes('GO');
@@ -130,7 +147,7 @@ const TempRdvZone = ({ user }) => {
     msg += `Nom du gérant : ${lead.gerant || '—'}\n`;
     msg += `MAIL : ${lead.email || '—'}\n`;
     msg += `Tél : ${lead.mobile || lead.tel || '—'}\n`;
-    msg += `Nbr salariés: ${lead.nb_salaries || '—'}\n`;
+    msg += `Nbr salariés: ${totalSalaries}\n`;
     msg += `APPRENTIS : ${lead.nb_apprentis || '0'}\n`;
     msg += `Siret : ${lead.siret || '—'}\n`;
     msg += `Opco : ${lead.nom_opco || '—'} IDCC ${lead.idcc || '—'}\n`;
@@ -161,29 +178,21 @@ const TempRdvZone = ({ user }) => {
     const prefix = client.includes('TB') ? '[TB]' : '[OPCO]';
     const title = `${prefix} ${lead.nom_entreprise || 'RDV'}`;
     
-    // Parse date and time
-    const date = new Date(lead.date_rdv);
-    const time = lead.heure_rdv || "10:00";
-    const [hours, minutes] = time.split(/[:hH]/).map(n => n.padStart(2, '0'));
+    // Format date and time for Google URL (YYYYMMDDTHHMMSS)
+    const date = lead.date_rdv.replace(/-/g, '');
+    let time = (lead.heure_rdv || "10:00").replace(/[:hH]/g, '');
+    if (time.length < 4) time = time.padStart(4, '0');
     
-    // Create start and end dates (1 hour duration)
-    const start = new Date(date);
-    start.setHours(parseInt(hours), parseInt(minutes));
-    const end = new Date(start);
-    end.setHours(start.getHours() + 1);
-
-    const formatGDate = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const start = `${date}T${time}00`;
+    // Approximate end time (+1h)
+    const endHour = (parseInt(time.substring(0, 2)) + 1).toString().padStart(2, '0');
+    const end = `${date}T${endHour}${time.substring(2)}00`;
     
-    const details = generateMessage(lead);
-    const location = lead.adresse || "";
-    
-    // Select the correct Calendar ID
     const calendarId = client.includes('TB') 
       ? 'maxime.tanneur@tb-formations.fr' 
       : '93079c8fd22819865b2014cb7b6a9a9bd22f396c25ef25ae2398589b64aa4ab0@group.calendar.google.com';
 
-    // Build URL with target calendar
-    const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatGDate(start)}/${formatGDate(end)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}&src=${calendarId}&add=${calendarId}`;
+    const url = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${start}/${end}&details=${encodeURIComponent(generateMessage(lead))}&location=${encodeURIComponent(lead.adresse || '')}&src=${calendarId}&add=${calendarId}`;
     
     window.open(url, '_blank');
   };
