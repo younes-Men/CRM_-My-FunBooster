@@ -22,6 +22,7 @@ const PERMISSION_KEYS = [
   { id: 'view_zone_temp',   label: 'Accès Zone Tampon', icon: Bell,         hasClients: false },
   { id: 'control_zone_temp',label: 'Gérer Zone Tampon', icon: Settings2,    hasClients: false },
   { id: 'view_leads',       label: 'Accès Leads',     icon: ListChecks,   hasColumns: true },
+  { id: 'view_leads_2025',  label: 'Accès Leads 2025', icon: ListChecks,   hasClients: false },
   { id: 'view_pipeline',    label: 'Accès Pipeline',  icon: Layout,       hasClients: true },
 ];
 
@@ -289,6 +290,7 @@ const TeamList = ({ currentUser }) => {
         view_zone_temp: false,
         control_zone_temp: false,
         view_leads: true,
+        view_leads_2025: true,
         view_pipeline: role === 'commercial',
         leads_columns: ["all"],
         assigned_commercials: []
@@ -609,6 +611,7 @@ const TeamList = ({ currentUser }) => {
                         ) : (
                           <>
                             {currentUser?.permissions?.view_leads && <li className="flex items-center gap-3 text-sm font-bold text-navy"><Check className="w-4 h-4 text-green-500" /> Consultation des Leads</li>}
+                            {currentUser?.permissions?.view_leads_2025 && <li className="flex items-center gap-3 text-sm font-bold text-navy"><Check className="w-4 h-4 text-green-500" /> Accès Leads 2025</li>}
                             {currentUser?.permissions?.view_agenda && <li className="flex items-center gap-3 text-sm font-bold text-navy"><Check className="w-4 h-4 text-green-500" /> Accès à l'Agenda</li>}
                             {currentUser?.permissions?.view_pipeline && <li className="flex items-center gap-3 text-sm font-bold text-navy"><Check className="w-4 h-4 text-green-500" /> Accès au Pipeline</li>}
                             {currentUser?.permissions?.view_zone_temp && <li className="flex items-center gap-3 text-sm font-bold text-navy"><Check className="w-4 h-4 text-green-500" /> Consultation Zone Temp</li>}

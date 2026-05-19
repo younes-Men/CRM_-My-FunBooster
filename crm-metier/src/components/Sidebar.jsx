@@ -66,6 +66,10 @@ const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsEx
   if (isAdmin) {
     menuItems.push({ id: 'users', icon: Users, label: 'Équipe' });
   }
+  
+  if (isAdmin || perms.view_leads_2025) {
+    menuItems.push({ id: 'leads-2025', icon: ClipboardList, label: 'LEADS 2025' });
+  }
 
   return (
     <div 

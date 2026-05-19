@@ -93,6 +93,14 @@ const TempRdvZone = ({ user }) => {
       const lead = leads.find(l => l.id === id);
       if (lead) {
         setValidatedLead({ ...lead, ...updates });
+        
+        // WORKFLOW: Delete validated lead from crm_leads_2025
+        if (lead.siret) {
+          await supabase
+            .from('crm_leads_2025')
+            .delete()
+            .eq('siret', lead.siret);
+        }
       }
       setLeads(prev => prev.filter(l => l.id !== id));
     }
@@ -198,18 +206,25 @@ const TempRdvZone = ({ user }) => {
   };
 
   const handleReject = async (id) => {
-    if (!window.confirm("Voulez-vous rejeter ce RDV ? Il sera remis 'À TRAITER'.")) return;
+    if (!window.confirm("Voulez-vous rejeter ce RDV ? Il sera remis en 'BLOQUÉ ARCHIVE'.")) return;
     
     setProcessingId(id);
     const { error } = await supabase
       .from('crm_leads')
       .update({ 
-        status: 'A TRAITER',
+        status: 'BLOQUÉ ARCHIVE',
         date_modification: new Date().toISOString()
       })
       .eq('id', id);
 
     if (!error) {
+      const lead = leads.find(l => l.id === id);
+      if (lead && lead.siret) {
+        await supabase
+          .from('crm_leads_2025')
+          .update({ statut_2026: 'BLOQUÉ ARCHIVE' })
+          .eq('siret', lead.siret);
+      }
       setLeads(prev => prev.filter(l => l.id !== id));
     }
     setProcessingId(null);

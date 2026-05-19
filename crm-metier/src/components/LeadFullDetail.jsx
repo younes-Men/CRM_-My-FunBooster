@@ -31,7 +31,7 @@ const formatNaf = (val) => {
   return val;
 };
 
-const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permissions, onUpdate, onLeadChange, isDarkMode }) => {
+const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permissions, onUpdate, onLeadChange, isDarkMode, tableName = 'crm_leads' }) => {
   const nativeKeys = [
     'lead_id', 'funebooster', 'nom_entreprise', 'gerant', 'siret', 
     'secteur_activite', 'libelle_activite', 'nom_opco', 'idcc', 
@@ -92,6 +92,10 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
   }, [currentLeadId, onLeadChange]); // Removed lead?.observation from dependencies
 
   const fetchHistory = async () => {
+    if (tableName !== 'crm_leads') {
+      setHistory([]);
+      return;
+    }
     const { data, error } = await supabase
       .from('crm_observations_history')
       .select('*')
@@ -102,6 +106,12 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
 
   const addNote = async () => {
     if (!newNote.trim()) return;
+    if (tableName !== 'crm_leads') {
+      const newObs = lead.observation ? `${lead.observation}\n\n[${user?.name || 'Système'}]: ${newNote}` : `[${user?.name || 'Système'}]: ${newNote}`;
+      handleAutoSave('observation', newObs);
+      setNewNote('');
+      return;
+    }
     const { error } = await supabase.from('crm_observations_history').insert([{
       lead_id: currentLeadId,
       observation_text: newNote,
@@ -114,17 +124,73 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
   };
 
   const handleAutoSave = async (field, value) => {
+    if (isLocked) {
+      alert("Cette fiche est verrouillée (BLOQUÉ ARCHIVE). Seul un administrateur peut y apporter des modifications.");
+      return;
+    }
     setLoading(true);
     try {
       const isCustom = !nativeKeys.includes(field);
+      let finalValue = value;
+      if (tableName === 'crm_leads_2025' && field === 'statut_2026' && (value === 'RDV' || value === 'EN ATTENTE RDV')) {
+        finalValue = 'EN ATTENTE RDV';
+      }
+
       const updates = isCustom 
-        ? { custom_fields: { ...(lead.custom_fields || {}), [field]: value } }
-        : { [field]: value };
+        ? { custom_fields: { ...(lead.custom_fields || {}), [field]: finalValue } }
+        : { [field]: finalValue };
       
       updates.date_modification = new Date().toISOString();
 
+      // WORKFLOW: If field is statut_2026 and value is RDV/EN ATTENTE RDV
+      if (tableName === 'crm_leads_2025' && field === 'statut_2026' && (value === 'RDV' || value === 'EN ATTENTE RDV')) {
+        const cleanSiret = String(lead.siret || '').replace(/\s+/g, '');
+        if (cleanSiret) {
+          const { data: existingLead } = await supabase
+            .from('crm_leads')
+            .select('id')
+            .eq('siret', lead.siret)
+            .maybeSingle();
+
+          if (existingLead) {
+            await supabase
+              .from('crm_leads')
+              .update({
+                status: 'EN ATTENTE RDV',
+                date_modification: new Date().toISOString()
+              })
+              .eq('id', existingLead.id);
+          } else {
+            await supabase
+              .from('crm_leads')
+              .insert([{
+                nom_entreprise: lead.nom_entreprise,
+                siret: lead.siret,
+                tel: lead.tel,
+                mobile: lead.mobile,
+                nom_opco: lead.nom_opco,
+                client_of: lead.client_of,
+                gerant: lead.gerant,
+                code_naf: lead.code_naf,
+                libelle_activite: lead.libelle_activite,
+                adresse: lead.adresse,
+                code_postal: lead.code_postal,
+                code_departement: lead.code_departement,
+                statut_gerant: lead.statut_gerant,
+                nb_salaries: lead.nb_salaries,
+                nb_apprentis: lead.nb_apprentis,
+                annee_budget: lead.annee_act,
+                status: 'EN ATTENTE RDV',
+                funebooster: lead.funebooster || user?.name || 'Système',
+                date_modification: new Date().toISOString()
+              }]);
+          }
+          alert("Le RDV a été envoyé à la Zone Tampon pour validation !");
+        }
+      }
+
       const { error } = await supabase
-        .from('crm_leads')
+        .from(tableName)
         .update(updates)
         .eq('id', lead.id);
 
@@ -132,12 +198,14 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
 
       // Also insert into history if it's an observation/comment
       if (field === 'observation' && value) {
-        await supabase.from('crm_observations_history').insert([{
-          lead_id: lead.id,
-          observation_text: value,
-          created_by: user?.name || user?.email || 'Système'
-        }]);
-        fetchHistory();
+        if (tableName === 'crm_leads') {
+          await supabase.from('crm_observations_history').insert([{
+            lead_id: lead.id,
+            observation_text: value,
+            created_by: user?.name || user?.email || 'Système'
+          }]);
+          fetchHistory();
+        }
       }
 
       if (onUpdate) onUpdate(lead.id, { ...lead, ...updates });
@@ -258,11 +326,13 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     if (!lead || !user) return false;
     const userRole = String(user.role || '').toLowerCase().trim();
     const isAdmin = userRole === 'admin';
-    const isCommercial = userRole === 'commercial';
     
+    const status = String(lead.status || '').toUpperCase().trim();
+    if (status === 'BLOQUÉ ARCHIVE' && !isAdmin) return true;
+
+    const isCommercial = userRole === 'commercial';
     if (isAdmin || isCommercial) return false;
 
-    const status = String(lead.status || '').toUpperCase().trim();
     const lockedStatuses = ['RDV', 'SIGNE', 'EN ATTENTE RDV'];
     return lockedStatuses.includes(status);
   }, [lead, user]);

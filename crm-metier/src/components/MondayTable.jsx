@@ -22,6 +22,7 @@ const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
     'a traiter':            { bg: isDarkMode ? '#1e293b' : '#f1f5f9', text: isDarkMode ? '#94a3b8' : '#64748b' }, 
     'absent':               { bg: '#64748b', text: '#fff' },
     'deja pec':             { bg: '#8b5cf6', text: '#fff' },
+    'bloqué archive':       { bg: '#334155', text: '#cbd5e1' },
     'faux num':             { bg: '#dc2626', text: '#fff' },
     'hors cible opco':      { bg: '#374151', text: '#9ca3af' },
     'hors cible siège':     { bg: '#374151', text: '#9ca3af' },
@@ -95,7 +96,7 @@ const COLUMNS = [
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
   { label: 'Téléphone',    key: 'tel',               width: 180, type: 'editable' },
   { label: 'Statut',       key: 'status',            width: 180, type: 'select', options: [
-    'A TRAITER', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
+    'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
   ]},
   { label: 'Opco',         key: 'nom_opco',          width: 150, type: 'select', options: [
@@ -181,7 +182,7 @@ const formatDateFr = (d) => {
   } catch (e) { return d; }
 };
 
-const CustomSelect = React.memo(({ value, options, onChange, colorCfg, isDarkMode }) => {
+const CustomSelect = React.memo(({ value, options, onChange, colorCfg, isDarkMode, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [rect, setRect] = useState(null);
   const containerRef = useRef(null);
@@ -203,9 +204,10 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg, isDarkMod
   return (
     <div ref={containerRef} className="relative w-full">
       <button
-        onClick={(e) => { e.stopPropagation(); if (!isOpen) setRect(containerRef.current.getBoundingClientRect()); setIsOpen(!isOpen); }}
+        disabled={disabled}
+        onClick={(e) => { e.stopPropagation(); if (disabled) return; if (!isOpen) setRect(containerRef.current.getBoundingClientRect()); setIsOpen(!isOpen); }}
         style={{ backgroundColor: colorCfg.bg, color: colorCfg.text }}
-        className="w-full pl-2 pr-5 py-1.5 rounded-lg font-black uppercase tracking-tight flex items-center justify-between shadow-sm group/btn transition-all active:scale-[0.98] min-h-[28px] relative overflow-hidden"
+        className={`w-full pl-2 pr-5 py-1.5 rounded-lg font-black uppercase tracking-tight flex items-center justify-between shadow-sm group/btn transition-all ${disabled ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.98]'} min-h-[28px] relative overflow-hidden`}
       >
         <span className={`whitespace-nowrap leading-none ${value && value.length > 10 ? 'text-[8.5px]' : 'text-[10px]'}`}>{value || 'CHOISIR'}</span>
         <div className="flex-shrink-0 ml-1 opacity-40 group-hover/btn:opacity-100 transition-all">
@@ -283,13 +285,16 @@ const isLeadLocked = (lead, user) => {
   
   const userRole = String(user.role || '').toLowerCase().trim();
   const isAdmin = userRole === 'admin';
+  
+  const status = String(lead.status || '').toUpperCase().trim();
+  if (status === 'BLOQUÉ ARCHIVE' && !isAdmin) return true;
+
   const isCommercial = userRole === 'commercial';
   
-  // Si c'est un Admin ou un Commercial, on ne verrouille JAMAIS rien pour eux
+  // Si c'est un Admin ou un Commercial, on ne verrouille JAMAIS rien pour eux (sauf BLOQUÉ ARCHIVE ci-dessus)
   if (isAdmin || isCommercial) return false;
 
   // Pour TOUS les autres (Funboosters, etc.), on verrouille ces statuts
-  const status = String(lead.status || '').toUpperCase().trim();
   const lockedStatuses = ['RDV', 'SIGNE', 'EN ATTENTE RDV'];
   
   return lockedStatuses.includes(status);
@@ -366,7 +371,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
   
   if (col.type === 'status' || col.type === 'select') {
     const cfg = getStatusStyle(raw, isDarkMode, col.options);
-    return <CustomSelect value={raw} options={col.options} onChange={(val) => handleUpdate(lead.id, col.key, val, col.is_custom)} colorCfg={cfg} isDarkMode={isDarkMode} />;
+    return <CustomSelect value={raw} options={col.options} onChange={(val) => handleUpdate(lead.id, col.key, val, col.is_custom)} colorCfg={cfg} isDarkMode={isDarkMode} disabled={isLocked} />;
   }
   if (col.type === 'date') return <span className="flex items-center gap-1.5 text-navy/40 text-xs whitespace-nowrap"><Clock className="w-3 h-3 flex-shrink-0" />{formatDate(raw)}</span>;
   if (col.type === 'pappers') {
@@ -483,7 +488,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     const updatePec = (newStart, newEnd) => { const s = newStart || '...'; const e = newEnd || '...'; handleUpdate(lead.id, col.key, `DU ${s} AU ${e}`, col.is_custom); };
     return (
       <div className="relative" ref={containerRef}>
-        <button onClick={(e) => { e.stopPropagation(); const rect = containerRef.current.getBoundingClientRect(); setActivePicker(isActive ? null : { id: lead.id, field: col.key, rect }); }} className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg group/pec transition-all w-full">
+        <button disabled={isLocked} onClick={(e) => { e.stopPropagation(); if (isLocked) return; const rect = containerRef.current.getBoundingClientRect(); setActivePicker(isActive ? null : { id: lead.id, field: col.key, rect }); }} className={`flex items-center gap-2 px-3 py-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg group/pec transition-all w-full ${isLocked ? 'cursor-not-allowed opacity-50' : ''}`}>
           <Clock className="w-3 h-3 text-primary/40 group-hover/pec:text-primary transition-colors" />
           <span className="text-[10px] font-black text-primary uppercase tracking-tighter truncate">{raw || 'DU ... AU ...'}</span>
         </button>
@@ -1104,6 +1109,14 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
     const leadIndex = leads.findIndex(l => String(l.id).toLowerCase() === idStr);
     if (leadIndex === -1) return;
     const lead = leads[leadIndex];
+    
+    // RESTRICTION: Non-admins cannot edit if the lead is in BLOQUÉ ARCHIVE status
+    const leadStatus = String(lead.status || '').toUpperCase().trim();
+    if (leadStatus === 'BLOQUÉ ARCHIVE' && user?.role !== 'admin') {
+      alert("Cette fiche est verrouillée (BLOQUÉ ARCHIVE). Seul un administrateur peut y apporter des modifications.");
+      return;
+    }
+
     let dbValue = value === '' ? null : value;
     
     if (field === 'status' && dbValue) {
