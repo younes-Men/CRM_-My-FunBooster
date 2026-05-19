@@ -372,7 +372,7 @@ const TableRow = React.memo(({ data, index, style }) => {
   );
 });
 
-const FILTERABLE_COLUMNS = ['funebooster', 'nom_opco', 'client_of', 'statut_2025', 'statut_2026'];
+const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_2025', 'statut_2026'];
 const uniqueValuesCache = {};
 
 // Custom hook to fetch distinct filter values for the LEADS 2025 table
@@ -544,11 +544,15 @@ const Leads2025Table = ({ user, isDarkMode }) => {
       // Column Filters
       Object.entries(filters).forEach(([field, values]) => {
         if (values && values.length > 0) {
-          const ilikeConditions = values.map(v => {
-            const safeVal = String(v).replace(/[^\x00-\x7F]/g, '%');
-            return `${field}.ilike.${safeVal}`;
-          }).join(',');
-          query = query.or(ilikeConditions);
+          if (field === 'annee_act') {
+            query = query.in(field, values);
+          } else {
+            const ilikeConditions = values.map(v => {
+              const safeVal = String(v).replace(/[^\x00-\x7F]/g, '%');
+              return `${field}.ilike.${safeVal}`;
+            }).join(',');
+            query = query.or(ilikeConditions);
+          }
         }
       });
 
