@@ -186,7 +186,13 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     try {
       const isCustom = !nativeKeys.includes(field);
       let finalValue = value;
-      if (tableName === 'crm_leads_2025' && field === 'statut_2026' && (value === 'RDV' || value === 'EN ATTENTE RDV')) {
+
+      // WORKFLOW: Funbooster ne peut pas mettre directement "RDV" — passe par "EN ATTENTE RDV"
+      if (field === 'statut_2026' && (value === 'RDV' || value === 'EN ATTENTE RDV')) {
+        finalValue = 'EN ATTENTE RDV';
+      }
+      // Même protection pour crm_leads (status) — non-admins → EN ATTENTE RDV
+      if (field === 'status' && value === 'RDV' && user?.role !== 'admin') {
         finalValue = 'EN ATTENTE RDV';
       }
 
