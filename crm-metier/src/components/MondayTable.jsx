@@ -327,8 +327,13 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
   if (col.key === 'nom_entreprise') {
     return (
       <div className="flex items-center gap-2 group/ent min-w-0 pr-2">
+        {lead.isVirtual && (
+          <span className="flex-shrink-0 px-1.5 py-0.5 text-[8px] font-black bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-md uppercase tracking-wider animate-pulse">
+            API
+          </span>
+        )}
         <span className={['truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy/70'].join(' ')} title={displayRaw}>{displayRaw}</span>
-        {lead.siret && lead.siret !== '---' && (
+        {!lead.isVirtual && lead.siret && lead.siret !== '---' && (
           <button 
             onClick={(e) => { e.stopPropagation(); enrichLead(lead.id, lead.siret); }}
             disabled={isEnriching}
@@ -746,6 +751,182 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [fetchingApi, setFetchingApi] = useState(false);
+
+  const fetchFromExternalApi = async () => {
+    const nafFilters = activeFilters['code_naf'] || [];
+    const deptFilters = activeFilters['code_departement'] || [];
+
+    if (nafFilters.length === 0 && deptFilters.length === 0) {
+      alert("Veuillez appliquer au moins un filtre de Code NAF ou de Département pour lancer la recherche API.");
+      return;
+    }
+
+    setFetchingApi(true);
+    try {
+      // Format NAF codes: "5610A" -> "56.10A" (format attendu par l'API)
+      const formatNafForApi = (naf) => {
+        const clean = String(naf).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (clean.length === 5) return `${clean.substring(0, 2)}.${clean.substring(2, 4)}${clean.substring(4)}`;
+        if (clean.length === 4) return `${clean.substring(0, 2)}.${clean.substring(2)}`;
+        return clean;
+      };
+
+      const params = new URLSearchParams();
+      params.append('per_page', '25');
+      params.append('etat_administratif', 'A'); // Seulement entreprises actives
+      
+      if (nafFilters.length > 0) {
+        const formattedNafs = nafFilters.map(formatNafForApi);
+        // L'API accepte plusieurs valeurs séparées par virgule
+        params.append('activite_principale', formattedNafs.join(','));
+      }
+      
+      if (deptFilters.length > 0) {
+        const cleanDepts = deptFilters.map(dept => String(dept).trim().padStart(2, '0'));
+        params.append('departement', cleanDepts.join(','));
+      }
+
+      const url = `https://recherche-entreprises.api.gouv.fr/search?${params.toString()}`;
+      console.log('[Recherche API] URL:', url);
+
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => '');
+        console.error('[Recherche API] Erreur HTTP', response.status, errorBody);
+        throw new Error(`L'API a retourné une erreur ${response.status}. ${errorBody ? errorBody.substring(0, 200) : ''}`);
+      }
+
+      const data = await response.json();
+      console.log('[Recherche API] Résultats:', data.total_results, 'entreprises trouvées');
+
+      if (!data.results || data.results.length === 0) {
+        alert("Aucune entreprise trouvée via l'API externe pour ces filtres.");
+        setFetchingApi(false);
+        return;
+      }
+
+      // Collecter tous les SIRETs possibles (siège et établissements) pour vérifier s'ils existent déjà
+      const sirets = data.results.flatMap(r => {
+        const list = [r.siege?.siret];
+        if (r.matching_etablissements) {
+          r.matching_etablissements.forEach(e => {
+            if (e.siret) list.push(e.siret);
+          });
+        }
+        return list;
+      }).filter(Boolean);
+
+      let existingSirets = new Set();
+      
+      if (sirets.length > 0) {
+        const { data: existing, error: err } = await supabase
+          .from('crm_leads')
+          .select('siret')
+          .in('siret', sirets);
+        
+        if (!err && existing) {
+          existingSirets = new Set(existing.map(e => e.siret));
+        }
+      }
+
+      // Vérifier aussi les leads virtuels déjà affichés
+      const existingVirtualSirets = new Set(
+        leads.filter(l => l.isVirtual).map(l => l.siret).filter(Boolean)
+      );
+
+      const virtualLeads = data.results
+        .map(result => {
+          // Trouver l'établissement qui correspond aux filtres de département
+          let etablissement = result.siege;
+          if (deptFilters.length > 0 && result.matching_etablissements && result.matching_etablissements.length > 0) {
+            const cleanDepts = deptFilters.map(dept => String(dept).trim().padStart(2, '0'));
+            const matching = result.matching_etablissements.find(etab => {
+              const cp = etab.code_postal || "";
+              const etabDept = cp.substring(0, 2);
+              return cleanDepts.includes(etabDept);
+            });
+            if (matching) {
+              etablissement = matching;
+            }
+          }
+          return { result, etablissement };
+        })
+        .filter(({ etablissement }) => {
+          if (!etablissement || !etablissement.siret) return false;
+          return !existingSirets.has(etablissement.siret) && !existingVirtualSirets.has(etablissement.siret);
+        })
+        .map(({ result, etablissement }) => {
+          let gerantName = "";
+          if (result.dirigeants && result.dirigeants.length > 0) {
+            const firstDir = result.dirigeants.find(d => d.nom);
+            if (firstDir) {
+              gerantName = `${firstDir.nom || ''} ${firstDir.prenoms || ''}`.trim().toUpperCase();
+            }
+          }
+
+          let foundIdcc = "";
+          const idccList = result.liste_idcc || 
+                           (result.complements && result.complements.liste_idcc) ||
+                           (result.siege && result.siege.liste_idcc) ||
+                           (result.unite_legale && result.unite_legale.liste_idcc) ||
+                           (result.matching_etablissements && result.matching_etablissements[0]?.liste_idcc);
+
+          if (idccList && idccList.length > 0) {
+            foundIdcc = String(idccList[0]).trim();
+          }
+
+          const rawNaf = result.activite_principale ? String(result.activite_principale).toUpperCase().replace(/[^A-Z0-9]/g, '') : "";
+          const displayNaf = rawNaf ? formatNaf(rawNaf) : "";
+          const libelle = nafMapping[rawNaf] || "";
+
+          let matchedSecteur = "";
+          if (foundIdcc && secteurMapping.idcc && secteurMapping.idcc[foundIdcc]) {
+            matchedSecteur = secteurMapping.idcc[foundIdcc];
+          } else if (rawNaf && secteurMapping.naf && secteurMapping.naf[rawNaf]) {
+            matchedSecteur = secteurMapping.naf[rawNaf];
+          }
+
+          const adresse = etablissement.adresse || "";
+          const codePostal = etablissement.code_postal || "";
+          const dept = etablissement.departement || (codePostal ? codePostal.substring(0, 2) : "");
+
+          // Lien Kompass pour trouver le numéro de téléphone de l'entreprise
+          const kompassUrl = `https://ma.kompass.com/searchCompanies?text=${encodeURIComponent(etablissement.siret || '')}&searchType=COMPANYNAME`;
+
+          return {
+            id: `api-${etablissement.siret}`,
+            siret: etablissement.siret,
+            nom_entreprise: (result.nom_complet || result.nom_entreprise || "—").toUpperCase(),
+            gerant: gerantName || "",
+            tel: kompassUrl,
+            code_naf: displayNaf,
+            libelle_activite: libelle,
+            secteur_activite: matchedSecteur || "",
+            idcc: foundIdcc || "",
+            adresse: adresse,
+            code_postal: codePostal,
+            code_departement: dept,
+            status: 'A TRAITER',
+            isVirtual: true
+          };
+        });
+
+      if (virtualLeads.length === 0) {
+        alert(`${data.results.length} entreprise(s) trouvée(s) par l'API, mais toutes existent déjà dans le CRM (pas de doublons ajoutés).`);
+      } else {
+        setLeads(prev => [...virtualLeads, ...prev]);
+        setTotalCount(c => c + virtualLeads.length);
+        alert(`✅ ${virtualLeads.length} nouvelle(s) entreprise(s) ajoutée(s) depuis l'API. Elles apparaissent en haut de la liste avec le badge "API".`);
+      }
+    } catch (e) {
+      console.error('[Recherche API] Erreur:', e);
+      alert("Erreur lors de la recherche API : " + e.message);
+    } finally {
+      setFetchingApi(false);
+    }
+  };
   
   // Persistance des filtres et de la recherche
   const [search, setSearch] = useState(() => localStorage.getItem(`crm_search_${activeTab}`) || '');
@@ -1031,7 +1212,36 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
       setError(fetchError.message);
     } else if (data) {
       if (pageIndex === 0 && count !== null) setTotalCount(count);
-      setLeads(prev => replace ? data : [...prev, ...data]);
+
+      // Injecter les leads API matérialisés récemment (qui pourraient être exclus par les filtres actifs)
+      let finalData = data;
+      if (replace && pageIndex === 0) {
+        try {
+          const recentKey = `crm_api_materialized_${activeTab}`;
+          const storedIds = JSON.parse(localStorage.getItem(recentKey) || '[]');
+          if (storedIds.length > 0) {
+            const existingIds = new Set(data.map(l => l.id));
+            const missingIds = storedIds.filter(id => !existingIds.has(id));
+            if (missingIds.length > 0) {
+              const { data: recentLeads } = await supabase
+                .from('crm_leads')
+                .select('*')
+                .in('id', missingIds);
+              if (recentLeads && recentLeads.length > 0) {
+                finalData = [...recentLeads, ...data];
+              }
+              // Garder seulement les IDs trouvés en DB
+              const foundIds = new Set((recentLeads || []).map(l => l.id));
+              const validIds = storedIds.filter(id => foundIds.has(id));
+              localStorage.setItem(recentKey, JSON.stringify(validIds));
+            }
+          }
+        } catch (e) {
+          console.warn('Erreur lecture leads API matérialisés:', e);
+        }
+      }
+
+      setLeads(prev => replace ? finalData : [...prev, ...data]);
       setHasMore(data.length === PAGE_SIZE);
     }
     setLoading(false); setLoadingMore(false);
@@ -1163,18 +1373,63 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
       if (ca && hrs && hrs !== 0) updates.tx_horaire_ca = (ca / hrs).toFixed(2); 
     }
 
-    const updatedLead = { ...lead, ...updates };
-    setLeads(prev => { const newList = [...prev]; newList[leadIndex] = updatedLead; return newList; });
-    
-    if (supabase) {
-      await supabase.from('crm_leads').update(updates).eq('id', id);
+    if (lead.isVirtual) {
+      const { id: tempId, isVirtual: _, ...cleanLead } = lead;
+      const insertData = {
+        ...cleanLead,
+        ...updates,
+        funebooster: cleanLead.funebooster || user?.name || 'Inconnu'
+      };
 
-      if (field === 'observation' && value) {
-        await supabase.from('crm_observations_history').insert({ 
-          lead_id: id, 
-          observation_text: value, 
-          created_by: user?.name || 'Inconnu' 
-        });
+      if (supabase) {
+        const { data: insertedData, error: insertError } = await supabase
+          .from('crm_leads')
+          .insert([insertData])
+          .select();
+
+        if (insertError) {
+          console.error("Erreur de matérialisation du lead :", insertError);
+          alert("Erreur lors de l'enregistrement en base de données : " + insertError.message);
+          return;
+        }
+
+        if (insertedData && insertedData.length > 0) {
+          const newRealLead = insertedData[0];
+          setLeads(prev => prev.map(l => l.id === id ? newRealLead : l));
+
+          // Mémoriser l'ID pour le retrouver après actualisation même si filtres actifs l'excluent
+          try {
+            const recentKey = `crm_api_materialized_${activeTab}`;
+            const storedIds = JSON.parse(localStorage.getItem(recentKey) || '[]');
+            if (!storedIds.includes(newRealLead.id)) {
+              storedIds.push(newRealLead.id);
+              localStorage.setItem(recentKey, JSON.stringify(storedIds));
+            }
+          } catch (e) { console.warn('Erreur stockage ID lead API:', e); }
+
+          if (field === 'observation' && value) {
+            await supabase.from('crm_observations_history').insert({ 
+              lead_id: newRealLead.id, 
+              observation_text: value, 
+              created_by: user?.name || 'Inconnu' 
+            });
+          }
+        }
+      }
+    } else {
+      const updatedLead = { ...lead, ...updates };
+      setLeads(prev => { const newList = [...prev]; newList[leadIndex] = updatedLead; return newList; });
+      
+      if (supabase) {
+        await supabase.from('crm_leads').update(updates).eq('id', id);
+
+        if (field === 'observation' && value) {
+          await supabase.from('crm_observations_history').insert({ 
+            lead_id: id, 
+            observation_text: value, 
+            created_by: user?.name || 'Inconnu' 
+          });
+        }
       }
     }
   }, [leads, user]);
@@ -1230,6 +1485,16 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
             <Wand2 className={`w-5 h-5 ${enrichingId !== null ? 'animate-spin' : 'group-hover:rotate-12 transition-transform'}`} />
           </button>
           
+
+          <button 
+            onClick={fetchFromExternalApi}
+            disabled={fetchingApi}
+            className={`flex items-center gap-2 px-6 py-3.5 bg-purple-600/10 text-purple-600 hover:bg-purple-600 hover:text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-purple-600/5 group disabled:opacity-50 disabled:cursor-not-allowed`}
+            title="Rechercher de nouvelles entreprises via l'API nationale (nécessite un filtre NAF ou Département)"
+          >
+            <Sparkles className={`w-4 h-4 ${fetchingApi ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`} />
+            <span>MAGIC</span>
+          </button>
 
           <a href="https://quel-est-mon-opco.francecompetences.fr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3.5 bg-active text-white rounded-2xl text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-active/10 group">Vérif OPCO<ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>
           
@@ -1352,8 +1617,17 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
           user={user}
           permissions={user?.permissions}
           isDarkMode={isDarkMode}
+          activeTab={activeTab}
           onUpdate={(id, updates) => {
-            setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+            setLeads(prev => prev.map(l => {
+              if (l.id === id) {
+                if (updates.id && updates.id !== id) {
+                  return updates;
+                }
+                return { ...l, ...updates };
+              }
+              return l;
+            }));
           }}
         />
       )}

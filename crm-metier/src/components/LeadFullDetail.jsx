@@ -31,7 +31,7 @@ const formatNaf = (val) => {
   return val;
 };
 
-const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permissions, onUpdate, onLeadChange, isDarkMode, tableName = 'crm_leads' }) => {
+const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permissions, onUpdate, onLeadChange, isDarkMode, tableName = 'crm_leads', activeTab = '' }) => {
   const nativeKeys = [
     'lead_id', 'funebooster', 'nom_entreprise', 'gerant', 'siret', 
     'secteur_activite', 'libelle_activite', 'nom_opco', 'idcc', 
@@ -112,8 +112,50 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
       setNewNote('');
       return;
     }
+
+    let activeId = currentLeadId;
+
+    if (lead.isVirtual) {
+      try {
+        const { id: tempId, isVirtual: _, ...cleanLead } = lead;
+        const insertData = {
+          ...cleanLead,
+          funebooster: cleanLead.funebooster || user?.name || 'Inconnu',
+          date_modification: new Date().toISOString()
+        };
+
+        const { data: insertedData, error: insertError } = await supabase
+          .from('crm_leads')
+          .insert([insertData])
+          .select();
+
+        if (insertError) throw insertError;
+
+        if (insertedData && insertedData.length > 0) {
+          const newRealLead = insertedData[0];
+          activeId = newRealLead.id;
+          setCurrentLeadId(newRealLead.id);
+          if (onUpdate) onUpdate(tempId, newRealLead);
+
+          // Mémoriser l'ID pour le retrouver après actualisation même si filtres actifs l'excluent
+          try {
+            const recentKey = `crm_api_materialized_${activeTab}`;
+            const storedIds = JSON.parse(localStorage.getItem(recentKey) || '[]');
+            if (!storedIds.includes(newRealLead.id)) {
+              storedIds.push(newRealLead.id);
+              localStorage.setItem(recentKey, JSON.stringify(storedIds));
+            }
+          } catch (e) { console.warn('Erreur stockage ID lead API (note):', e); }
+        }
+      } catch (err) {
+        console.error("Erreur de matérialisation lors de l'ajout de note:", err);
+        alert("Impossible d'ajouter la note : erreur d'enregistrement du lead.");
+        return;
+      }
+    }
+
     const { error } = await supabase.from('crm_observations_history').insert([{
-      lead_id: currentLeadId,
+      lead_id: activeId,
       observation_text: newNote,
       created_by: user?.name || user?.email || 'Système'
     }]);
@@ -189,26 +231,68 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
         }
       }
 
-      const { error } = await supabase
-        .from(tableName)
-        .update(updates)
-        .eq('id', lead.id);
+      if (lead.isVirtual) {
+        const { id: tempId, isVirtual: _, ...cleanLead } = lead;
+        const insertData = {
+          ...cleanLead,
+          ...updates,
+          funebooster: cleanLead.funebooster || user?.name || 'Inconnu'
+        };
 
-      if (error) throw error;
+        const { data: insertedData, error: insertError } = await supabase
+          .from('crm_leads')
+          .insert([insertData])
+          .select();
 
-      // Also insert into history if it's an observation/comment
-      if (field === 'observation' && value) {
-        if (tableName === 'crm_leads') {
-          await supabase.from('crm_observations_history').insert([{
-            lead_id: lead.id,
-            observation_text: value,
-            created_by: user?.name || user?.email || 'Système'
-          }]);
-          fetchHistory();
+        if (insertError) throw insertError;
+
+        if (insertedData && insertedData.length > 0) {
+          const newRealLead = insertedData[0];
+          setCurrentLeadId(newRealLead.id);
+          
+          if (onUpdate) onUpdate(tempId, newRealLead);
+
+          // Mémoriser l'ID pour le retrouver après actualisation même si filtres actifs l'excluent
+          try {
+            const recentKey = `crm_api_materialized_${activeTab}`;
+            const storedIds = JSON.parse(localStorage.getItem(recentKey) || '[]');
+            if (!storedIds.includes(newRealLead.id)) {
+              storedIds.push(newRealLead.id);
+              localStorage.setItem(recentKey, JSON.stringify(storedIds));
+            }
+          } catch (e) { console.warn('Erreur stockage ID lead API (autosave):', e); }
+
+          if (field === 'observation' && value) {
+            await supabase.from('crm_observations_history').insert([{
+              lead_id: newRealLead.id,
+              observation_text: value,
+              created_by: user?.name || user?.email || 'Système'
+            }]);
+            fetchHistory();
+          }
         }
-      }
+      } else {
+        const { error } = await supabase
+          .from(tableName)
+          .update(updates)
+          .eq('id', lead.id);
 
-      if (onUpdate) onUpdate(lead.id, { ...lead, ...updates });
+        if (error) throw error;
+
+        // Also insert into history if it's an observation/comment
+        if (field === 'observation' && value) {
+          if (tableName === 'crm_leads') {
+            await supabase.from('crm_observations_history').insert([{
+              lead_id: lead.id,
+              observation_text: value,
+              created_by: user?.name || user?.email || 'Système'
+            }]);
+            fetchHistory();
+          }
+        }
+
+        if (onUpdate) onUpdate(lead.id, { ...lead, ...updates });
+      }
     } catch (error) {
       console.error('Auto-save error:', error);
     }

@@ -288,15 +288,17 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
           <span className="text-sm text-navy/60 whitespace-nowrap">
             {displayRaw || '—'}
           </span>
-          {!isLocked && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); setLocalEdit(true); }}
-              className="p-1 hover:bg-navy/5 rounded-md transition-all opacity-0 group-hover/tel:opacity-100 text-navy/20 hover:text-navy/50"
-              title="Modifier"
-            >
-              <Pencil className="w-3 h-3" />
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isLocked && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLocalEdit(true); }}
+                className="p-1 hover:bg-navy/5 rounded-md transition-all opacity-0 group-hover/tel:opacity-100 text-navy/20 hover:text-navy/50"
+                title="Modifier"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
       );
     }
