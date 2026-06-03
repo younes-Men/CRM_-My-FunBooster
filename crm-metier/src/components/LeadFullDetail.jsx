@@ -14,6 +14,18 @@ import opcoMapping from '../data/opco_mapping.json';
 import secteurMapping from '../data/secteur_mapping.json';
 import StatusConfigModal from './StatusConfigModal';
 
+const slugify = (text) => {
+  return (text || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-');
+};
+
 const formatNaf = (val) => {
   if (!val) return val;
   const clean = String(val).toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -306,6 +318,12 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
   };
 
   const getLeadValue = (key) => {
+    if (key === 'pappers') {
+      const slug = slugify(lead?.nom_entreprise || '');
+      const siren = (lead?.siret || '').substring(0, 9);
+      return `https://www.pappers.fr/entreprise/${slug}-${siren}`;
+    }
+    
     let val = lead[key];
     // Check both root and custom_fields, and handle empty strings/placeholder
     if (val === undefined || val === null || val === '' || val === '---' || val === '-') {
@@ -463,7 +481,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div className="flex flex-col items-center min-w-[100px]">
-              <span className="text-[10px] font-black text-navy/20 uppercase tracking-widest leading-none">Lead</span>
+              <span className="text-[10px] font-black text-navy uppercase tracking-widest leading-none">Lead</span>
               <span className="text-sm font-black text-navy tracking-tighter">{currentIndex + 1} / {leads.length}</span>
             </div>
             <button 
@@ -670,7 +688,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                 className={`w-full h-[calc(100vh-250px)] p-6 bg-navy/[0.02] border border-navy/10 rounded-[2rem] text-sm focus:outline-none focus:border-primary/30 transition-all resize-none font-medium leading-relaxed ${isLocked ? 'cursor-not-allowed opacity-50' : ''}`}
               />
               <div className="flex items-center justify-between px-4">
-                <span className="text-[9px] font-bold text-navy/20 uppercase">Enregistrement automatique</span>
+                <span className="text-[9px] font-bold text-navy uppercase">Enregistrement automatique</span>
                 <div className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                   <span className="text-[9px] font-bold text-green-600 uppercase">Synchronisé</span>
@@ -715,7 +733,7 @@ const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
     'repondeur':            { bg: '#475569', text: '#fff' },
     'signe':                { bg: '#ff007f', text: '#fff' },
     'à renseigner':         { bg: isDarkMode ? '#1a1a1a' : '#e2e8f0', text: isDarkMode ? '#475569' : '#475569' },
-    'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#94a3b8' : '#94a3b8' }
+    'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#cbd5e1' : '#0f172a' }
   };
   if (!raw) return STATUS_COLORS['default'];
   const key = raw.toLowerCase().trim();
@@ -725,7 +743,13 @@ const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
     const match = dynamicOptions.find(opt => opt.split('::')[0].toLowerCase().trim() === key);
     if (match && match.includes('::')) {
       const parts = match.split('::');
-      return { bg: parts[1], text: '#fff' };
+      const color = parts[1] || '';
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16) || 0;
+      const g = parseInt(hex.substr(2, 2), 16) || 0;
+      const b = parseInt(hex.substr(4, 2), 16) || 0;
+      const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+      return { bg: color, text: yiq >= 170 ? '#000' : '#fff' };
     }
   }
 
@@ -848,7 +872,7 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
   return (
     <div className="flex items-start gap-4 group/field">
       <div className="w-32 flex items-center gap-1 shrink-0 pt-1.5">
-        <span className="text-[10px] font-black text-navy/20 uppercase tracking-widest">{label}</span>
+        <span className="text-[10px] font-black text-navy uppercase tracking-widest">{label}</span>
         {isAdmin && options && (
           <button 
             onClick={(e) => { e.stopPropagation(); onConfigure(); }}
@@ -860,9 +884,22 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
       </div>
       <div className="flex-1 min-w-0">
         {(readOnly || (disabled && !isEditing)) ? (
-          <div className={`py-1 text-sm font-bold ${disabled ? 'text-navy/30 cursor-not-allowed' : 'text-navy/60'} ${isMono ? 'font-mono tracking-tighter' : ''}`}>
+          name === 'pappers' && isUrl ? (
+            <a 
+              href={value} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-blue-500 text-[10px] font-bold uppercase tracking-wider transition-all group shadow-sm active:scale-95"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Pappers
+              <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </a>
+          ) : (
+          <div className={`py-1 text-sm font-bold ${disabled ? 'text-navy/40 cursor-not-allowed' : 'text-navy'} ${isMono ? 'font-mono tracking-tighter' : ''}`}>
             {value || '—'}
           </div>
+          )
         ) : options ? (
           <CustomDropdown 
             value={matchedValue} 

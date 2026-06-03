@@ -57,7 +57,7 @@ const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
     'go conseils':          { bg: isDarkMode ? '#052e16' : '#f0fdf4', text: isDarkMode ? '#bbf7d0' : '#15803d' },
     'hors zone':            { bg: isDarkMode ? '#500724' : '#fdf2f8', text: isDarkMode ? '#fbcfe8' : '#be185d' },
     'it performance':       { bg: isDarkMode ? '#422006' : '#fefce8', text: isDarkMode ? '#fef08a' : '#a16207' },
-    'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#64748b' : '#94a3b8' }
+    'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#cbd5e1' : '#0f172a' }
   };
   
   if (!raw) return STATUS_COLORS['à renseigner'] || STATUS_COLORS['default'];
@@ -68,8 +68,13 @@ const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
     const match = dynamicOptions.find(opt => opt.split('::')[0].toLowerCase().trim() === key);
     if (match && match.includes('::')) {
       const parts = match.split('::');
-      const color = parts[1];
-      return { bg: color, text: '#fff' }; // Default to white text for custom colors
+      const color = parts[1] || '';
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16) || 0;
+      const g = parseInt(hex.substr(2, 2), 16) || 0;
+      const b = parseInt(hex.substr(4, 2), 16) || 0;
+      const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+      return { bg: color, text: yiq >= 170 ? '#000' : '#fff' };
     }
   }
 
@@ -332,7 +337,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
             API
           </span>
         )}
-        <span className={['truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy/70'].join(' ')} title={displayRaw}>{displayRaw}</span>
+        <span className={['truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy font-medium'].join(' ')} title={displayRaw}>{displayRaw}</span>
         {!lead.isVirtual && lead.siret && lead.siret !== '---' && (
           <button 
             onClick={(e) => { e.stopPropagation(); enrichLead(lead.id, lead.siret); }}
@@ -378,7 +383,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     const cfg = getStatusStyle(raw, isDarkMode, col.options);
     return <CustomSelect value={raw} options={col.options} onChange={(val) => handleUpdate(lead.id, col.key, val, col.is_custom)} colorCfg={cfg} isDarkMode={isDarkMode} disabled={isLocked} />;
   }
-  if (col.type === 'date') return <span className="flex items-center gap-1.5 text-navy/40 text-xs whitespace-nowrap"><Clock className="w-3 h-3 flex-shrink-0" />{formatDate(raw)}</span>;
+  if (col.type === 'date') return <span className="flex items-center gap-1.5 text-navy font-medium text-xs whitespace-nowrap"><Clock className="w-3 h-3 flex-shrink-0" />{formatDate(raw)}</span>;
   if (col.type === 'pappers') {
     const slug = slugify(lead.nom_entreprise || '');
     const siren = (lead.siret || '').substring(0, 9);
@@ -418,7 +423,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     if (isPhone && !localEdit) {
       return (
         <div className="flex items-center justify-between group/tel w-full px-2 py-1.5">
-          <span className="text-sm text-navy/60 whitespace-nowrap">
+          <span className="text-sm text-navy font-medium whitespace-nowrap">
             {displayRaw || '—'}
           </span>
           {!isLocked && (
@@ -447,12 +452,12 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
           }
         }} 
         onKeyDown={e => e.key === 'Enter' && e.target.blur()}
-        className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy/60 focus:text-navy'}`}
+        className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy font-medium focus:text-navy'}`}
         placeholder="—" 
       />
     );
   }
-  if (col.type === 'number') return <input type="number" disabled={isLocked} defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy/60 focus:text-navy'}`} placeholder="0" />;
+  if (col.type === 'number') return <input type="number" disabled={isLocked} defaultValue={raw || ''} onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy font-medium focus:text-navy'}`} placeholder="0" />;
   if (col.type === 'currency' || col.type === 'auto_currency') {
     const isAuto = col.type === 'auto_currency';
     let displayValue = raw;
@@ -463,7 +468,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     }
     return (
       <div className="flex items-center gap-1 group/currency">
-        <input type="number" readOnly={isAuto} disabled={isLocked} defaultValue={displayValue || ''} onBlur={e => { if (!isAuto && e.target.value !== String(raw || '')) handleUpdate(lead.id, col.key, e.target.value, col.is_custom); }} className={`w-full px-2 py-1.5 bg-transparent ${isAuto || isLocked ? '' : 'hover:bg-card border border-transparent hover:border-navy/10 focus:bg-card focus:border-primary'} focus:outline-none rounded-lg text-navy/60 text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''} ${isLocked ? 'cursor-not-allowed text-navy/40' : ''}`} placeholder="0.00" />
+        <input type="number" readOnly={isAuto} disabled={isLocked} defaultValue={displayValue || ''} onBlur={e => { if (!isAuto && e.target.value !== String(raw || '')) handleUpdate(lead.id, col.key, e.target.value, col.is_custom); }} className={`w-full px-2 py-1.5 bg-transparent ${isAuto || isLocked ? '' : 'hover:bg-card border border-transparent hover:border-navy/10 focus:bg-card focus:border-primary'} focus:outline-none rounded-lg text-navy font-medium text-sm focus:text-navy transition-all placeholder:text-navy/20 ${isAuto ? 'cursor-default font-medium text-primary' : ''} ${isLocked ? 'cursor-not-allowed text-navy/40' : ''}`} placeholder="0.00" />
         <span className="text-[10px] font-bold text-navy/30 pr-1">€</span>
       </div>
     );
@@ -529,7 +534,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
       if (col.key === 'code_postal') { const cpMatch = lead.adresse.match(/\b\d{5}\b/); if (cpMatch) displayValue = cpMatch[0]; }
       else if (col.key === 'code_departement') { const cpMatch = lead.adresse.match(/\b\d{5}\b/); if (cpMatch) displayValue = cpMatch[0].substring(0, 2); }
     }
-    return <span className={`${!raw && displayValue ? 'text-primary' : 'text-navy/40'} text-xs italic font-medium`}>{displayValue || 'auto'}</span>;
+    return <span className={`${!raw && displayValue ? 'text-primary' : 'text-navy font-medium'} text-xs italic`}>{displayValue || 'auto'}</span>;
   }
   let displayVal = displayRaw;
   if (col.key === 'lead_id') displayVal = (lead.status?.toUpperCase() === 'RDV' && raw) ? `D-${String(raw).padStart(5, '0')}` : '—';
@@ -560,7 +565,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     );
   }
 
-  return <span className={[(col.key === 'siret' || col.key === 'lead_id') ? 'block text-xs font-bold' : 'truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy/70', col.mono ? 'font-mono tracking-tighter text-navy/90' : ''].join(' ')} title={displayVal || ''}>{displayVal || '—'}</span>;
+  return <span className={[(col.key === 'siret' || col.key === 'lead_id') ? 'block text-xs font-bold' : 'truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy font-medium', col.mono ? 'font-mono tracking-tighter text-navy/90' : ''].join(' ')} title={displayVal || ''}>{displayVal || '—'}</span>;
 });
 
 const TableRow = React.memo(({ data, index, style }) => {

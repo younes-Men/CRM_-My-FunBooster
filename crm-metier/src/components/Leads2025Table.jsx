@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabase';
 import LeadFullDetail from './LeadFullDetail';
 
 // Status colors and styles tailored for 2025 and 2026
-const getStatusStyle = (raw, isDarkMode) => {
+const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
   const key = String(raw || '').toLowerCase().trim();
   
   const STATUS_COLORS = {
@@ -55,9 +55,23 @@ const getStatusStyle = (raw, isDarkMode) => {
     'visio confirmée':      { bg: '#0891b2', text: '#fff' },
     'rdv à confirmer':      { bg: '#facc15', text: '#451a03' },
     
-    'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#64748b' : '#94a3b8' }
+    'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#cbd5e1' : '#0f172a' }
   };
-  
+  // Check dynamic options (format: "LABEL::COLOR" or "LABEL::COLOR::VISIBILITY")
+  if (dynamicOptions && dynamicOptions.length > 0) {
+    const match = dynamicOptions.find(opt => opt.split('::')[0].toLowerCase().trim() === key);
+    if (match && match.includes('::')) {
+      const parts = match.split('::');
+      const color = parts[1] || '';
+      const hex = color.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16) || 0;
+      const g = parseInt(hex.substr(2, 2), 16) || 0;
+      const b = parseInt(hex.substr(4, 2), 16) || 0;
+      const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+      return { bg: color, text: yiq >= 170 ? '#000' : '#fff' };
+    }
+  }
+
   return STATUS_COLORS[key] || STATUS_COLORS['default'];
 };
 
@@ -186,7 +200,7 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg, isDarkMod
                 return !isHidden || label === value;
               }).map((opt) => {
                 const label = opt.split('::')[0];
-                const cfg = getStatusStyle(label, isDarkMode);
+                const cfg = getStatusStyle(label, isDarkMode, options);
                 return (
                   <button 
                     key={opt} 
@@ -257,7 +271,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
   }
 
   if (col.type === 'select' || col.type === 'status') {
-    const cfg = getStatusStyle(raw, isDarkMode);
+    const cfg = getStatusStyle(raw, isDarkMode, col.options);
     return <CustomSelect value={raw} options={col.options} onChange={(val) => handleUpdate(lead.id, col.key, val, col.is_custom)} colorCfg={cfg} isDarkMode={isDarkMode} disabled={isLocked} />;
   }
 
@@ -285,7 +299,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
     if (isPhone && !localEdit) {
       return (
         <div className="flex items-center justify-between group/tel w-full px-2 py-1.5">
-          <span className="text-sm text-navy/60 whitespace-nowrap">
+          <span className="text-sm text-navy font-medium whitespace-nowrap">
             {displayRaw || '—'}
           </span>
           <div className="flex items-center gap-2">
@@ -317,7 +331,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
           }
         }} 
         onKeyDown={e => e.key === 'Enter' && e.target.blur()}
-        className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy/60 focus:text-navy'}`}
+        className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy font-medium focus:text-navy'}`}
         placeholder="—" 
       />
     );
@@ -330,7 +344,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
         disabled={isLocked} 
         defaultValue={raw || ''} 
         onBlur={e => e.target.value !== String(raw || '') && handleUpdate(lead.id, col.key, e.target.value, col.is_custom)} 
-        className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy/60 focus:text-navy'}`} 
+        className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy font-medium focus:text-navy'}`} 
         placeholder="—" 
       />
     );
@@ -339,7 +353,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
   return (
     <span 
       className={[
-        col.mono ? 'font-mono tracking-tighter text-navy/90 text-xs' : 'text-sm text-navy/70',
+        col.mono ? 'font-mono tracking-tighter text-navy/90 text-xs' : 'text-sm text-navy font-medium',
         'truncate block'
       ].join(' ')} 
       title={displayRaw || ''}
