@@ -94,21 +94,21 @@ const slugify = (text) => {
 };
 
 const COLUMNS = [
-  { label: 'Funbooster',   key: 'funebooster',       width: 160, type: 'select', options: [
+  { label: 'Funbooster',   key: 'funebooster',       width: 220, type: 'select', options: [
     'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA'
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
   { label: 'Téléphone',    key: 'tel',               width: 180, type: 'editable' },
-  { label: 'Statut',       key: 'status',            width: 180, type: 'select', options: [
+  { label: 'Statut',       key: 'status',            width: 200, type: 'select', options: [
     'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
   ]},
-  { label: 'Opco',         key: 'nom_opco',          width: 150, type: 'select', options: [
+  { label: 'Opco',         key: 'nom_opco',          width: 200, type: 'select', options: [
     'OPCOMMERCE', 'OPCO EP', 'OPCO AKTO', 'OPCO ATLAS', 'AFDAS', 'CONSTRUCTYS', 
     'MOBILITÉ', 'OPCO 2i', 'UNIFORMATION', 'OPCO SANTÉ', 'OCAPIAT'
   ]},
-  { label: 'Client OF',    key: 'client_of',         width: 180, type: 'select', options: [
+  { label: 'Client OF',    key: 'client_of',         width: 220, type: 'select', options: [
     'CA CONSEILS', 'HORS ZONE', 'TB FORMATIONS', 'IT PERFORMANCE', 'GO CONSEILS'
   ]},
   { label: 'Opcosign',     key: 'opcosign',          width: 180, type: 'editable' },
@@ -123,12 +123,12 @@ const COLUMNS = [
   { label: 'Adresse',      key: 'adresse',           width: 260, type: 'editable' },
   { label: 'Code Postal',  key: 'code_postal',       width: 100, type: 'auto' },
   { label: 'Code Dépt.',   key: 'code_departement',  width: 100, type: 'auto' },
-  { label: 'Statut RDV',   key: 'status_rdv',        width: 180, type: 'select', options: [
+  { label: 'Statut RDV',   key: 'status_rdv',        width: 200, type: 'select', options: [
     'Nouveau', 'RAP', 'Proposition', 'Signé', 'PEC', 'Gagné', 'ORGANISÉ'
   ]},
   { label: 'E-mail',       key: 'email',             width: 200, type: 'editable' },
   { label: 'Site Web',     key: 'site_web',          width: 180, type: 'editable' },
-  { label: 'Statut Gérant', key: 'statut_gerant',     width: 150, type: 'select', options: ['TNS', '2 TNS', 'GÉRANT SALARIÉ', '2 GÉRANTS SALARIÉS'] },
+  { label: 'Statut Gérant', key: 'statut_gerant',     width: 200, type: 'select', options: ['TNS', '2 TNS', 'GÉRANT SALARIÉ', '2 GÉRANTS SALARIÉS'] },
   { label: 'Nb Salariés',  key: 'nb_salaries',       width: 100, type: 'number' },
   { label: 'Nb Apprentis', key: 'nb_apprentis',      width: 110, type: 'number' },
   { label: 'Date Modif',   key: 'date_modification', width: 150, type: 'date' },
@@ -136,18 +136,18 @@ const COLUMNS = [
   { label: 'Année Budget', key: 'annee_budget',      width: 110, type: 'number' },
   { label: 'Date RDV',     key: 'date_rdv',          width: 130, type: 'date_picker' },
   { label: 'Heure RDV',    key: 'heure_rdv',         width: 100, type: 'time' },
-  { label: 'Type RDV',     key: 'type_rdv',          width: 130, type: 'select', options: ['TÉLÉPHONIQUE', 'PHYSIQUE'] },
-  { label: 'RDV Honoré ?', key: 'rdv_honore',        width: 120, type: 'select', options: ['OUI', 'NON'] },
-  { label: 'Proposition',  key: 'proposition',       width: 120, type: 'select', options: ['OUI', 'NON', 'EN COURS'] },
-  { label: 'Signé',        key: 'signe',             width: 120, type: 'select', options: ['OUI', 'NON', 'EN COURS'] },
+  { label: 'Type RDV',     key: 'type_rdv',          width: 160, type: 'select', options: ['TÉLÉPHONIQUE', 'PHYSIQUE'] },
+  { label: 'RDV Honoré ?', key: 'rdv_honore',        width: 160, type: 'select', options: ['OUI', 'NON'] },
+  { label: 'Proposition',  key: 'proposition',       width: 160, type: 'select', options: ['OUI', 'NON', 'EN COURS'] },
+  { label: 'Signé',        key: 'signe',             width: 160, type: 'select', options: ['OUI', 'NON', 'EN COURS'] },
   { label: 'Date Sign',    key: 'date_signe',        width: 130, type: 'date_picker' },
   { label: 'CA Signé HT',  key: 'ca_signe_ht',       width: 120, type: 'currency' },
   { label: 'Nb Heures',    key: 'nb_heures_formation', width: 100, type: 'number' },
   { label: 'TX Horaire',   key: 'tx_horaire_ca',     width: 120, type: 'auto_currency' },
-  { label: 'Campagne',     key: 'campagne_act',      width: 150, type: 'select', options: ['CONQUÊTE', 'FIDÉLISATION', 'RE-CONQUÊTE'] },
-  { label: 'PEC',          key: 'pec',               width: 120, type: 'select', options: ['OUI', 'NON'] },
+  { label: 'Campagne',     key: 'campagne_act',      width: 180, type: 'select', options: ['CONQUÊTE', 'FIDÉLISATION', 'RE-CONQUÊTE'] },
+  { label: 'PEC',          key: 'pec',               width: 160, type: 'select', options: ['OUI', 'NON'] },
   { label: 'Échéances PEC', key: 'echeances_pec',     width: 200, type: 'pec_dates' },
-  { label: 'Suivi Form.',  key: 'suivi_formation',   width: 150, type: 'select', options: ['PLANIFIÉE', 'ORGANISÉE', 'EN COURS', 'TERMINÉE'] },
+  { label: 'Suivi Form.',  key: 'suivi_formation',   width: 180, type: 'select', options: ['PLANIFIÉE', 'ORGANISÉE', 'EN COURS', 'TERMINÉE'] },
   { label: 'Commentaires', key: 'observation',       width: 260, type: 'editable' },
 ];
 const PAGE_SIZE = 100;
@@ -212,9 +212,9 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg, isDarkMod
         disabled={disabled}
         onClick={(e) => { e.stopPropagation(); if (disabled) return; if (!isOpen) setRect(containerRef.current.getBoundingClientRect()); setIsOpen(!isOpen); }}
         style={{ backgroundColor: colorCfg.bg, color: colorCfg.text }}
-        className={`w-full pl-2 pr-5 py-1.5 rounded-lg font-black uppercase tracking-tight flex items-center justify-between shadow-sm group/btn transition-all ${disabled ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.98]'} min-h-[28px] relative overflow-hidden`}
+        className={`w-full px-2 py-1.5 rounded-lg font-medium text-sm flex items-center justify-between shadow-sm group/btn transition-all ${disabled ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.98]'} min-h-[28px] relative overflow-hidden`}
       >
-        <span className={`whitespace-nowrap leading-none ${value && value.length > 10 ? 'text-[8.5px]' : 'text-[10px]'}`}>{value || 'CHOISIR'}</span>
+        <span className="truncate block">{value || 'CHOISIR'}</span>
         <div className="flex-shrink-0 ml-1 opacity-40 group-hover/btn:opacity-100 transition-all">
           <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
@@ -337,7 +337,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
             API
           </span>
         )}
-        <span className={['truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy font-medium'].join(' ')} title={displayRaw}>{displayRaw}</span>
+        <span className="truncate block text-sm text-navy font-medium" title={displayRaw}>{displayRaw}</span>
         {!lead.isVirtual && lead.siret && lead.siret !== '---' && (
           <button 
             onClick={(e) => { e.stopPropagation(); enrichLead(lead.id, lead.siret); }}
@@ -371,7 +371,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
   if (col.key === 'siret' && raw) {
     return (
       <div className="flex items-center gap-2 group/siret min-w-0 pr-2">
-        <span className="text-sm font-bold text-navy/90 font-mono tracking-tighter whitespace-nowrap">{raw}</span>
+        <span className="truncate block text-sm text-navy font-medium">{raw}</span>
         <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(raw); setCopied(true); setTimeout(() => setCopied(false), 2000); }} title="Copier le SIRET" className="p-1 hover:bg-navy/5 rounded-md transition-all opacity-0 group-hover/siret:opacity-100 flex-shrink-0 hover:scale-110 active:scale-95">
           {copied ? <Check className="w-3.5 h-3.5 text-green-500 animate-in zoom-in duration-200" /> : <Copy className="w-3.5 h-3.5 text-navy/20 hover:text-navy/50 transition-colors" />}
         </button>
@@ -565,7 +565,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     );
   }
 
-  return <span className={[(col.key === 'siret' || col.key === 'lead_id') ? 'block text-xs font-bold' : 'truncate block text-sm', col.bold ? 'text-navy font-bold' : 'text-navy font-medium', col.mono ? 'font-mono tracking-tighter text-navy/90' : ''].join(' ')} title={displayVal || ''}>{displayVal || '—'}</span>;
+  return <span className="truncate block text-sm text-navy font-medium" title={displayVal || ''}>{displayVal || '—'}</span>;
 });
 
 const TableRow = React.memo(({ data, index, style }) => {
@@ -973,7 +973,7 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
           const baseCol = COLUMNS.find(oc => oc.key === c.key);
           return {
             ...c,
-            width: (c.key === 'tel' || c.key === 'mobile') ? 180 : (c.key === 'gerant' ? 300 : (c.width || baseCol?.width || 150)),
+            width: (c.key === 'tel' || c.key === 'mobile') ? 180 : (c.key === 'gerant' ? 300 : Math.max(c.width || 0, baseCol?.width || 150)),
             label: c.label || baseCol?.label,
             type: c.type || baseCol?.type || 'text',
             options: c.options || baseCol?.options

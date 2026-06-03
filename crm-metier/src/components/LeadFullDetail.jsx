@@ -481,7 +481,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div className="flex flex-col items-center min-w-[100px]">
-              <span className="text-[10px] font-black text-navy uppercase tracking-widest leading-none">Lead</span>
+              <span className="text-sm font-medium text-navy">Lead</span>
               <span className="text-sm font-black text-navy tracking-tighter">{currentIndex + 1} / {leads.length}</span>
             </div>
             <button 
@@ -663,14 +663,14 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
         {/* Right Side: Dedicated Commentary */}
         <div className="w-[400px] bg-background flex flex-col shrink-0 border-l border-navy/5">
           <div className="h-14 border-b border-navy/5 flex items-center px-6 bg-card shrink-0">
-            <h3 className="text-[10px] font-black text-navy uppercase tracking-[0.2em]">Commentaires</h3>
+            <h3 className="text-sm font-medium text-navy">Commentaires</h3>
           </div>
 
           <div className="flex-1 p-6 bg-card overflow-y-auto custom-scrollbar">
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-navy/30">
                 <MessageSquare className="w-4 h-4" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Note sur l'entreprise</span>
+                <span className="text-sm font-medium text-navy">Note sur l'entreprise</span>
               </div>
               <textarea
                 value={localComment}
@@ -761,7 +761,7 @@ const SectionTitle = ({ icon: Icon, label }) => (
     <div className="w-8 h-8 rounded-xl bg-navy/5 flex items-center justify-center text-navy/40">
       <Icon className="w-4 h-4" />
     </div>
-    <h3 className="text-xs font-black text-navy uppercase tracking-widest">{label}</h3>
+    <h3 className="text-sm font-medium text-navy">{label}</h3>
   </div>
 );
 
@@ -784,13 +784,13 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "â€” CHOISIR â
       <button
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full min-w-[140px] px-3 py-1.5 border border-navy/5 rounded-lg transition-all shadow-sm ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+        className={`w-full text-left px-3 py-1.5 rounded-xl text-sm font-medium flex items-center justify-between transition-all shadow-sm ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
         style={{ 
           backgroundColor: value ? getStatusStyle(value, isDarkMode, options).bg : 'transparent', 
           color: value ? getStatusStyle(value, isDarkMode, options).text : 'inherit' 
         }}
       >
-        <span className="text-[10px] font-black uppercase tracking-widest truncate mr-2">
+        <span className="truncate mr-2">
           {(value || placeholder).split('::')[0]}
         </span>
         <ChevronDown 
@@ -872,7 +872,7 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
   return (
     <div className="flex items-start gap-4 group/field">
       <div className="w-32 flex items-center gap-1 shrink-0 pt-1.5">
-        <span className="text-[10px] font-black text-navy uppercase tracking-widest">{label}</span>
+        <span className="text-sm font-medium text-navy">{label}</span>
         {isAdmin && options && (
           <button 
             onClick={(e) => { e.stopPropagation(); onConfigure(); }}

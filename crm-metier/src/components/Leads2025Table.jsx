@@ -119,28 +119,29 @@ const isLeadLocked = (lead, user) => {
 
 const COLUMNS = [
   { label: 'Année Act.',   key: 'annee_act',         width: 130, type: 'number' },
-  { label: 'Funbooster',   key: 'funebooster',       width: 160, type: 'select', options: [
+  { label: 'Funbooster',   key: 'funebooster',       width: 220, type: 'select', options: [
     'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA'
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
   { label: 'Téléphone',    key: 'tel',               width: 180, type: 'editable' },
   { label: 'Mobile',       key: 'mobile',            width: 180, type: 'editable' },
-  { label: 'Statut 2026',  key: 'statut_2026',       width: 180, type: 'select', options: [
+  { label: 'Statut 2026',  key: 'statut_2026',       width: 200, type: 'select', options: [
     'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
   ]},
-  { label: 'Statut 2025',  key: 'statut_2025',       width: 180, type: 'select', options: [
+  { label: 'Statut 2025',  key: 'statut_2025',       width: 200, type: 'select', options: [
     'A TRAITER', 'BLOQUÉ ARCHIVE', 'RDV ANNULÉ', 'NON SIGNÉ', 'À RELANCER', 'À RELANCER N+1', 
     'PROPOSITION', 'RDV CONFIRMÉ', 'MAIL ENVOYÉ', 'RAP', 'PLUS DE BUDGET OPCO', 
     'RAP POUR CONF', 'TEL CONFIRMÉ', 'RDV VISIO', 'PAS DE RETOUR', 'SIGN ANNULÉ', 
     'PAS ASSEZ DE BUDGET', 'VISIO CONFIRMÉE', 'RDV À CONFIRMER', 'TNS', 'REPONDEUR', 'NRP', 'OCCUPÉ'
   ]},
-  { label: 'Opco',         key: 'nom_opco',          width: 150, type: 'select', options: [
+  { label: 'PEC',          key: 'pec',               width: 160, type: 'select', options: ['OUI', 'NON'] },
+  { label: 'Opco',         key: 'nom_opco',          width: 200, type: 'select', options: [
     'OPCOMMERCE', 'OPCO EP', 'OPCO AKTO', 'OPCO ATLAS', 'AFDAS', 'CONSTRUCTYS', 
     'MOBILITÉ', 'OPCO 2i', 'UNIFORMATION', 'OPCO SANTÉ', 'OCAPIAT'
   ]},
-  { label: 'Client OF',    key: 'client_of',         width: 180, type: 'select', options: [
+  { label: 'Client OF',    key: 'client_of',         width: 220, type: 'select', options: [
     'CA CONSEILS', 'TB FORMATIONS', 'GO CONSEILS', 'IT PERFORMANCE', 'HORS ZONE'
   ]},
   { label: 'Opcosign',     key: 'opcosign',          width: 180, type: 'select', options: [
@@ -180,9 +181,9 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg, isDarkMod
         disabled={disabled}
         onClick={(e) => { e.stopPropagation(); if (disabled) return; if (!isOpen) setRect(containerRef.current.getBoundingClientRect()); setIsOpen(!isOpen); }}
         style={{ backgroundColor: colorCfg.bg, color: colorCfg.text }}
-        className={`w-full pl-2 pr-5 py-1.5 rounded-lg font-black uppercase tracking-tight flex items-center justify-between shadow-sm group/btn transition-all ${disabled ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.98]'} min-h-[28px] relative overflow-hidden`}
+        className={`w-full px-2 py-1.5 rounded-lg font-medium text-sm flex items-center justify-between shadow-sm group/btn transition-all ${disabled ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.98]'} min-h-[28px] relative overflow-hidden`}
       >
-        <span className={`whitespace-nowrap leading-none ${value && value.length > 10 ? 'text-[8.5px]' : 'text-[10px]'}`}>{value || 'CHOISIR'}</span>
+        <span className="truncate block">{value || 'CHOISIR'}</span>
         <div className="flex-shrink-0 ml-1 opacity-40 group-hover/btn:opacity-100 transition-all">
           <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
         </div>
@@ -245,7 +246,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
   if (col.key === 'nom_entreprise') {
     return (
       <div className="flex items-center gap-2 group/ent min-w-0 pr-2">
-        <span className="truncate block text-sm text-navy font-bold" title={displayRaw}>{displayRaw}</span>
+        <span className="truncate block text-sm text-navy font-medium" title={displayRaw}>{displayRaw}</span>
       </div>
     );
   }
@@ -253,7 +254,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
   if (col.key === 'siret' && raw) {
     return (
       <div className="flex items-center gap-2 group/siret min-w-0 pr-2">
-        <span className="text-xs font-bold text-navy/90 font-mono tracking-tighter whitespace-nowrap">{raw}</span>
+        <span className="truncate block text-sm text-navy font-medium">{raw}</span>
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
@@ -352,10 +353,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
 
   return (
     <span 
-      className={[
-        col.mono ? 'font-mono tracking-tighter text-navy/90 text-xs' : 'text-sm text-navy font-medium',
-        'truncate block'
-      ].join(' ')} 
+      className="truncate block text-sm text-navy font-medium"
       title={displayRaw || ''}
     >
       {displayRaw || '—'}
