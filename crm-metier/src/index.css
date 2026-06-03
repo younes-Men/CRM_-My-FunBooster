@@ -55,12 +55,18 @@ body {
   width: 6px;
   height: 6px;
 }
+.custom-scrollbar::-webkit-scrollbar:horizontal {
+  height: 10px;
+}
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(14, 27, 77, 0.1);
   border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:horizontal {
+  background: var(--color-primary);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary);

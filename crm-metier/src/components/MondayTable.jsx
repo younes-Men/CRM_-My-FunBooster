@@ -99,7 +99,7 @@ const COLUMNS = [
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
-  { label: 'Téléphone',    key: 'tel',               width: 180, type: 'editable' },
+  { label: 'Téléphone',    key: 'tel',               width: 250, type: 'editable' },
   { label: 'Statut',       key: 'status',            width: 200, type: 'select', options: [
     'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
@@ -394,21 +394,62 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
     const isPhone = col.key === 'tel' || col.key === 'mobile';
     const isValUrl = typeof displayRaw === 'string' && (displayRaw.startsWith('http://') || displayRaw.startsWith('https://'));
     
-    // Si c'est un lien, on l'affiche en priorité comme un lien cliquable
+    // Si c'est un lien dans tel/mobile → 2 boutons (Phone + DataLegal)
+    if (isValUrl && isPhone && !localEdit) {
+      const siren = String(lead.siret || '').replace(/\s+/g, '').substring(0, 9);
+      const dataLegalUrl = siren ? `https://datalegal.fr/entreprises/${siren}/` : null;
+      return (
+        <div className="flex items-center gap-2 group/telbtn">
+          <a
+            href={displayRaw}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title={displayRaw}
+            className="flex items-center justify-center gap-1.5 px-3 py-1 bg-navy/5 hover:bg-primary/10 border border-navy/10 hover:border-primary/30 rounded-lg text-navy hover:text-primary text-xs font-medium transition-all shadow-sm active:scale-95 whitespace-nowrap w-fit"
+          >
+            📞 Phone
+          </a>
+          {dataLegalUrl && (
+            <a
+              href={dataLegalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title={`DataLegal — SIREN ${siren}`}
+              className="flex items-center justify-center gap-1.5 px-3 py-1 bg-navy/5 hover:bg-blue-500/10 border border-navy/10 hover:border-blue-400/30 rounded-lg text-navy hover:text-blue-500 text-xs font-medium transition-all shadow-sm active:scale-95 whitespace-nowrap w-fit"
+            >
+              📞 Phone 2
+            </a>
+          )}
+          {!isLocked && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleUpdate(lead.id, col.key, '', col.is_custom); }}
+              className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg opacity-0 group-hover/telbtn:opacity-100 transition-all shadow-sm ml-1"
+              title="Supprimer le lien"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // Si c'est un lien générique (non-téléphone) → affichage lien rose classique
     if (isValUrl) {
       return (
         <div className="flex items-center gap-2 group/url min-w-0">
-          <a 
-            href={displayRaw} 
-            target="_blank" 
-            rel="noopener noreferrer" 
+          <a
+            href={displayRaw}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex-1 flex items-center gap-1.5 text-primary hover:text-primary-dark font-medium transition-colors group/link min-w-0"
             onClick={(e) => e.stopPropagation()}
           >
             <span className="truncate block text-sm" title={displayRaw}>{displayRaw}</span>
             <ExternalLink className="w-3 h-3 flex-shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
           </a>
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); handleUpdate(lead.id, col.key, '', col.is_custom); }}
             className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg opacity-0 group-hover/url:opacity-100 transition-all shadow-sm flex-shrink-0"
             title="Supprimer le lien"
@@ -418,6 +459,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
         </div>
       );
     }
+
 
     // Si c'est un téléphone, on l'affiche en texte brut (pour Ringover) avec le style original
     if (isPhone && !localEdit) {
@@ -438,22 +480,27 @@ const TableCell = React.memo(({ lead, col, handleUpdate, isActive, activePicker,
         </div>
       );
     }
+    const isUrlMode = isPhone && isValUrl;
     return (
       <input 
         type="text" 
         autoFocus={localEdit}
         key={`${lead.id}-${col.key}-${displayRaw}`} 
-        defaultValue={displayRaw || ''} 
+        defaultValue={isUrlMode ? '' : (displayRaw || '')} 
         disabled={isLocked}
         onBlur={e => {
           setLocalEdit(false);
-          if (e.target.value !== (displayRaw || '')) {
-            handleUpdate(lead.id, col.key, e.target.value, col.is_custom);
+          const newVal = e.target.value;
+          // Si on édite un lien et qu'on ne tape rien, on annule pour ne pas effacer le lien par erreur
+          if (isUrlMode && newVal === '') return;
+          
+          if (newVal !== (displayRaw || '')) {
+            handleUpdate(lead.id, col.key, newVal, col.is_custom);
           }
         }} 
         onKeyDown={e => e.key === 'Enter' && e.target.blur()}
         className={`w-full px-2 py-1.5 bg-transparent border border-transparent rounded-lg text-sm transition-all placeholder:text-navy/20 ${isLocked ? 'cursor-not-allowed text-navy/40' : 'hover:bg-card hover:border-navy/10 focus:bg-card focus:border-primary focus:outline-none text-navy font-medium focus:text-navy'}`}
-        placeholder="—" 
+        placeholder={isUrlMode ? "Nouveau numéro..." : "—"} 
       />
     );
   }
@@ -973,7 +1020,7 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
           const baseCol = COLUMNS.find(oc => oc.key === c.key);
           return {
             ...c,
-            width: (c.key === 'tel' || c.key === 'mobile') ? 180 : (c.key === 'gerant' ? 300 : Math.max(c.width || 0, baseCol?.width || 150)),
+            width: c.key === 'mobile' ? 180 : (c.key === 'gerant' ? 300 : Math.max(c.width || 0, baseCol?.width || 150)),
             label: c.label || baseCol?.label,
             type: c.type || baseCol?.type || 'text',
             options: c.options || baseCol?.options

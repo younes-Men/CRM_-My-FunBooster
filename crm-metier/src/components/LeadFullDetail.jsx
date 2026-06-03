@@ -557,6 +557,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           isDarkMode={isDarkMode}
                           onConfigure={() => setStatusModalConfig(col)}
                           isAdmin={user?.role === 'admin'}
+                          isPhone={['tel', 'mobile'].includes(col.key)}
+                          siret={lead.siret}
                         />
                       ))}
                     </div>
@@ -582,6 +584,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           isDarkMode={isDarkMode}
                           onConfigure={() => setStatusModalConfig(col)}
                           isAdmin={user?.role === 'admin'}
+                          isPhone={['tel', 'mobile'].includes(col.key)}
+                          siret={lead.siret}
                         />
                       ))}
                     </div>
@@ -609,6 +613,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           isDarkMode={isDarkMode}
                           onConfigure={() => setStatusModalConfig(col)}
                           isAdmin={user?.role === 'admin'}
+                          isPhone={['tel', 'mobile'].includes(col.key)}
+                          siret={getLeadValue('siret')}
                         />
                       ))}
                     </div>
@@ -633,6 +639,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           isDarkMode={isDarkMode}
                           onConfigure={() => setStatusModalConfig(col)}
                           isAdmin={user?.role === 'admin'}
+                          isPhone={['tel', 'mobile'].includes(col.key)}
+                          siret={getLeadValue('siret')}
                         />
                       ))}
                     </div>
@@ -852,7 +860,7 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR �
   );
 };
 
-const EditableField = ({ label, value, onChange, name, isMono, type = 'text', options, readOnly, disabled, isDarkMode, isAdmin, onConfigure }) => {
+const EditableField = ({ label, value, onChange, name, isMono, type = 'text', options, readOnly, disabled, isDarkMode, isAdmin, onConfigure, isPhone, siret }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value || '');
 
@@ -928,14 +936,39 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
           <div className="flex items-center justify-between gap-2 group/inner">
             <div className="truncate flex-1">
               {isUrl ? (
-                <a 
-                  href={value.startsWith('http') ? value : `https://${value}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline font-bold text-sm truncate block"
-                >
-                  {value}
-                </a>
+                isPhone ? (
+                  <div className="flex items-center gap-2 group/telbtn">
+                    <a
+                      href={value.startsWith('http') ? value : `https://${value}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1.5 px-3 py-1 bg-navy/5 hover:bg-primary/10 border border-navy/10 hover:border-primary/30 rounded-lg text-navy hover:text-primary text-xs font-medium transition-all shadow-sm active:scale-95 whitespace-nowrap w-fit"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      📞 Phone
+                    </a>
+                    {siret && (
+                      <a
+                        href={`https://datalegal.fr/entreprises/${String(siret).replace(/\s+/g, '').substring(0, 9)}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1.5 px-3 py-1 bg-navy/5 hover:bg-blue-500/10 border border-navy/10 hover:border-blue-400/30 rounded-lg text-navy hover:text-blue-500 text-xs font-medium transition-all shadow-sm active:scale-95 whitespace-nowrap w-fit"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        📞 Phone 2
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <a 
+                    href={value.startsWith('http') ? value : `https://${value}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-bold text-sm truncate block"
+                  >
+                    {value}
+                  </a>
+                )
               ) : (
                 <span className={`text-sm font-bold text-navy truncate block ${isMono ? 'font-mono tracking-tighter' : ''}`}>
                   {value || '—'}
@@ -943,12 +976,23 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
               )}
             </div>
             {!disabled && (
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="p-1 opacity-0 group-hover/field:opacity-100 text-navy/20 hover:text-primary transition-all"
-              >
-                <Pencil className="w-3 h-3" />
-              </button>
+              isUrl && isPhone ? (
+                <button 
+                  onClick={() => onChange(name, '')}
+                  className="p-1.5 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg opacity-0 group-hover/field:opacity-100 transition-all shadow-sm ml-1"
+                  title="Supprimer le lien"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="p-1 opacity-0 group-hover/field:opacity-100 text-navy/20 hover:text-primary transition-all"
+                  title="Modifier"
+                >
+                  <Pencil className="w-3 h-3" />
+                </button>
+              )
             )}
           </div>
         )}
