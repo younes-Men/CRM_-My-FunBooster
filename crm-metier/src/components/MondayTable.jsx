@@ -1084,7 +1084,35 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
 
         filteredCols = filteredCols.map(col => {
           if (col.key === 'funebooster') return { ...col, options: [...new Set(funboosters)].sort() };
-          if (col.key === 'opcosign') return { ...col, options: [...new Set(commercialNames)].sort(), type: 'select' };
+          if (col.key === 'opcosign') {
+            // Merge: use team names, but preserve saved colors & visibility from DB
+            const savedMap = {};
+            (col.options || []).forEach(opt => {
+              if (typeof opt === 'string' && opt.includes('::')) {
+                const parts = opt.split('::');
+                savedMap[parts[0].toUpperCase()] = { color: parts[1], isHidden: parts[2] === 'h' };
+              }
+            });
+
+            // Build options preserving DB colors, ordered as saved then new ones appended
+            const savedOrder = (col.options || [])
+              .filter(opt => typeof opt === 'string' && opt.includes('::'))
+              .map(opt => opt.split('::')[0].toUpperCase());
+            const teamNamesUpper = [...new Set(commercialNames.map(n => n.toUpperCase()))];
+            
+            // Keep saved order first, then append any new team members not yet saved
+            const ordered = [
+              ...savedOrder.filter(n => teamNamesUpper.includes(n)),
+              ...teamNamesUpper.filter(n => !savedOrder.includes(n)).sort()
+            ];
+
+            const mergedOptions = ordered.map(name => {
+              const saved = savedMap[name] || {};
+              return `${name}::${saved.color || '#6d28d9'}::${saved.isHidden ? 'h' : 'v'}`;
+            });
+
+            return { ...col, options: mergedOptions, type: 'select' };
+          }
           return col;
         });
       }

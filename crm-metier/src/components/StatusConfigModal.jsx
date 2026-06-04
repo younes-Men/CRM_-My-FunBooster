@@ -71,11 +71,34 @@ const StatusConfigModal = ({ isOpen, onClose, column, onRefresh }) => {
     const formatted = options.map(opt => 
       `${opt.label.toUpperCase().trim()}::${opt.color}::${opt.isHidden ? 'h' : 'v'}`
     );
-    
-    const { error } = await supabase
+
+    // First try to update existing record
+    const { data: existing } = await supabase
       .from('crm_column_configs')
-      .update({ options: formatted })
-      .eq('key', column.key);
+      .select('id')
+      .eq('key', column.key)
+      .maybeSingle();
+
+    let error;
+    if (existing) {
+      // Row exists → just update options
+      ({ error } = await supabase
+        .from('crm_column_configs')
+        .update({ options: formatted })
+        .eq('key', column.key));
+    } else {
+      // Row doesn't exist → insert with all required fields
+      ({ error } = await supabase
+        .from('crm_column_configs')
+        .insert({
+          key: column.key,
+          label: column.label || column.key,
+          type: column.type || 'select',
+          options: formatted,
+          is_visible: true,
+          display_order: 999
+        }));
+    }
 
     if (!error) {
       onRefresh();
