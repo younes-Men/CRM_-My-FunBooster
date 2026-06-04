@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { 
   LayoutGrid, 
@@ -17,7 +17,9 @@ import {
   Star,
   CheckCircle2,
   AlertCircle,
-  Hash
+  Hash,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PipelineDetail from './PipelineDetail';
@@ -183,6 +185,119 @@ import { FileText, X } from 'lucide-react';
 
 // Columns will be fetched dynamically from crm_column_configs
 
+// ─── Custom Date Picker ──────────────────────────────────────────────────────
+const CustomDatePicker = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef(null);
+
+  const today = new Date();
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const DAYS_FR = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  // First day of month: 0=Sun → convert to Mon-based
+  const firstDow = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7;
+
+  const selectedDate = value ? new Date(value + 'T00:00:00') : null;
+
+  const handleDay = (day) => {
+    const mm = String(viewMonth + 1).padStart(2, '0');
+    const dd = String(day).padStart(2, '0');
+    onChange(`${viewYear}-${mm}-${dd}`);
+    setOpen(false);
+  };
+
+  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y-1); } else setViewMonth(m => m-1); };
+  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y+1); } else setViewMonth(m => m+1); };
+
+  const displayValue = selectedDate
+    ? selectedDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+    : 'Choisir une date';
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold border transition-all ${
+          value ? 'bg-primary/10 text-primary border-primary/30' : 'bg-card text-navy/50 border-navy/10 hover:border-primary/30'
+        }`}
+      >
+        <Calendar className="w-3.5 h-3.5" />
+        {displayValue}
+        {value && (
+          <span
+            onClick={(e) => { e.stopPropagation(); onChange(''); }}
+            className="ml-1 text-primary/40 hover:text-primary font-black cursor-pointer"
+          >×</span>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute top-full mt-2 left-0 z-50 bg-white rounded-2xl shadow-2xl border border-navy/10 p-4 w-64 animate-in fade-in zoom-in-95 duration-150">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-navy/5 text-navy/40 hover:text-navy transition-all">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-sm font-black text-navy">{MONTHS_FR[viewMonth]} {viewYear}</span>
+            <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-navy/5 text-navy/40 hover:text-navy transition-all">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Day names */}
+          <div className="grid grid-cols-7 mb-1">
+            {DAYS_FR.map(d => (
+              <div key={d} className="text-center text-[9px] font-black text-navy/30 uppercase py-1">{d}</div>
+            ))}
+          </div>
+
+          {/* Days grid */}
+          <div className="grid grid-cols-7 gap-0.5">
+            {Array.from({ length: firstDow }).map((_, i) => <div key={`e-${i}`} />)}
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const day = i + 1;
+              const isToday = day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+              const isSelected = selectedDate && day === selectedDate.getDate() && viewMonth === selectedDate.getMonth() && viewYear === selectedDate.getFullYear();
+              return (
+                <button
+                  key={day}
+                  onClick={() => handleDay(day)}
+                  className={`aspect-square flex items-center justify-center rounded-lg text-xs font-bold transition-all ${
+                    isSelected ? 'bg-primary text-white shadow-lg shadow-primary/30' :
+                    isToday ? 'bg-primary/10 text-primary' :
+                    'hover:bg-navy/5 text-navy/70'
+                  }`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Footer */}
+          <div className="mt-3 pt-3 border-t border-navy/5 flex justify-between">
+            <button onClick={() => { onChange(''); setOpen(false); }} className="text-[10px] font-bold text-navy/30 hover:text-navy transition-colors uppercase tracking-wider">Effacer</button>
+            <button onClick={() => { const t = today; const mm = String(t.getMonth()+1).padStart(2,'0'); const dd = String(t.getDate()).padStart(2,'0'); onChange(`${t.getFullYear()}-${mm}-${dd}`); setOpen(false); }} className="text-[10px] font-bold text-primary hover:text-primary/70 transition-colors uppercase tracking-wider">Aujourd'hui</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Pipeline = ({ user }) => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -190,6 +305,8 @@ const Pipeline = ({ user }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
   const [pipelineColumns, setPipelineColumns] = useState([]);
+  const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | 'yesterday' | 'tomorrow' | 'week' | 'custom'
+  const [customDate, setCustomDate] = useState('');
 
   const fetchConfig = useCallback(async () => {
     const { data } = await supabase
@@ -353,10 +470,36 @@ const Pipeline = ({ user }) => {
     if (!error) setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates, date_modification: new Date().toISOString() } : l));
   };
 
+  const getDateRange = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    const weekEnd = new Date(today); weekEnd.setDate(today.getDate() + 7);
+
+    if (dateFilter === 'today') return { from: today, to: tomorrow };
+    if (dateFilter === 'yesterday') return { from: yesterday, to: today };
+    if (dateFilter === 'tomorrow') return { from: tomorrow, to: new Date(tomorrow.getTime() + 86400000) };
+    if (dateFilter === 'week') return { from: today, to: weekEnd };
+    if (dateFilter === 'custom' && customDate) {
+      const d = new Date(customDate); d.setHours(0, 0, 0, 0);
+      const dNext = new Date(d); dNext.setDate(d.getDate() + 1);
+      return { from: d, to: dNext };
+    }
+    return null;
+  }, [dateFilter, customDate]);
+
   const getLeadsByStatus = (status) => {
     return leads.filter(l => {
       const matchesSearch = !searchQuery || l.nom_entreprise?.toLowerCase().includes(searchQuery.toLowerCase()) || l.siret?.includes(searchQuery);
       if (!matchesSearch) return false;
+      if (!l.status_rdv?.toUpperCase() === status?.toUpperCase()) return false;
+      if (getDateRange && l.date_rdv) {
+        const rdvDate = new Date(l.date_rdv);
+        if (rdvDate < getDateRange.from || rdvDate >= getDateRange.to) return false;
+      } else if (getDateRange && !l.date_rdv) {
+        return false;
+      }
       return l.status_rdv?.toUpperCase() === status?.toUpperCase();
     });
   }
@@ -375,10 +518,19 @@ const Pipeline = ({ user }) => {
     );
   }
 
+  const DATE_FILTERS = [
+    { id: 'all', label: 'Tous' },
+    { id: 'yesterday', label: 'Hier' },
+    { id: 'today', label: "Aujourd'hui" },
+    { id: 'tomorrow', label: 'Demain' },
+    { id: 'week', label: '7 prochains jours' },
+    { id: 'custom', label: 'Date précise' },
+  ];
+
   return (
     <div className="flex flex-col gap-6 w-full h-full animate-in fade-in duration-700">
       {/* Search & Actions - Light Mode */}
-      <div className="flex items-center justify-between gap-4 flex-wrap mb-4 px-1">
+      <div className="flex items-center justify-between gap-4 flex-wrap mb-2 px-1">
         <div className="flex items-center gap-4">
           <div className="p-3 rounded-2xl bg-primary/5 border border-primary/10 shadow-sm">
             <LayoutGrid className="w-5 h-5 text-primary" />
@@ -423,6 +575,41 @@ const Pipeline = ({ user }) => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
+      </div>
+
+      {/* Date RDV Filter Bar */}
+      <div className="flex items-center gap-3 flex-wrap px-1">
+        <div className="flex items-center gap-2 text-navy/40">
+          <Calendar className="w-4 h-4" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Filtrer par date RDV :</span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {DATE_FILTERS.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setDateFilter(f.id)}
+              className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border ${
+                dateFilter === f.id
+                  ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105'
+                  : 'bg-card text-navy/50 border-navy/10 hover:border-primary/30 hover:text-primary'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {dateFilter === 'custom' && (
+          <CustomDatePicker value={customDate} onChange={setCustomDate} />
+        )}
+        {dateFilter !== 'all' && (
+          <span className="text-[10px] font-bold text-primary/60 ml-1">
+            {leads.filter(l => {
+              if (!getDateRange || !l.date_rdv) return getDateRange ? false : true;
+              const d = new Date(l.date_rdv);
+              return d >= getDateRange.from && d < getDateRange.to;
+            }).length} ticket(s) correspondant(s)
+          </span>
+        )}
       </div>
 
       {/* Professional Statistics Dashboard */}
