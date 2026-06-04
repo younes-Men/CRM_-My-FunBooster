@@ -19,7 +19,7 @@ export const ALL_COLUMNS = [
   { label: 'Code Postal',   key: 'code_postal' },
   { label: 'Code Dépt.',    key: 'code_departement' },
   { label: 'Statut',        key: 'status' },
-  { label: 'Statut RDV',    key: 'status_rdv' },
+  { label: 'Statut Projet',    key: 'status_rdv' },
   { label: 'E-mail',        key: 'email' },
   { label: 'Site Web',      key: 'site_web' },
   { label: 'Statut Gérant', key: 'statut_gerant' },

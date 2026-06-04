@@ -447,8 +447,14 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
 
   // Grouping logic for dynamic columns
   const allowedConfigs = useMemo(() => {
-    return currentConfigs.filter(c => isVisible(c.key) && c.is_visible !== false);
-  }, [currentConfigs, permissions]);
+    return currentConfigs.filter(c => isVisible(c.key) && c.is_visible !== false).map(c => {
+      const baseCol = columns.find(oc => oc.key === c.key);
+      return {
+        ...c,
+        label: baseCol?.label || c.label
+      };
+    });
+  }, [currentConfigs, permissions, columns]);
 
   const readOnlyKeys = ['nom_entreprise', 'siret', 'adresse', 'code_postal', 'code_departement', 'code_naf', 'libelle_activite', 'pappers'];
 

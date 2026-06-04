@@ -464,7 +464,7 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy/[0.02] p-6 rounded-3xl border border-navy/5">
                 {isVisible('status') && <InfoItem label="Statut Actuel" value={isEditing ? editValues.status : lead.status} isEditing={isEditing} name="status" onChange={handleInputChange} />}
-                {isVisible('status_rdv') && <InfoItem label="Statut RDV" value={isEditing ? editValues.status_rdv : lead.status_rdv} isEditing={isEditing} name="status_rdv" onChange={handleInputChange} />}
+                {isVisible('status_rdv') && <InfoItem label="Statut Projet" value={isEditing ? editValues.status_rdv : lead.status_rdv} isEditing={isEditing} name="status_rdv" onChange={handleInputChange} />}
                 {isVisible('funebooster') && <InfoItem label="FUNEBOOSTER" value={isEditing ? editValues.funebooster : lead.funebooster} icon={User} isEditing={isEditing} name="funebooster" onChange={handleInputChange} />}
                 {isVisible('date_rdv') && <InfoItem label="Date RDV" value={isEditing ? editValues.date_rdv : formatDate(lead.date_rdv, lead.heure_rdv)} isEditing={isEditing} name="date_rdv" type="date" onChange={handleInputChange} />}
                 {isVisible('type_rdv') && <InfoItem label="Type RDV" value={isEditing ? editValues.type_rdv : lead.type_rdv} isEditing={isEditing} name="type_rdv" onChange={handleInputChange} />}

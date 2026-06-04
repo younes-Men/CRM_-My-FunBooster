@@ -299,7 +299,7 @@ const PipelineDetail = ({ lead, onClose, onUpdateStatus, user, onUpdateLead, sou
                 <EditableRow label="DATE DE RDV" value={lead.date_rdv} icon={Calendar} onSave={(val) => handleFieldUpdate('date_rdv', val)} />
                 <EditableRow label="HEURE DE RDV" value={lead.heure_rdv} icon={Clock} onSave={(val) => handleFieldUpdate('heure_rdv', val)} />
                 <div className="flex items-start gap-4">
-                  <span className="w-32 text-[10px] font-black text-navy/30 uppercase tracking-widest shrink-0 pt-1">Statut RDV</span>
+                  <span className="w-32 text-[10px] font-black text-navy/30 uppercase tracking-widest shrink-0 pt-1">Statut Projet</span>
                   <select 
                     value={lead.status_rdv || ''} 
                     onChange={(e) => handleFieldUpdate('status_rdv', e.target.value)}

@@ -206,13 +206,13 @@ const TempRdvZone = ({ user }) => {
   };
 
   const handleReject = async (id) => {
-    if (!window.confirm("Voulez-vous rejeter ce RDV ? Il sera remis en 'BLOQUÉ ARCHIVE'.")) return;
+    if (!window.confirm("Voulez-vous rejeter ce RDV ? Il sera remis en 'A TRAITER'.")) return;
     
     setProcessingId(id);
     const { error } = await supabase
       .from('crm_leads')
       .update({ 
-        status: 'BLOQUÉ ARCHIVE',
+        status: 'A TRAITER',
         date_modification: new Date().toISOString()
       })
       .eq('id', id);
@@ -222,7 +222,7 @@ const TempRdvZone = ({ user }) => {
       if (lead && lead.siret) {
         await supabase
           .from('crm_leads_2025')
-          .update({ statut_2026: 'BLOQUÉ ARCHIVE' })
+          .update({ statut_2026: 'A TRAITER' })
           .eq('siret', lead.siret);
       }
       setLeads(prev => prev.filter(l => l.id !== id));

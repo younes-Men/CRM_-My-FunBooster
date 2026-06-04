@@ -123,7 +123,7 @@ const COLUMNS = [
   { label: 'Adresse',      key: 'adresse',           width: 260, type: 'editable' },
   { label: 'Code Postal',  key: 'code_postal',       width: 100, type: 'auto' },
   { label: 'Code Dépt.',   key: 'code_departement',  width: 100, type: 'auto' },
-  { label: 'Statut RDV',   key: 'status_rdv',        width: 200, type: 'select', options: [
+  { label: 'Statut Projet',   key: 'status_rdv',        width: 200, type: 'select', options: [
     'Nouveau', 'RAP', 'Proposition', 'Signé', 'PEC', 'Gagné', 'ORGANISÉ'
   ]},
   { label: 'E-mail',       key: 'email',             width: 200, type: 'editable' },
@@ -968,9 +968,27 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
       if (virtualLeads.length === 0) {
         alert(`${data.results.length} entreprise(s) trouvée(s) par l'API, mais toutes existent déjà dans le CRM (pas de doublons ajoutés).`);
       } else {
-        setLeads(prev => [...virtualLeads, ...prev]);
-        setTotalCount(c => c + virtualLeads.length);
-        alert(`✅ ${virtualLeads.length} nouvelle(s) entreprise(s) ajoutée(s) depuis l'API. Elles apparaissent en haut de la liste avec le badge "API".`);
+        // Prepare leads for database insertion by removing temporary fields
+        const leadsToInsert = virtualLeads.map(l => {
+          const newLead = { ...l };
+          delete newLead.id; // Let Supabase generate a proper UUID
+          delete newLead.isVirtual;
+          return newLead;
+        });
+
+        const { data: insertedLeads, error: insertError } = await supabase
+          .from('crm_leads')
+          .insert(leadsToInsert)
+          .select();
+
+        if (insertError) {
+          console.error("Erreur lors de l'insertion API:", insertError);
+          alert("Erreur lors de la sauvegarde en base de données.");
+        } else if (insertedLeads) {
+          setLeads(prev => [...insertedLeads, ...prev]);
+          setTotalCount(c => c + insertedLeads.length);
+          alert(`✅ ${insertedLeads.length} nouvelle(s) entreprise(s) ajoutée(s) et enregistrée(s) directement dans la base de données !`);
+        }
       }
     } catch (e) {
       console.error('[Recherche API] Erreur:', e);
@@ -1021,7 +1039,7 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
           return {
             ...c,
             width: c.key === 'mobile' ? 180 : (c.key === 'gerant' ? 300 : Math.max(c.width || 0, baseCol?.width || 150)),
-            label: c.label || baseCol?.label,
+            label: baseCol?.label || c.label,
             type: c.type || baseCol?.type || 'text',
             options: c.options || baseCol?.options
           };
@@ -1265,9 +1283,11 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
     } else if (data) {
       if (pageIndex === 0 && count !== null) setTotalCount(count);
 
-      // Injecter les leads API matérialisés récemment (qui pourraient être exclus par les filtres actifs)
+      // Injecter les leads API matérialisés récemment seulement si AUCUN filtre n'est actif
       let finalData = data;
-      if (replace && pageIndex === 0) {
+      const hasActiveFilters = searchQuery !== '' || Object.values(activeFilters).some(v => v && v.length > 0);
+      
+      if (replace && pageIndex === 0 && !hasActiveFilters) {
         try {
           const recentKey = `crm_api_materialized_${activeTab}`;
           const storedIds = JSON.parse(localStorage.getItem(recentKey) || '[]');
