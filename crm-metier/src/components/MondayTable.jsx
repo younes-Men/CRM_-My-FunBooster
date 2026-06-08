@@ -839,6 +839,10 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
         params.append('departement', cleanDepts.join(','));
       }
 
+      // Filtrer pour n'avoir que les entreprises avec un effectif de 0 à 49 salariés (tranches NN, 00 à 12 de l'INSEE)
+      // Cela correspond à "mn 0 tal 50 maykonch fayt 50" comme demandé par l'utilisateur
+      params.append('tranche_effectif_salarie', 'NN,00,01,02,03,11,12');
+
       const url = `https://recherche-entreprises.api.gouv.fr/search?${params.toString()}`;
       console.log('[Recherche API] URL:', url);
 
