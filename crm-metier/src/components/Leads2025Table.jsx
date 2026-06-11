@@ -54,6 +54,18 @@ const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
     'pas assez de budget':  { bg: '#6b7280', text: '#f3f4f6' },
     'visio confirmée':      { bg: '#0891b2', text: '#fff' },
     'rdv à confirmer':      { bg: '#facc15', text: '#451a03' },
+
+    // Statut Commercial
+    'nouveau':              { bg: '#0ea5e9', text: '#fff' },
+    'à contacter':          { bg: '#6366f1', text: '#fff' },
+    'en cours':             { bg: '#f59e0b', text: '#fff' },
+    'qualifié':             { bg: '#8b5cf6', text: '#fff' },
+    'négociation':          { bg: '#ec4899', text: '#fff' },
+    'gagné':                { bg: '#10b981', text: '#fff' },
+    'perdu':                { bg: '#ef4444', text: '#fff' },
+    'sans suite':           { bg: '#6b7280', text: '#fff' },
+    'relance commerciale':  { bg: '#d97706', text: '#fff' },
+    'client actif':         { bg: '#059669', text: '#fff' },
     
     'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#cbd5e1' : '#0f172a' }
   };
@@ -126,6 +138,12 @@ const COLUMNS = [
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
   { label: 'Téléphone',    key: 'tel',               width: 250, type: 'editable' },
   { label: 'Mobile',       key: 'mobile',            width: 180, type: 'editable' },
+  { label: 'Statut Commercial', key: 'statut_commercial', width: 210, type: 'select', options: [
+    'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ',
+    'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP',
+    'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE',
+    'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
+  ]},
   { label: 'Statut 2026',  key: 'statut_2026',       width: 200, type: 'select', options: [
     'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
@@ -435,7 +453,7 @@ const TableRow = React.memo(({ data, index, style }) => {
   );
 });
 
-const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_2025', 'statut_2026'];
+const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_commercial', 'statut_2025', 'statut_2026'];
 const uniqueValuesCache = {};
 
 // Custom hook to fetch distinct filter values for the LEADS 2025 table
