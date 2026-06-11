@@ -132,7 +132,7 @@ const isLeadLocked = (lead, user) => {
 const COLUMNS = [
   { label: 'Année Act.',   key: 'annee_act',         width: 130, type: 'number' },
   { label: 'Funbooster',   key: 'funebooster',       width: 220, type: 'select', options: [
-    'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA'
+    'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA', 'JIHAD'
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
@@ -166,10 +166,13 @@ const COLUMNS = [
     'MAXIME', 'FABIEN', 'REDA', 'SOUKAINA', 'ELISA', 'WIAM', 'WIJDAN'
   ]},
   { label: 'Gérant',       key: 'gerant',            width: 300, type: 'editable' },
+  { label: 'Nb Salariés',  key: 'nb_salaries',       width: 120, type: 'number' },
+  { label: 'Nb Apprentis', key: 'nb_apprentis',      width: 120, type: 'number' },
   { label: 'Libellé Act.', key: 'libelle_activite',  width: 200 },
   { label: 'Code NAF',     key: 'code_naf',          width: 130 },
   { label: 'Pappers',      key: 'pappers',           width: 130, type: 'pappers' },
-  { label: 'Adresse',      key: 'adresse',           width: 260 }
+  { label: 'Adresse',      key: 'adresse',           width: 260 },
+  { label: 'Code Dépt.',   key: 'code_departement',  width: 100, type: 'auto' }
 ];
 
 const PAGE_SIZE = 50;
@@ -253,7 +256,11 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
   const [copied, setCopied] = useState(false);
   const [localEdit, setLocalEdit] = useState(false);
   
-  const isLocked = isLeadLocked(lead, user);
+  let isLocked = isLeadLocked(lead, user);
+  const userRole = String(user?.role || '').toLowerCase().trim();
+  if ((userRole === 'funbooster' || userRole === 'funebooster') && col.key === 'statut_2025') {
+    isLocked = true;
+  }
   const raw = lead[col.key] || '';
   
   let displayRaw = raw || '';
@@ -416,6 +423,17 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
         placeholder="—" 
       />
     );
+  }
+
+  if (col.type === 'auto') {
+    let displayValue = raw;
+    if (!displayValue && lead.adresse) {
+      if (col.key === 'code_departement') {
+        const cpMatch = lead.adresse.match(/\b\d{5}\b/);
+        if (cpMatch) displayValue = cpMatch[0].substring(0, 2);
+      }
+    }
+    return <span className={`${!raw && displayValue ? 'text-primary' : 'text-navy font-medium'} text-xs italic`}>{displayValue || '—'}</span>;
   }
 
   return (

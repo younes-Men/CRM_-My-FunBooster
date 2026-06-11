@@ -331,6 +331,18 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     }
     
     let val = lead[key];
+
+    // Extraction automatique du code postal et département depuis l'adresse
+    if (!val && lead.adresse) {
+      if (key === 'code_postal') {
+        const cpMatch = String(lead.adresse).match(/\b\d{5}\b/);
+        if (cpMatch) val = cpMatch[0];
+      } else if (key === 'code_departement') {
+        const cpMatch = String(lead.adresse).match(/\b\d{5}\b/);
+        if (cpMatch) val = cpMatch[0].substring(0, 2);
+      }
+    }
+
     // Check both root and custom_fields, and handle empty strings/placeholder
     if (val === undefined || val === null || val === '' || val === '---' || val === '-') {
       if (lead.custom_fields && lead.custom_fields[key]) {

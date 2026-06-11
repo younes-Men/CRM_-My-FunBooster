@@ -73,6 +73,24 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
     setEditValues(prev => ({ ...prev, [field]: value }));
   };
 
+  const getComputedCP = () => {
+    if (lead?.code_postal) return lead.code_postal;
+    if (lead?.adresse) {
+      const match = String(lead.adresse).match(/\b\d{5}\b/);
+      if (match) return match[0];
+    }
+    return '';
+  };
+
+  const getComputedDept = () => {
+    if (lead?.code_departement) return lead.code_departement;
+    if (lead?.adresse) {
+      const match = String(lead.adresse).match(/\b\d{5}\b/);
+      if (match) return match[0].substring(0, 2);
+    }
+    return '';
+  };
+
   // Helper for automated NAF label
   const getAutomatedLibelle = () => {
     if (lead.libelle_activite) return lead.libelle_activite;
@@ -445,8 +463,8 @@ const LeadDetailPanel = ({ leadId, lead: initialLead, onClose, userName, permiss
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-6 pt-4 border-t border-navy/5">
-                  {isVisible('code_postal') && <InfoItem label="Code Postal" value={isEditing ? editValues.code_postal : lead.code_postal} isEditing={isEditing} name="code_postal" onChange={handleInputChange} />}
-                  {isVisible('code_departement') && <InfoItem label="Département" value={isEditing ? editValues.code_departement : lead.code_departement} isEditing={isEditing} name="code_departement" onChange={handleInputChange} />}
+                  {isVisible('code_postal') && <InfoItem label="Code Postal" value={isEditing ? editValues.code_postal : getComputedCP()} isEditing={isEditing} name="code_postal" onChange={handleInputChange} />}
+                  {isVisible('code_departement') && <InfoItem label="Département" value={isEditing ? editValues.code_departement : getComputedDept()} isEditing={isEditing} name="code_departement" onChange={handleInputChange} />}
                   {(isVisible('tel') || isVisible('mobile')) && <div className="col-span-full h-px bg-navy/5 my-2" />}
                   {isVisible('tel') && <InfoItem label="Téléphone Fixe" value={isEditing ? editValues.tel : lead.tel} icon={Phone} isEditing={isEditing} name="tel" onChange={handleInputChange} />}
                   {isVisible('mobile') && <InfoItem label="Mobile" value={isEditing ? editValues.mobile : lead.mobile} icon={Phone} isEditing={isEditing} name="mobile" onChange={handleInputChange} />}

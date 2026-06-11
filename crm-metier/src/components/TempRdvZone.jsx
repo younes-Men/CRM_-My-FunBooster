@@ -101,6 +101,53 @@ const TempRdvZone = ({ user }) => {
             .delete()
             .eq('siret', lead.siret);
         }
+
+        // Send to Google Sheet Webhook if configured
+        const webhookUrl = import.meta.env.VITE_GOOGLE_SHEET_WEBHOOK;
+        if (webhookUrl) {
+          try {
+            const baseSalaries = parseInt(lead.nb_salaries) || 0;
+            let statutGerant = String(lead.statut_gerant || lead.statut_gérant || lead.statutGerant || lead.custom_fields?.statut_gerant || '').toLowerCase();
+            let totalSalaries = baseSalaries;
+            if (statutGerant.includes('salari')) {
+              if (statutGerant.includes('2') || statutGerant.includes('deux')) {
+                totalSalaries += 2;
+              } else {
+                totalSalaries += 1;
+              }
+            }
+
+            const payload = {
+              date_rdv: lead.date_rdv || '',
+              heure_rdv: lead.heure_rdv || '',
+              nom_entreprise: lead.nom_entreprise || '',
+              secteur_activite: lead.secteur_activite || '',
+              adresse: lead.adresse || '',
+              gerant: lead.gerant || '',
+              email: lead.email || '',
+              telephone: lead.mobile || lead.tel || '',
+              salaries: totalSalaries,
+              apprentis: lead.nb_apprentis || '0',
+              siret: lead.siret || '',
+              opco: lead.nom_opco || '',
+              idcc: lead.idcc || '',
+              observation: lead.observation || '',
+              funebooster: lead.funebooster || '',
+              commercial: targetCommercial || updates.opcosign || lead.opcosign || '',
+              client: lead.client_of || '',
+              date_validation: new Date().toLocaleDateString('fr-FR') + ' ' + new Date().toLocaleTimeString('fr-FR')
+            };
+
+            fetch(webhookUrl, {
+              method: 'POST',
+              mode: 'no-cors',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            }).catch(e => console.error("Webhook error:", e));
+          } catch (err) {
+            console.error("Error preparing webhook payload:", err);
+          }
+        }
       }
       setLeads(prev => prev.filter(l => l.id !== id));
     }

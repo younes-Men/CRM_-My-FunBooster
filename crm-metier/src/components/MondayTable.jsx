@@ -95,7 +95,7 @@ const slugify = (text) => {
 
 const COLUMNS = [
   { label: 'Funbooster',   key: 'funebooster',       width: 220, type: 'select', options: [
-    'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA'
+    'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA', 'JIHAD'
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
