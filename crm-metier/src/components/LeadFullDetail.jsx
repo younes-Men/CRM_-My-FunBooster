@@ -73,6 +73,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
 
   const [localComment, setLocalComment] = useState(lead?.observation || '');
   const saveTimeoutRef = useRef(null);
+  const lastSavedCommentRef = useRef(lead?.observation || '');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,30 +97,38 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
 
   useEffect(() => {
     if (currentLeadId) {
-      fetchHistory();
+      fetchHistory().then(hist => {
+        let loadedComment = '';
+        if (tableName === 'crm_leads_2025') {
+          loadedComment = hist && hist.length > 0 ? hist[0].observation_text : '';
+        } else {
+          loadedComment = leads.find(l => l.id === currentLeadId)?.observation || '';
+        }
+        setLocalComment(loadedComment);
+        lastSavedCommentRef.current = loadedComment; // sync ref with loaded value
+      });
       if (onLeadChange) onLeadChange(currentLeadId);
-      // Only set localComment when lead ID changes, not when content updates in parent
-      setLocalComment(leads.find(l => l.id === currentLeadId)?.observation || '');
     }
-  }, [currentLeadId, onLeadChange]); // Removed lead?.observation from dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLeadId]); // ONLY run when currentLeadId changes!
 
   const fetchHistory = async () => {
-    if (tableName !== 'crm_leads') {
-      setHistory([]);
-      return;
-    }
     const { data, error } = await supabase
       .from('crm_observations_history')
       .select('*')
       .eq('lead_id', currentLeadId)
       .order('created_at', { ascending: false });
-    if (!error) setHistory(data || []);
+    if (!error) {
+      setHistory(data || []);
+      return data || [];
+    }
+    return [];
   };
 
   const addNote = async () => {
     if (!newNote.trim()) return;
     if (tableName !== 'crm_leads') {
-      const newObs = lead.observation ? `${lead.observation}\n\n[${user?.name || 'Système'}]: ${newNote}` : `[${user?.name || 'Système'}]: ${newNote}`;
+      const newObs = localComment ? `${localComment}\n\n[${user?.name || 'Système'}]: ${newNote}` : `[${user?.name || 'Système'}]: ${newNote}`;
       handleAutoSave('observation', newObs);
       setNewNote('');
       return;
@@ -186,6 +195,14 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     try {
       const isCustom = !nativeKeys.includes(field);
       let finalValue = value;
+
+      // Format heure_rdv same as MondayTable
+      if (field === 'heure_rdv' && finalValue) {
+        const parts = finalValue.split(/[:hH]/);
+        const h = (parts[0] || '00').padStart(2, '0');
+        const m = (parts[1] || '00').substring(0, 2).padStart(2, '0');
+        finalValue = `${h}:${m}:00`;
+      }
 
       // WORKFLOW: Funbooster ne peut pas mettre directement "RDV" — passe par "EN ATTENTE RDV"
       if (field === 'statut_2026' && (value === 'RDV' || value === 'EN ATTENTE RDV')) {
@@ -290,26 +307,34 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
           }
         }
       } else {
-        const { error } = await supabase
-          .from(tableName)
-          .update(updates)
-          .eq('id', lead.id);
+        // Normal update
+        if (!(tableName === 'crm_leads_2025' && field === 'observation')) {
+          const { error } = await supabase
+            .from(tableName)
+            .update(updates)
+            .eq('id', lead.id);
 
-        if (error) throw error;
+          if (error) throw error;
+        }
 
         // Also insert into history if it's an observation/comment
         if (field === 'observation' && value) {
-          if (tableName === 'crm_leads') {
-            await supabase.from('crm_observations_history').insert([{
-              lead_id: lead.id,
-              observation_text: value,
-              created_by: user?.name || user?.email || 'Système'
-            }]);
-            fetchHistory();
+          const { error: histError } = await supabase.from('crm_observations_history').insert([{
+            lead_id: lead.id,
+            observation_text: value,
+            created_by: user?.name || user?.email || 'Système'
+          }]);
+          if (histError) {
+            console.error('History insert error:', histError);
+          } else {
+            console.log('✅ Observation saved to history for lead:', lead.id);
           }
+          fetchHistory();
         }
 
-        if (onUpdate) onUpdate(lead.id, { ...lead, ...updates });
+        if (onUpdate && field !== 'observation') {
+          onUpdate(lead.id, { ...lead, ...updates });
+        }
       }
     } catch (error) {
       console.error('Auto-save error:', error);
@@ -564,7 +589,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                     <div className="space-y-4">
                       {groups.contact.map(col => (
                         <EditableField 
-                          key={col.key}
+                          key={`${lead?.id}-${col.key}`}
                           label={col.label}
                           value={getLeadValue(col.key)}
                           name={col.key}
@@ -589,7 +614,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                     <div className="space-y-4">
                       {groups.enterprise.map(col => (
                         <EditableField 
-                          key={col.key}
+                          key={`${lead?.id}-${col.key}`}
                           label={col.label}
                           value={getLeadValue(col.key)}
                           name={col.key}
@@ -619,12 +644,19 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                     <div className="space-y-4">
                       {groups.commercial.map(col => (
                         <EditableField 
-                          key={col.key}
+                          key={`${lead?.id}-${col.key}`}
                           label={col.label}
                           value={getLeadValue(col.key)}
                           name={col.key}
                           options={getOptions(col.key)}
-                          type={col.type === 'number' || col.type === 'currency' ? 'number' : col.type === 'date_picker' || col.type === 'date' ? 'date' : 'text'}
+                          type={
+                            ['date_rdv', 'date_signe'].includes(col.key) ? 'date'
+                            : ['heure_rdv'].includes(col.key) ? 'time'
+                            : col.type === 'number' || col.type === 'currency' ? 'number'
+                            : col.type === 'date_picker' || col.type === 'date' ? 'date'
+                            : col.type === 'time' ? 'time'
+                            : 'text'
+                          }
                           onChange={handleAutoSave}
                           readOnly={readOnlyKeys.includes(col.key)}
                           disabled={isLocked}
@@ -645,7 +677,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                     <div className="space-y-4">
                       {groups.others.map(col => (
                         <EditableField 
-                          key={col.key}
+                          key={`${lead?.id}-${col.key}`}
                           label={col.label}
                           value={getLeadValue(col.key)}
                           name={col.key}
@@ -713,8 +745,19 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                   
                   if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
                   saveTimeoutRef.current = setTimeout(() => {
-                    handleAutoSave('observation', val);
+                    if (val !== lastSavedCommentRef.current) {
+                      lastSavedCommentRef.current = val;
+                      handleAutoSave('observation', val);
+                    }
                   }, 1000);
+                }}
+                onBlur={e => {
+                  const val = e.target.value;
+                  if (val !== lastSavedCommentRef.current) {
+                    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+                    lastSavedCommentRef.current = val;
+                    handleAutoSave('observation', val);
+                  }
                 }}
                 placeholder="Saisissez vos commentaires ici..."
                 className={`w-full h-[calc(100vh-250px)] p-6 bg-navy/[0.02] border border-navy/10 rounded-[2rem] text-sm focus:outline-none focus:border-primary/30 transition-all resize-none font-medium leading-relaxed ${isLocked ? 'cursor-not-allowed opacity-50' : ''}`}
@@ -722,8 +765,10 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
               <div className="flex items-center justify-between px-4">
                 <span className="text-[9px] font-bold text-navy uppercase">Enregistrement automatique</span>
                 <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-[9px] font-bold text-green-600 uppercase">Synchronisé</span>
+                  <div className={`w-1.5 h-1.5 rounded-full ${loading ? 'bg-orange-400 animate-ping' : 'bg-green-500 animate-pulse'}`} />
+                  <span className={`text-[9px] font-bold uppercase ${loading ? 'text-orange-500' : 'text-green-600'}`}>
+                    {loading ? 'Enregistrement...' : 'Synchronisé'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -880,11 +925,26 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "— CHOISIR �
 
 const EditableField = ({ label, value, onChange, name, isMono, type = 'text', options, readOnly, disabled, isDarkMode, isAdmin, onConfigure, isPhone, siret }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [localValue, setLocalValue] = useState(value || '');
+
+  // Normalize value for date/time inputs (Supabase may return full ISO timestamp)
+  const normalizeValue = (val) => {
+    if (!val) return '';
+    if (type === 'date' && typeof val === 'string' && val.length > 10) {
+      return val.substring(0, 10); // "2025-06-11T00:00:00" → "2025-06-11"
+    }
+    if (type === 'time' && typeof val === 'string') {
+      // "14:30:00" → "14:30" or "2025-06-11T14:30:00" → "14:30"
+      const timePart = val.includes('T') ? val.split('T')[1] : val;
+      return timePart.substring(0, 5);
+    }
+    return val;
+  };
+
+  const [localValue, setLocalValue] = useState(normalizeValue(value));
 
   useEffect(() => {
-    setLocalValue(value || '');
-  }, [value]);
+    setLocalValue(normalizeValue(value));
+  }, [value, type]);
 
   const handleBlur = () => {
     if (localValue !== value) {
@@ -939,6 +999,42 @@ const EditableField = ({ label, value, onChange, name, isMono, type = 'text', op
             disabled={disabled}
             onChange={(val) => onChange(name, val)} 
             isDarkMode={isDarkMode}
+          />
+        ) : type === 'date' ? (
+          // Date field: same logic as MondayTable - formatted overlay + transparent native input
+          <div className="relative group/datepicker flex items-center">
+            <div className="absolute inset-0 flex items-center text-navy text-sm font-bold pointer-events-none group-hover/datepicker:opacity-0 transition-opacity">
+              {localValue ? new Date(localValue + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+            </div>
+            <input
+              type="date"
+              disabled={disabled}
+              defaultValue={localValue || ''}
+              key={`date-${name}-${localValue}`}
+              onChange={(e) => {
+                const val = e.target.value;
+                setLocalValue(val);
+                onChange(name, val);
+              }}
+              className={`relative w-full px-2 py-1 bg-navy/[0.02] border border-transparent rounded-lg text-transparent text-sm font-bold transition-all ${disabled ? 'cursor-not-allowed' : 'hover:bg-navy/[0.06] hover:border-navy/10 hover:text-navy cursor-pointer'}`}
+            />
+          </div>
+        ) : type === 'time' ? (
+          // Time field: same logic as MondayTable - text input + onBlur save only
+          <input
+            type="text"
+            disabled={disabled}
+            defaultValue={localValue || ''}
+            key={`time-${name}-${localValue}`}
+            onBlur={(e) => {
+              const val = e.target.value;
+              if (val !== (localValue || '')) {
+                setLocalValue(val);
+                onChange(name, val);
+              }
+            }}
+            placeholder="--h--"
+            className={`w-[80px] px-2 py-1.5 bg-navy/5 border border-transparent rounded-xl text-sm font-black focus:outline-none transition-all font-mono text-center placeholder:text-navy/20 ${disabled ? 'cursor-not-allowed text-navy/40' : 'hover:border-navy/10 focus:bg-card focus:border-primary text-navy'}`}
           />
         ) : isEditing ? (
           <input 

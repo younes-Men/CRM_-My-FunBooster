@@ -4,10 +4,11 @@ import { FixedSizeList as List } from 'react-window';
 import { 
   Search, Filter, ChevronDown, ChevronUp, RefreshCw, AlertCircle, 
   ExternalLink, Copy, Check, Clock, Phone, MapPin, Building2, User,
-  Pencil, Trash2, Sparkles
+  Pencil, Trash2, Sparkles, Settings
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import LeadFullDetail from './LeadFullDetail';
+import StatusConfigModal from './StatusConfigModal';
 
 // Status colors and styles tailored for 2025 and 2026
 const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
@@ -71,7 +72,7 @@ const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
   };
   // Check dynamic options (format: "LABEL::COLOR" or "LABEL::COLOR::VISIBILITY")
   if (dynamicOptions && dynamicOptions.length > 0) {
-    const match = dynamicOptions.find(opt => opt.split('::')[0].toLowerCase().trim() === key);
+    const match = dynamicOptions.find(opt => typeof opt === 'string' && opt.split('::')[0].toLowerCase().trim() === key);
     if (match && match.includes('::')) {
       const parts = match.split('::');
       const color = parts[1] || '';
@@ -132,7 +133,7 @@ const isLeadLocked = (lead, user) => {
 const COLUMNS = [
   { label: 'Année Act.',   key: 'annee_act',         width: 130, type: 'number' },
   { label: 'Funbooster',   key: 'funebooster',       width: 220, type: 'select', options: [
-    'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA', 'JIHAD'
+    'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA', 'JIHAD', 'WIAM'
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
@@ -146,7 +147,10 @@ const COLUMNS = [
   ]},
   { label: 'Statut 2026',  key: 'statut_2026',       width: 200, type: 'select', options: [
     'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
-    'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
+    'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM',
+    'PROPOSITION', 'RDV ANNULÉ', 'NON SIGNÉ', 'À RELANCER', 'À RELANCER N+1', 'RDV CONFIRMÉ', 'MAIL ENVOYÉ', 'RAP',
+    'RAP POUR CONF', 'TEL CONFIRMÉ', 'RDV VISIO', 'PAS DE RETOUR', 'SIGN ANNULÉ', 'PAS ASSEZ DE BUDGET',
+    'VISIO CONFIRMÉE', 'RDV À CONFIRMER', 'TNS', 'PLUS DE BUDGET OPCO'
   ]},
   { label: 'Statut 2025',  key: 'statut_2025',       width: 200, type: 'select', options: [
     'A TRAITER', 'BLOQUÉ ARCHIVE', 'RDV ANNULÉ', 'NON SIGNÉ', 'À RELANCER', 'À RELANCER N+1', 
@@ -216,12 +220,13 @@ const CustomSelect = React.memo(({ value, options, onChange, colorCfg, isDarkMod
               <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); onChange(''); setIsOpen(false); }} className="w-full px-4 py-1.5 text-left text-[9px] font-black text-navy/30 hover:bg-navy/5 hover:text-navy uppercase tracking-[0.2em] transition-colors">— RÉINITIALISER —</button>
               <div className="h-px bg-navy/5 mx-2 my-1" />
               {options.filter(opt => {
+                if (typeof opt !== 'string') return true;
                 const parts = opt.split('::');
                 const label = parts[0];
                 const isHidden = parts[2] === 'h';
                 return !isHidden || label === value;
               }).map((opt) => {
-                const label = opt.split('::')[0];
+                const label = typeof opt === 'string' ? opt.split('::')[0] : opt;
                 const cfg = getStatusStyle(label, isDarkMode, options);
                 return (
                   <button 
@@ -471,7 +476,7 @@ const TableRow = React.memo(({ data, index, style }) => {
   );
 });
 
-const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_commercial', 'statut_2025', 'statut_2026'];
+const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_commercial', 'statut_2025', 'statut_2026', 'code_departement', 'code_naf'];
 const uniqueValuesCache = {};
 
 // Custom hook to fetch distinct filter values for the LEADS 2025 table
@@ -487,6 +492,29 @@ const useUniqueValues = (field) => {
 
     setLoading(true);
     try {
+      // Cas spécial : code_departement est extrait depuis l'adresse
+      if (field === 'code_departement') {
+        const { data, error } = await supabase
+          .from('crm_leads_2025')
+          .select('adresse')
+          .not('adresse', 'is', null)
+          .limit(5000);
+
+        if (!error && data) {
+          const depts = new Set();
+          data.forEach(item => {
+            if (item.adresse) {
+              const m = String(item.adresse).match(/\b(\d{5})\b/);
+              if (m) depts.add(m[1].substring(0, 2).padStart(2, '0'));
+            }
+          });
+          const sorted = [...depts].filter(Boolean).sort((a, b) => a.localeCompare(b));
+          uniqueValuesCache[field] = sorted;
+          setValues(sorted);
+        }
+        return;
+      }
+
       const { data, error } = await supabase
         .from('crm_leads_2025')
         .select(field)
@@ -611,6 +639,8 @@ const Leads2025Table = ({ user, isDarkMode }) => {
     } catch { return {}; }
   });
 
+  const [columns, setColumns] = useState(COLUMNS);
+  const [statusModalConfig, setStatusModalConfig] = useState(null);
   const [clickedRowId, setClickedRowId] = useState(null);
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [filterMenu, setFilterMenu] = useState(null);
@@ -618,9 +648,6 @@ const Leads2025Table = ({ user, isDarkMode }) => {
   const lastFetchId = useRef(0);
   const listRef = useRef(null);
 
-  const columns = useMemo(() => {
-    return [...COLUMNS];
-  }, []);
   const tableTotalWidth = useMemo(() => columns.reduce((acc, col) => acc + col.width, 0), [columns]);
 
   const fetchPage = useCallback(async (pageIndex, replace = false, searchQuery = '', filters = activeFilters) => {
@@ -645,6 +672,14 @@ const Leads2025Table = ({ user, isDarkMode }) => {
         if (values && values.length > 0) {
           if (field === 'annee_act') {
             query = query.in(field, values);
+          } else if (field === 'code_departement') {
+            // code_departement n'existe pas dans crm_leads_2025 → filtre via adresse
+            // Format: "44 PLACE ... 60100 CREIL" → ilike "% 60%" trouve le CP du département
+            const orParts = values.map(dept => {
+              const d = String(dept).trim().padStart(2, '0');
+              return `adresse.ilike.% ${d}%`;
+            }).join(',');
+            query = query.or(orParts);
           } else {
             const ilikeConditions = values.map(v => {
               const safeVal = String(v).replace(/[^\x00-\x7F]/g, '%');
@@ -681,6 +716,34 @@ const Leads2025Table = ({ user, isDarkMode }) => {
       }
     }
   }, [activeFilters]);
+
+  const loadConfigs = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('crm_column_configs')
+        .select('*');
+
+      if (!error && data && data.length > 0) {
+        const newCols = COLUMNS.map(baseCol => {
+          const config = data.find(c => c.key === baseCol.key);
+          if (config) {
+            return {
+              ...baseCol,
+              options: config.options || baseCol.options
+            };
+          }
+          return baseCol;
+        });
+        setColumns(newCols);
+      }
+    } catch (err) {
+      console.error("Error loading configs:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConfigs();
+  }, [loadConfigs]);
 
   const handleUpdate = useCallback(async (id, field, value, isCustom) => {
     const idStr = String(id).toLowerCase();
@@ -884,7 +947,18 @@ const Leads2025Table = ({ user, isDarkMode }) => {
                   style={{ width: col.width, minWidth: col.width }} 
                   className="flex-shrink-0 px-6 py-4 text-[11px] font-black text-navy/60 uppercase tracking-[0.15em] border-l border-navy/[0.03] flex items-center justify-between group"
                 >
-                  <span className="break-words leading-tight">{col.label}</span>
+                  <div className="flex items-center gap-2 pr-2 overflow-hidden">
+                    <span className="break-words leading-tight">{col.label}</span>
+                    {user?.role === 'admin' && col.type === 'select' && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setStatusModalConfig(col); }}
+                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-navy/5 rounded transition-all text-navy/20 hover:text-primary"
+                        title="Configurer les statuts"
+                      >
+                        <Settings className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                   {isFilterable && (
                     <button 
                       onClick={(e) => { 
@@ -975,6 +1049,17 @@ const Leads2025Table = ({ user, isDarkMode }) => {
           }}
           isDarkMode={isDarkMode}
           tableName="crm_leads_2025"
+        />
+      )}
+
+      {statusModalConfig && (
+        <StatusConfigModal 
+          isOpen={true}
+          column={statusModalConfig}
+          onClose={() => setStatusModalConfig(null)}
+          onRefresh={() => {
+            loadConfigs();
+          }}
         />
       )}
     </div>
