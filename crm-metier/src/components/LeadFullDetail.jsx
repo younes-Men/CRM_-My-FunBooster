@@ -316,6 +316,12 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
             .eq('id', lead.id);
 
           if (error) throw error;
+        } else {
+          // For crm_leads_2025 observations, still update date_modification
+          await supabase
+            .from(tableName)
+            .update({ date_modification: new Date().toISOString() })
+            .eq('id', lead.id);
         }
 
         // Also insert into history if it's an observation/comment
@@ -333,8 +339,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
           fetchHistory();
         }
 
-        if (onUpdate && field !== 'observation') {
-          onUpdate(lead.id, { ...lead, ...updates });
+        if (onUpdate) {
+          onUpdate(lead.id, { ...lead, ...updates, date_modification: new Date().toISOString() });
         }
       }
     } catch (error) {
@@ -485,7 +491,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
   // Grouping logic for dynamic columns
   const allowedConfigs = useMemo(() => {
     if (tableName === 'crm_leads_2025') {
-      return columns.filter(c => isVisible(c.key)).map(c => ({
+      return columns.map(c => ({
         ...c,
         is_visible: true
       }));
@@ -500,12 +506,12 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     });
   }, [currentConfigs, permissions, columns, tableName]);
 
-  const readOnlyKeys = ['nom_entreprise', 'siret', 'adresse', 'code_postal', 'code_departement', 'code_naf', 'libelle_activite', 'pappers'];
+  const readOnlyKeys = ['nom_entreprise', 'siret', 'adresse', 'code_postal', 'code_departement', 'code_naf', 'libelle_activite', 'pappers', 'date_modification'];
 
   const groups = useMemo(() => {
     const enterpriseKeys = ['nom_entreprise', 'gerant', 'siret', 'code_naf', 'libelle_activite', 'secteur_activite', 'nom_opco', 'idcc', 'adresse', 'code_postal', 'code_departement', 'site_web', 'statut_gerant', 'nb_salaries', 'nb_apprentis', 'pappers'];
     const contactKeys = ['email', 'tel', 'mobile'];
-    const commercialKeys = ['funebooster', 'opcosign', 'status', 'status_rdv', 'statut_commercial', 'statut_2026', 'statut_2025', 'client_of', 'date_rdv', 'heure_rdv', 'type_rdv', 'rdv_honore', 'proposition', 'signe', 'date_signe', 'ca_signe_ht', 'nb_heures_formation', 'tx_horaire_ca', 'campagne_act', 'pec', 'echeances_pec', 'suivi_formation', 'budget_opco', 'annee_budget', 'annee_act'];
+    const commercialKeys = ['funebooster', 'opcosign', 'status', 'status_rdv', 'statut_commercial', 'statut_2026', 'statut_2025', 'client_of', 'date_rdv', 'heure_rdv', 'type_rdv', 'rdv_honore', 'proposition', 'signe', 'date_signe', 'ca_signe_ht', 'nb_heures_formation', 'tx_horaire_ca', 'campagne_act', 'pec', 'echeances_pec', 'suivi_formation', 'budget_opco', 'annee_budget', 'annee_act', 'date_modification'];
 
     const categorized = {
       enterprise: allowedConfigs.filter(c => enterpriseKeys.includes(c.key)),
@@ -666,7 +672,10 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                           }
                           onChange={handleAutoSave}
                           readOnly={readOnlyKeys.includes(col.key)}
-                          disabled={isLocked}
+                          disabled={isLocked || (
+                            (String(user?.role || '').toLowerCase().trim() === 'funbooster' || String(user?.role || '').toLowerCase().trim() === 'funebooster') 
+                            && (col.key === 'statut_2025' || col.key === 'statut_commercial')
+                          )}
                           isDarkMode={isDarkMode}
                           onConfigure={() => setStatusModalConfig(col)}
                           isAdmin={user?.role === 'admin'}

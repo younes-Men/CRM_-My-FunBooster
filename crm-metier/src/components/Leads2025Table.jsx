@@ -184,7 +184,8 @@ const COLUMNS = [
   { label: 'Heure RDV',    key: 'heure_rdv',         width: 100, type: 'time' },
   { label: 'Type RDV',     key: 'type_rdv',          width: 180, type: 'select', options: ['PHYSIQUE', 'TÉLÉPHONIQUE', 'VISIO'] },
   { label: 'RDV Honoré ?', key: 'rdv_honore',        width: 160, type: 'select', options: ['OUI', 'NON'] },
-  { label: 'Année Budget', key: 'annee_budget',      width: 120, type: 'editable' }
+  { label: 'Année Budget', key: 'annee_budget',      width: 120, type: 'editable' },
+  { label: 'Date Modif.',  key: 'date_modification', width: 160, type: 'date', readOnly: true }
 ];
 
 const PAGE_SIZE = 50;
@@ -271,7 +272,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
   
   let isLocked = isLeadLocked(lead, user);
   const userRole = String(user?.role || '').toLowerCase().trim();
-  if ((userRole === 'funbooster' || userRole === 'funebooster') && col.key === 'statut_2025') {
+  if ((userRole === 'funbooster' || userRole === 'funebooster') && (col.key === 'statut_2025' || col.key === 'statut_commercial')) {
     isLocked = true;
   }
   const raw = lead[col.key] || '';
@@ -281,6 +282,10 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
     displayRaw = formatNaf(displayRaw);
   }
 
+  if (col.key === 'date_modification') {
+    const formatted = raw ? new Date(raw).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    return <span className="text-xs text-navy/60 font-medium whitespace-nowrap">{formatted}</span>;
+  }
   if (col.key === 'nom_entreprise') {
     return (
       <div className="flex items-center gap-2 group/ent min-w-0 pr-2">
@@ -763,7 +768,7 @@ const Leads2025Table = ({ user, isDarkMode }) => {
     const leadStatus = String(lead.statut_2026 || '').toUpperCase().trim();
 
     try {
-      let updates = { [field]: dbValue };
+      let updates = { [field]: dbValue, date_modification: new Date().toISOString() };
 
       // WORKFLOW: If field is statut_2026 and value is 'RDV' or 'EN ATTENTE RDV'
       if (field === 'statut_2026' && (dbValue === 'RDV' || dbValue === 'EN ATTENTE RDV')) {
