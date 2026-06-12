@@ -292,7 +292,6 @@ const isLeadLocked = (lead, user) => {
   const isAdmin = userRole === 'admin';
   
   const status = String(lead.status || '').toUpperCase().trim();
-  if (status === 'BLOQUÉ ARCHIVE' && !isAdmin) return true;
 
   const isCommercial = userRole === 'commercial';
   
@@ -1424,12 +1423,7 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
     if (leadIndex === -1) return;
     const lead = leads[leadIndex];
     
-    // RESTRICTION: Non-admins cannot edit if the lead is in BLOQUÉ ARCHIVE status
     const leadStatus = String(lead.status || '').toUpperCase().trim();
-    if (leadStatus === 'BLOQUÉ ARCHIVE' && user?.role !== 'admin') {
-      alert("Cette fiche est verrouillée (BLOQUÉ ARCHIVE). Seul un administrateur peut y apporter des modifications.");
-      return;
-    }
 
     let dbValue = value === '' ? null : value;
     

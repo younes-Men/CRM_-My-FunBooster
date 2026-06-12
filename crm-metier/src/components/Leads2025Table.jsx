@@ -119,9 +119,8 @@ const isLeadLocked = (lead, user) => {
   const isAdmin = userRole === 'admin';
   const isCommercial = userRole === 'commercial';
   
-  // Non-admins cannot edit if the lead is in BLOQUÉ ARCHIVE status
+  // BLOQUÉ ARCHIVE n'est plus verrouillé pour les funboosters
   const status2026 = String(lead.statut_2026 || '').toUpperCase().trim();
-  if (status2026 === 'BLOQUÉ ARCHIVE' && !isAdmin) return true;
 
   if (isAdmin || isCommercial) return false;
 
@@ -170,13 +169,22 @@ const COLUMNS = [
     'MAXIME', 'FABIEN', 'REDA', 'SOUKAINA', 'ELISA', 'WIAM', 'WIJDAN'
   ]},
   { label: 'Gérant',       key: 'gerant',            width: 300, type: 'editable' },
+  { label: 'Statut Gérant',key: 'statut_gerant',     width: 180, type: 'select', options: [
+    'TNS::#8e24aa', '2 TNS::#6a1b9a', 'GÉRANT SALARIÉ::#c0ca33', '2 GÉRANTS SALARIÉS::#9e9d24'
+  ]},
   { label: 'Nb Salariés',  key: 'nb_salaries',       width: 120, type: 'number' },
   { label: 'Nb Apprentis', key: 'nb_apprentis',      width: 120, type: 'number' },
   { label: 'Libellé Act.', key: 'libelle_activite',  width: 200 },
   { label: 'Code NAF',     key: 'code_naf',          width: 130 },
   { label: 'Pappers',      key: 'pappers',           width: 130, type: 'pappers' },
   { label: 'Adresse',      key: 'adresse',           width: 260 },
-  { label: 'Code Dépt.',   key: 'code_departement',  width: 100, type: 'auto' }
+  { label: 'Code Dépt.',   key: 'code_departement',  width: 100, type: 'auto' },
+  { label: 'Budget Opco',  key: 'budget_opco',       width: 130 },
+  { label: 'Date RDV',     key: 'date_rdv',          width: 130, type: 'date_picker' },
+  { label: 'Heure RDV',    key: 'heure_rdv',         width: 100, type: 'time' },
+  { label: 'Type RDV',     key: 'type_rdv',          width: 180, type: 'select', options: ['PHYSIQUE', 'TÉLÉPHONIQUE', 'VISIO'] },
+  { label: 'RDV Honoré ?', key: 'rdv_honore',        width: 160, type: 'select', options: ['OUI', 'NON'] },
+  { label: 'Année Budget', key: 'annee_budget',      width: 120, type: 'editable' }
 ];
 
 const PAGE_SIZE = 50;
@@ -752,12 +760,7 @@ const Leads2025Table = ({ user, isDarkMode }) => {
     const lead = leads[leadIndex];
     let dbValue = value === '' ? null : value;
 
-    // RESTRICTION: Non-admins cannot edit if the lead has a locked status (like BLOQUÉ ARCHIVE)
     const leadStatus = String(lead.statut_2026 || '').toUpperCase().trim();
-    if (leadStatus === 'BLOQUÉ ARCHIVE' && user?.role !== 'admin') {
-      alert("Cette fiche est verrouillée (BLOQUÉ ARCHIVE). Seul un administrateur peut y apporter des modifications.");
-      return;
-    }
 
     try {
       let updates = { [field]: dbValue };

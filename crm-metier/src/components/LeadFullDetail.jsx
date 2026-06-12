@@ -53,7 +53,8 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     'client_of', 'opcosign', 'budget_opco', 'annee_budget', 'date_rdv', 
     'heure_rdv', 'type_rdv', 'rdv_honore', 'proposition', 'signe', 
     'date_signe', 'ca_signe_ht', 'nb_heures_formation', 'tx_horaire_ca', 
-    'campagne_act', 'pec', 'pappers', 'observation'
+    'campagne_act', 'pec', 'pappers', 'observation',
+    'statut_2025', 'statut_2026', 'statut_commercial', 'annee_act'
   ];
 
   const [currentLeadId, setCurrentLeadId] = useState(leadId);
@@ -188,13 +189,13 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
 
   const handleAutoSave = async (field, value) => {
     if (isLocked) {
-      alert("Cette fiche est verrouillée (BLOQUÉ ARCHIVE). Seul un administrateur peut y apporter des modifications.");
+      alert("Cette fiche est verrouillée et ne peut plus être modifiée par votre profil.");
       return;
     }
     setLoading(true);
     try {
       const isCustom = !nativeKeys.includes(field);
-      let finalValue = value;
+      let finalValue = value === '' ? null : value;
 
       // Format heure_rdv same as MondayTable
       if (field === 'heure_rdv' && finalValue) {
@@ -473,7 +474,6 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     const isAdmin = userRole === 'admin';
     
     const status = String(lead.status || '').toUpperCase().trim();
-    if (status === 'BLOQUÉ ARCHIVE' && !isAdmin) return true;
 
     const isCommercial = userRole === 'commercial';
     if (isAdmin || isCommercial) return false;
@@ -484,6 +484,13 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
 
   // Grouping logic for dynamic columns
   const allowedConfigs = useMemo(() => {
+    if (tableName === 'crm_leads_2025') {
+      return columns.filter(c => isVisible(c.key)).map(c => ({
+        ...c,
+        is_visible: true
+      }));
+    }
+
     return currentConfigs.filter(c => isVisible(c.key) && c.is_visible !== false).map(c => {
       const baseCol = columns.find(oc => oc.key === c.key);
       return {
@@ -491,14 +498,14 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
         label: baseCol?.label || c.label
       };
     });
-  }, [currentConfigs, permissions, columns]);
+  }, [currentConfigs, permissions, columns, tableName]);
 
   const readOnlyKeys = ['nom_entreprise', 'siret', 'adresse', 'code_postal', 'code_departement', 'code_naf', 'libelle_activite', 'pappers'];
 
   const groups = useMemo(() => {
     const enterpriseKeys = ['nom_entreprise', 'gerant', 'siret', 'code_naf', 'libelle_activite', 'secteur_activite', 'nom_opco', 'idcc', 'adresse', 'code_postal', 'code_departement', 'site_web', 'statut_gerant', 'nb_salaries', 'nb_apprentis', 'pappers'];
     const contactKeys = ['email', 'tel', 'mobile'];
-    const commercialKeys = ['funebooster', 'opcosign', 'status', 'status_rdv', 'client_of', 'date_rdv', 'heure_rdv', 'type_rdv', 'rdv_honore', 'proposition', 'signe', 'date_signe', 'ca_signe_ht', 'nb_heures_formation', 'tx_horaire_ca', 'campagne_act', 'pec', 'echeances_pec', 'suivi_formation', 'budget_opco', 'annee_budget'];
+    const commercialKeys = ['funebooster', 'opcosign', 'status', 'status_rdv', 'statut_commercial', 'statut_2026', 'statut_2025', 'client_of', 'date_rdv', 'heure_rdv', 'type_rdv', 'rdv_honore', 'proposition', 'signe', 'date_signe', 'ca_signe_ht', 'nb_heures_formation', 'tx_horaire_ca', 'campagne_act', 'pec', 'echeances_pec', 'suivi_formation', 'budget_opco', 'annee_budget', 'annee_act'];
 
     const categorized = {
       enterprise: allowedConfigs.filter(c => enterpriseKeys.includes(c.key)),
