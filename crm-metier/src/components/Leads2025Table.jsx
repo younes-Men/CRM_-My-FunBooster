@@ -787,7 +787,25 @@ const Leads2025Table = ({ user, isDarkMode }) => {
             const { error: updErr } = await supabase
               .from('crm_leads')
               .update({
+                tel: lead.tel,
+                mobile: lead.mobile,
+                nom_opco: lead.nom_opco,
+                client_of: lead.client_of,
+                gerant: lead.gerant,
+                code_naf: lead.code_naf,
+                libelle_activite: lead.libelle_activite,
+                adresse: lead.adresse,
+                code_postal: lead.code_postal,
+                code_departement: lead.code_departement,
+                statut_gerant: lead.statut_gerant,
+                nb_salaries: lead.nb_salaries === '' ? null : lead.nb_salaries,
+                nb_apprentis: lead.nb_apprentis === '' ? null : lead.nb_apprentis,
+                annee_budget: lead.annee_act === '' ? null : lead.annee_act,
                 status: 'EN ATTENTE RDV',
+                date_rdv: lead.date_rdv || null,
+                heure_rdv: lead.heure_rdv || null,
+                type_rdv: lead.type_rdv || null,
+                funebooster: lead.funebooster || user?.name || 'Système',
                 date_modification: new Date().toISOString()
               })
               .eq('id', existingLead.id);
@@ -817,6 +835,9 @@ const Leads2025Table = ({ user, isDarkMode }) => {
                 nb_apprentis: lead.nb_apprentis === '' ? null : lead.nb_apprentis,
                 annee_budget: lead.annee_act === '' ? null : lead.annee_act,
                 status: 'EN ATTENTE RDV',
+                date_rdv: lead.date_rdv || null,
+                heure_rdv: lead.heure_rdv || null,
+                type_rdv: lead.type_rdv || null,
                 funebooster: lead.funebooster || user?.name || 'Système',
                 date_modification: new Date().toISOString()
               }]);
