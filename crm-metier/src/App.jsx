@@ -7,6 +7,7 @@ import TempRdvZone from './components/TempRdvZone';
 import CalendarView from './components/CalendarView';
 import Pipeline from './components/Pipeline';
 import Leads2025Table from './components/Leads2025Table';
+import Rdv2026Table from './components/Rdv2026Table';
 import { getUser } from './lib/authConfig';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -170,10 +171,12 @@ function App() {
                 <h1 className="text-4xl font-bold text-navy tracking-tight leading-tight font-outfit uppercase">
                   {activeTab === 'users' ? 'Équipe' : 
                    activeTab === 'leads-2025' ? 'Archives ' :
+                   activeTab === 'rdv-2026' ? 'Archives ' :
                    activeTab === 'mes-rdv' ? 'Liste des ' : 'Gestion des '}
                   {activeTab !== 'users' && (
                     <span className="text-primary">
                       {activeTab === 'leads-2025' ? 'LEADS 2025' :
+                       activeTab === 'rdv-2026' ? 'RDV 2026' :
                        activeTab === 'mes-rdv' ? 'RDV' : 'Leads'}
                     </span>
                   )}
@@ -181,6 +184,7 @@ function App() {
                 <p className="text-[11px] font-bold text-navy/30 uppercase tracking-[0.25em] mt-1">
                   {activeTab === 'users' ? 'Liste globale des collaborateurs CRM' : 
                    activeTab === 'leads-2025' ? "Rendez-vous et prospection de l'année 2025" :
+                   activeTab === 'rdv-2026' ? "Rendez-vous validés depuis Leads 2025" :
                    activeTab === 'mes-rdv' ? 'Vos rendez-vous qualifiés' : 'Base de données centralisée'}
                 </p>
               </div>
@@ -201,6 +205,8 @@ function App() {
               <Pipeline user={user} />
             ) : activeTab === 'leads-2025' ? (
               <Leads2025Table user={user} isDarkMode={isDarkMode} />
+            ) : activeTab === 'rdv-2026' ? (
+              <Rdv2026Table user={user} isDarkMode={isDarkMode} />
             ) : (
               <MondayTable activeTab={activeTab} user={user} isDarkMode={isDarkMode} />
             )}

@@ -118,19 +118,16 @@ const isLeadLocked = (lead, user) => {
   const userRole = String(user.role || '').toLowerCase().trim();
   const isAdmin = userRole === 'admin';
   const isCommercial = userRole === 'commercial';
-  
-  // BLOQUÉ ARCHIVE n'est plus verrouillé pour les funboosters
-  const status2026 = String(lead.statut_2026 || '').toUpperCase().trim();
 
   if (isAdmin || isCommercial) return false;
 
-  // For Funboosters, lock if status is RDV, SIGNE, or EN ATTENTE RDV
-  const lockedStatuses = ['RDV', 'SIGNE', 'EN ATTENTE RDV'];
-  return lockedStatuses.includes(status2026);
+  // For Funboosters, lock everything in RDV 2026
+  return true;
 };
 
 const COLUMNS = [
-  { label: 'Année Act.',   key: 'annee_act',         width: 130, type: 'number' },
+  { label: 'Ancien Année Act.', key: 'annee_act',         width: 130, type: 'number' },
+  { label: 'Année Act.',        key: 'annee_act_2026',    width: 130, type: 'number' },
   { label: 'Funbooster',   key: 'funebooster',       width: 220, type: 'select', options: [
     'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA', 'JIHAD', 'WIAM'
   ]},
@@ -271,10 +268,18 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
   const [localEdit, setLocalEdit] = useState(false);
   
   let isLocked = isLeadLocked(lead, user);
-  const userRole = String(user?.role || '').toLowerCase().trim();
-  if ((userRole === 'funbooster' || userRole === 'funebooster') && (col.key === 'statut_2025' || col.key === 'statut_commercial')) {
-    isLocked = true;
-  }
+  const renderCell = (lead, col, isLockedRow) => {
+    if (col.key === 'annee_act_2026') {
+      return (
+        <span className="text-navy font-bold">2026</span>
+      );
+    }
+
+    // Force isLocked to true for status columns if not already locked
+    if (col.key === 'statut_2026' || col.key === 'statut_2025' || col.key === 'statut_commercial') {
+      isLocked = true;
+    }
+
   const raw = lead[col.key] || '';
   
   let displayRaw = raw || '';
@@ -462,6 +467,7 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
       {displayRaw || '—'}
     </span>
   );
+};
 });
 
 const TableRow = React.memo(({ data, index, style }) => {
@@ -636,7 +642,7 @@ const SearchInput = React.memo(({ value, onSearch }) => {
   );
 });
 
-const Leads2025Table = ({ user, isDarkMode }) => {
+const Rdv2026Table = ({ user, isDarkMode }) => {
   const [leads, setLeads] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -673,7 +679,7 @@ const Leads2025Table = ({ user, isDarkMode }) => {
     const to = from + PAGE_SIZE - 1;
 
     try {
-      let query = supabase.from('crm_leads_2025').select('*', { count: pageIndex === 0 ? 'exact' : 'estimated' }).neq('statut_2026', 'RDV VALIDE');
+      let query = supabase.from('crm_leads_2025').select('*', { count: pageIndex === 0 ? 'exact' : 'estimated' }).eq('statut_2026', 'RDV VALIDE');
 
       // Search Query filter
       if (searchQuery) {
@@ -858,7 +864,7 @@ const Leads2025Table = ({ user, isDarkMode }) => {
         .eq('id', id);
 
       if (error) throw error;
-
+      
       // Update state
       setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
     } catch (err) {
@@ -894,12 +900,21 @@ const Leads2025Table = ({ user, isDarkMode }) => {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_leads_2025' }, (payload) => {
           if (payload.eventType === 'UPDATE') {
             const updated = payload.new;
-            // Si le statut est passé à RDV VALIDE → on retire le lead de la liste automatiquement
-            if (String(updated.statut_2026 || '').toUpperCase().trim() === 'RDV VALIDE') {
-              setLeads(prev => prev.filter(l => l.id !== updated.id));
-            } else {
-              setLeads(prev => prev.map(l => l.id === updated.id ? { ...l, ...updated } : l));
-            }
+            const isRdvValide = String(updated.statut_2026 || '').toUpperCase().trim() === 'RDV VALIDE';
+            const alreadyInList = (prev) => prev.some(l => l.id === updated.id);
+            setLeads(prev => {
+              if (isRdvValide) {
+                // S'il est déjà dans la liste → on le met à jour
+                if (prev.some(l => l.id === updated.id)) {
+                  return prev.map(l => l.id === updated.id ? { ...l, ...updated } : l);
+                }
+                // Sinon → on l'ajoute en tête de liste (nouveau RDV validé !)
+                return [updated, ...prev];
+              } else {
+                // Le statut a changé, ce n'est plus RDV VALIDE → on le retire
+                return prev.filter(l => l.id !== updated.id);
+              }
+            });
           } else if (payload.eventType === 'DELETE') {
             const deleted = payload.old;
             setLeads(prev => prev.filter(l => l.id !== deleted.id));
@@ -1082,7 +1097,7 @@ const Leads2025Table = ({ user, isDarkMode }) => {
             setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updatedFields } : l));
           }}
           isDarkMode={isDarkMode}
-          tableName="crm_leads_2025"
+          tableName="crm_rdv_2026"
         />
       )}
 
@@ -1100,4 +1115,4 @@ const Leads2025Table = ({ user, isDarkMode }) => {
   );
 };
 
-export default Leads2025Table;
+export default Rdv2026Table;

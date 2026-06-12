@@ -1086,32 +1086,37 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
         }
 
         filteredCols = filteredCols.map(col => {
-          if (col.key === 'funebooster') return { ...col, options: [...new Set(funboosters)].sort() };
-          if (col.key === 'opcosign') {
-            // Merge: use team names, but preserve saved colors & visibility from DB
+          if (col.key === 'funebooster' || col.key === 'opcosign') {
+            const isOpco = col.key === 'opcosign';
+            const baseNames = isOpco ? commercialNames : funboosters;
+            
+            // Merge: use team names, but preserve saved colors, visibility, and custom options from DB
             const savedMap = {};
+            const savedOrder = [];
             (col.options || []).forEach(opt => {
               if (typeof opt === 'string' && opt.includes('::')) {
                 const parts = opt.split('::');
-                savedMap[parts[0].toUpperCase()] = { color: parts[1], isHidden: parts[2] === 'h' };
+                const name = parts[0].toUpperCase();
+                savedMap[name] = { color: parts[1], isHidden: parts[2] === 'h' };
+                savedOrder.push(name);
+              } else if (typeof opt === 'string') {
+                const name = opt.toUpperCase();
+                savedMap[name] = {};
+                savedOrder.push(name);
               }
             });
 
-            // Build options preserving DB colors, ordered as saved then new ones appended
-            const savedOrder = (col.options || [])
-              .filter(opt => typeof opt === 'string' && opt.includes('::'))
-              .map(opt => opt.split('::')[0].toUpperCase());
-            const teamNamesUpper = [...new Set(commercialNames.map(n => n.toUpperCase()))];
+            const teamNamesUpper = [...new Set(baseNames.map(n => n.toUpperCase()))];
             
-            // Keep saved order first, then append any new team members not yet saved
+            // Keep saved order first (which includes any custom added options), then append any new team members not yet saved
             const ordered = [
-              ...savedOrder.filter(n => teamNamesUpper.includes(n)),
+              ...savedOrder,
               ...teamNamesUpper.filter(n => !savedOrder.includes(n)).sort()
             ];
 
             const mergedOptions = ordered.map(name => {
               const saved = savedMap[name] || {};
-              return `${name}::${saved.color || '#6d28d9'}::${saved.isHidden ? 'h' : 'v'}`;
+              return `${name}::${saved.color || '#64748b'}::${saved.isHidden ? 'h' : 'v'}`;
             });
 
             return { ...col, options: mergedOptions, type: 'select' };
@@ -1520,6 +1525,17 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
       
       if (supabase) {
         await supabase.from('crm_leads').update(updates).eq('id', id);
+
+        if (field === 'status' && dbValue) {
+          const cleanSiret = String(lead.siret || '').replace(/\s+/g, '');
+          if (cleanSiret) {
+            // Mettre à jour "statut_commercial" dans crm_leads_2025 (visible dans RDV 2026)
+            await supabase
+              .from('crm_leads_2025')
+              .update({ statut_commercial: dbValue })
+              .eq('siret', lead.siret);
+          }
+        }
 
         if (field === 'observation' && value) {
           await supabase.from('crm_observations_history').insert({ 

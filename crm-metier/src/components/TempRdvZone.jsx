@@ -98,7 +98,7 @@ const TempRdvZone = ({ user }) => {
         if (lead.siret) {
           await supabase
             .from('crm_leads_2025')
-            .delete()
+            .update({ statut_2026: 'RDV VALIDE' })
             .eq('siret', lead.siret);
         }
 

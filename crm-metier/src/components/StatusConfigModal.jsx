@@ -81,14 +81,21 @@ const StatusConfigModal = ({ isOpen, onClose, column, onRefresh }) => {
 
     let error;
     if (existing) {
-      // Row exists → just update options
-      ({ error } = await supabase
+      // Row exists → just update options and request returned data
+      const { data: updatedRows, error: updErr } = await supabase
         .from('crm_column_configs')
         .update({ options: formatted })
-        .eq('key', column.key));
+        .eq('key', column.key)
+        .select();
+        
+      error = updErr;
+      
+      if (!error && (!updatedRows || updatedRows.length === 0)) {
+        error = { message: "Permission refusée (RLS) : vous n'avez pas le droit de modifier les configurations de colonnes." };
+      }
     } else {
       // Row doesn't exist → insert with all required fields
-      ({ error } = await supabase
+      const { data: insertedRows, error: insErr } = await supabase
         .from('crm_column_configs')
         .insert({
           key: column.key,
@@ -97,7 +104,13 @@ const StatusConfigModal = ({ isOpen, onClose, column, onRefresh }) => {
           options: formatted,
           is_visible: true,
           display_order: 999
-        }));
+        })
+        .select();
+        
+      error = insErr;
+      if (!error && (!insertedRows || insertedRows.length === 0)) {
+        error = { message: "Permission refusée (RLS) : vous n'avez pas le droit de créer des configurations de colonnes." };
+      }
     }
 
     if (!error) {

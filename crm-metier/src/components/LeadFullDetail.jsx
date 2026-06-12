@@ -75,6 +75,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
   const [localComment, setLocalComment] = useState(lead?.observation || '');
   const saveTimeoutRef = useRef(null);
   const lastSavedCommentRef = useRef(lead?.observation || '');
+  const pendingSaveRef = useRef(null); // { leadId, value } — sauvegarde en attente avant changement de lead
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,20 +99,60 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
 
   useEffect(() => {
     if (currentLeadId) {
+      // 1) Annuler le timer en cours
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+
+      // 2) Si un commentaire était en attente de sauvegarde sur l'ANCIEN lead, le sauvegarder immédiatement
+      if (
+        pendingSaveRef.current &&
+        pendingSaveRef.current.leadId !== currentLeadId &&
+        pendingSaveRef.current.value !== lastSavedCommentRef.current
+      ) {
+        const { leadId: oldLeadId, value: pendingVal } = pendingSaveRef.current;
+        const updates = tableName === 'crm_leads_2025' 
+          ? { date_modification: new Date().toISOString() } 
+          : { observation: pendingVal || null, date_modification: new Date().toISOString() };
+        
+        supabase
+          .from(tableName === 'crm_leads_2025' ? 'crm_leads_2025' : tableName)
+          .update(updates)
+          .eq('id', oldLeadId)
+          .then(() => {
+            // Toujours sauvegarder dans l'historique, même si c'est vide (pour écraser l'ancien)
+            if (pendingVal !== undefined) {
+              supabase.from('crm_observations_history').insert([{
+                lead_id: oldLeadId,
+                observation_text: pendingVal || '',
+                created_by: user?.name || user?.email || 'Système'
+              }]).then(() => {});
+            }
+          });
+      }
+      pendingSaveRef.current = null;
+
+      // 3) Charger le commentaire du nouveau lead
       fetchHistory().then(hist => {
         let loadedComment = '';
         if (tableName === 'crm_leads_2025') {
-          loadedComment = hist && hist.length > 0 ? hist[0].observation_text : '';
+          // Priorité : historique → sinon champ observation directement
+          if (hist && hist.length > 0) {
+            loadedComment = hist[0].observation_text || '';
+          } else {
+            loadedComment = leads.find(l => l.id === currentLeadId)?.observation || '';
+          }
         } else {
           loadedComment = leads.find(l => l.id === currentLeadId)?.observation || '';
         }
         setLocalComment(loadedComment);
-        lastSavedCommentRef.current = loadedComment; // sync ref with loaded value
+        lastSavedCommentRef.current = loadedComment;
       });
       if (onLeadChange) onLeadChange(currentLeadId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentLeadId]); // ONLY run when currentLeadId changes!
+  }, [currentLeadId]);
 
   const fetchHistory = async () => {
     const { data, error } = await supabase
@@ -329,27 +370,27 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
           }
         }
       } else {
-        // Normal update
-        if (!(tableName === 'crm_leads_2025' && field === 'observation')) {
+        // Normal update — toujours sauvegarder, même si value est vide (effacement commentaire)
+        if (tableName === 'crm_leads_2025' && field === 'observation') {
+          // Pour crm_leads_2025 : la colonne observation n'existe pas ! On update juste la date
+          const { error } = await supabase
+            .from(tableName)
+            .update({ date_modification: new Date().toISOString() })
+            .eq('id', lead.id);
+          if (error) throw error;
+        } else {
           const { error } = await supabase
             .from(tableName)
             .update(updates)
             .eq('id', lead.id);
-
           if (error) throw error;
-        } else {
-          // For crm_leads_2025 observations, still update date_modification
-          await supabase
-            .from(tableName)
-            .update({ date_modification: new Date().toISOString() })
-            .eq('id', lead.id);
         }
 
-        // Also insert into history if it's an observation/comment
-        if (field === 'observation' && value) {
+        // Insérer dans l'historique si c'est une observation/commentaire (TOUJOURS, même si vide)
+        if (field === 'observation') {
           const { error: histError } = await supabase.from('crm_observations_history').insert([{
             lead_id: lead.id,
-            observation_text: value,
+            observation_text: value || '',
             created_by: user?.name || user?.email || 'Système'
           }]);
           if (histError) {
@@ -507,13 +548,15 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     const isCommercial = userRole === 'commercial';
     if (isAdmin || isCommercial) return false;
 
+    if (tableName === 'crm_rdv_2026') return true;
+
     const lockedStatuses = ['RDV', 'SIGNE', 'EN ATTENTE RDV'];
     return lockedStatuses.includes(status);
-  }, [lead, user]);
+  }, [lead, user, tableName]);
 
   // Grouping logic for dynamic columns
   const allowedConfigs = useMemo(() => {
-    if (tableName === 'crm_leads_2025') {
+    if (tableName === 'crm_leads_2025' || tableName === 'crm_rdv_2026') {
       return columns.map(c => ({
         ...c,
         is_visible: true
@@ -781,11 +824,13 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                 onChange={e => {
                   const val = e.target.value;
                   setLocalComment(val);
+                  pendingSaveRef.current = { leadId: currentLeadId, value: val };
                   
                   if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
                   saveTimeoutRef.current = setTimeout(() => {
                     if (val !== lastSavedCommentRef.current) {
                       lastSavedCommentRef.current = val;
+                      pendingSaveRef.current = null;
                       handleAutoSave('observation', val);
                     }
                   }, 1000);
@@ -795,6 +840,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
                   if (val !== lastSavedCommentRef.current) {
                     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
                     lastSavedCommentRef.current = val;
+                    pendingSaveRef.current = null;
                     handleAutoSave('observation', val);
                   }
                 }}
