@@ -299,7 +299,7 @@ const isLeadLocked = (lead, user) => {
   if (isAdmin || isCommercial) return false;
 
   // Pour TOUS les autres (Funboosters, etc.), on verrouille ces statuts
-  const lockedStatuses = ['RDV', 'SIGNE', 'EN ATTENTE RDV'];
+  const lockedStatuses = ['RDV', 'SIGNE', 'EN ATTENTE RDV', 'BLOQUÉ ARCHIVE'];
   
   return lockedStatuses.includes(status);
 };
@@ -838,9 +838,9 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
         params.append('departement', cleanDepts.join(','));
       }
 
-      // Filtrer pour n'avoir que les entreprises avec un effectif de 0 à 49 salariés (tranches NN, 00 à 12 de l'INSEE)
-      // Cela correspond à "mn 0 tal 50 maykonch fayt 50" comme demandé par l'utilisateur
-      params.append('tranche_effectif_salarie', 'NN,00,01,02,03,11,12');
+      // Filtrer pour n'avoir que les entreprises avec un effectif de 1 à 49 salariés (tranches 01 à 12 de l'INSEE)
+      // On exclut NN (inconnu/0) et 00 (0 salarié)
+      params.append('tranche_effectif_salarie', '01,02,03,11,12');
 
       const url = `https://recherche-entreprises.api.gouv.fr/search?${params.toString()}`;
       console.log('[Recherche API] URL:', url);
@@ -1037,16 +1037,19 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
 
       let finalCols = [];
       if (data && data.length > 0) {
-        finalCols = data.map(c => {
-          const baseCol = COLUMNS.find(oc => oc.key === c.key);
-          return {
-            ...c,
-            width: c.key === 'mobile' ? 180 : (c.key === 'gerant' ? 300 : Math.max(c.width || 0, baseCol?.width || 150)),
-            label: baseCol?.label || c.label,
-            type: c.type || baseCol?.type || 'text',
-            options: c.options || baseCol?.options
-          };
-        });
+        finalCols = data
+          .map(c => {
+            const baseCol = COLUMNS.find(oc => oc.key === c.key);
+            if (!baseCol) return null;
+            return {
+              ...c,
+              width: c.key === 'mobile' ? 180 : (c.key === 'gerant' ? 300 : Math.max(c.width || 0, baseCol?.width || 150)),
+              label: baseCol?.label || c.label,
+              type: c.type || baseCol?.type || 'text',
+              options: c.options || baseCol?.options
+            };
+          })
+          .filter(Boolean);
       } else {
         const seedData = COLUMNS.map((c, i) => ({
           key: c.key,
