@@ -136,6 +136,7 @@ const COLUMNS = [
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
+  { label: 'IDCC',         key: 'idcc',              width: 120, type: 'editable' },
   { label: 'Téléphone',    key: 'tel',               width: 250, type: 'editable' },
   { label: 'Mobile',       key: 'mobile',            width: 180, type: 'editable' },
   { label: 'Statut Commercial', key: 'statut_commercial', width: 210, type: 'select', options: [
@@ -489,7 +490,7 @@ const TableRow = React.memo(({ data, index, style }) => {
   );
 });
 
-const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_commercial', 'statut_2025', 'statut_2026', 'code_departement', 'code_naf'];
+const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_commercial', 'statut_2025', 'statut_2026', 'code_departement', 'code_naf', 'idcc'];
 const uniqueValuesCache = {};
 
 // Custom hook to fetch distinct filter values for the LEADS 2025 table
@@ -660,6 +661,8 @@ const Leads2025Table = ({ user, isDarkMode }) => {
   const [error, setError] = useState(null);
   const lastFetchId = useRef(0);
   const listRef = useRef(null);
+  const containerRef = useRef(null);
+  const [containerHeight, setContainerHeight] = useState(550);
 
   const tableTotalWidth = useMemo(() => columns.reduce((acc, col) => acc + col.width, 0), [columns]);
 
@@ -877,6 +880,18 @@ const Leads2025Table = ({ user, isDarkMode }) => {
     fetchPage(0, true, search, newFilters);
   }, [activeFilters, fetchPage, search]);
 
+  // Dynamic height for virtualized list
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('crm_search_leads_2025', search);
   }, [search]);
@@ -968,7 +983,7 @@ const Leads2025Table = ({ user, isDarkMode }) => {
       </div>
 
       {/* Main Grid View */}
-      <div className="rounded-[2rem] border border-navy/5 shadow-2xl bg-card overflow-x-auto custom-scrollbar" style={{ height: 'calc(100vh - 200px)' }}>
+      <div ref={containerRef} className="rounded-[2rem] border border-navy/5 shadow-2xl bg-card overflow-x-auto custom-scrollbar" style={{ height: 'calc(100vh - 200px)' }}>
         <div style={{ width: tableTotalWidth }}>
           {/* Header Row */}
           <div className="sticky top-0 z-[60] flex items-center bg-background border-b border-navy/5 shadow-sm">
@@ -1051,7 +1066,7 @@ const Leads2025Table = ({ user, isDarkMode }) => {
             ) : (
               <List
                 ref={listRef}
-                height={550}
+                height={Math.max(100, containerHeight - 60)}
                 width={tableTotalWidth}
                 itemCount={leads.length}
                 itemSize={48}

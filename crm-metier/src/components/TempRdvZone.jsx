@@ -94,12 +94,34 @@ const TempRdvZone = ({ user }) => {
       if (lead) {
         setValidatedLead({ ...lead, ...updates });
         
-        // WORKFLOW: Delete validated lead from crm_leads_2025
-        if (lead.siret) {
-          await supabase
-            .from('crm_leads_2025')
-            .update({ statut_2026: 'RDV VALIDE' })
-            .eq('siret', lead.siret);
+        // WORKFLOW: Sync validated lead to crm_leads_2025 (so it appears in RDV 2026)
+        try {
+          if (lead.siret) {
+            const { data: existing2025 } = await supabase
+              .from('crm_leads_2025')
+              .select('id')
+              .eq('siret', lead.siret)
+              .single();
+
+            if (existing2025) {
+              await supabase
+                .from('crm_leads_2025')
+                .update({ statut_2026: 'RDV VALIDE', statut_2025: 'RDV' })
+                .eq('siret', lead.siret);
+            } else {
+              const newLead2025 = { ...lead, statut_2026: 'RDV VALIDE', statut_2025: 'A TRAITER' };
+              delete newLead2025.id;
+              delete newLead2025.created_at;
+              await supabase.from('crm_leads_2025').insert(newLead2025);
+            }
+          } else {
+            const newLead2025 = { ...lead, statut_2026: 'RDV VALIDE', statut_2025: 'A TRAITER' };
+            delete newLead2025.id;
+            delete newLead2025.created_at;
+            await supabase.from('crm_leads_2025').insert(newLead2025);
+          }
+        } catch (err) {
+          console.error('Error syncing to crm_leads_2025:', err);
         }
 
         // Send to Google Sheet Webhook if configured

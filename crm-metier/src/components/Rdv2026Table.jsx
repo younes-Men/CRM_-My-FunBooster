@@ -133,6 +133,7 @@ const COLUMNS = [
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
+  { label: 'IDCC',         key: 'idcc',              width: 120, type: 'editable' },
   { label: 'Téléphone',    key: 'tel',               width: 250, type: 'editable' },
   { label: 'Mobile',       key: 'mobile',            width: 180, type: 'editable' },
   { label: 'Statut Commercial', key: 'statut_commercial', width: 210, type: 'select', options: [
@@ -275,8 +276,8 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
       );
     }
 
-    // Force isLocked to true for status columns if not already locked
-    if (col.key === 'statut_2026' || col.key === 'statut_2025' || col.key === 'statut_commercial') {
+    const userRole = String(user?.role || '').toLowerCase().trim();
+    if (userRole !== 'admin' && userRole !== 'commercial' && (col.key === 'statut_2026' || col.key === 'statut_2025' || col.key === 'statut_commercial')) {
       isLocked = true;
     }
 
@@ -448,6 +449,35 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
     );
   }
 
+  if (col.type === 'time') {
+    const formatTime = (t) => {
+      if (!t) return '';
+      const parts = t.split(':');
+      if (parts.length >= 2) {
+        return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+      }
+      return t;
+    };
+    const displayValue = formatTime(raw);
+    return (
+      <div className="flex justify-center w-full p-1">
+        <input 
+          type="time" 
+          disabled={isLocked} 
+          defaultValue={displayValue} 
+          key={`${lead.id}-${col.key}-${displayValue}`} 
+          onBlur={e => { 
+            const val = e.target.value; 
+            if (val !== displayValue) {
+               handleUpdate(lead.id, col.key, val ? val + ':00' : null, col.is_custom); 
+            }
+          }} 
+          className={`w-[85px] px-2 py-1 bg-navy/5 border border-transparent rounded-xl text-[13px] font-black focus:outline-none transition-all font-mono text-center text-navy shadow-sm ${isLocked ? 'cursor-not-allowed opacity-60' : 'hover:border-navy/10 focus:bg-card focus:border-primary'}`} 
+        />
+      </div>
+    );
+  }
+
   if (col.type === 'auto') {
     let displayValue = raw;
     if (!displayValue && lead.adresse) {
@@ -467,7 +497,9 @@ const TableCell = React.memo(({ lead, col, handleUpdate, user, isDarkMode }) => 
       {displayRaw || '—'}
     </span>
   );
-};
+  };
+
+  return renderCell(lead, col, isLocked);
 });
 
 const TableRow = React.memo(({ data, index, style }) => {
@@ -495,7 +527,7 @@ const TableRow = React.memo(({ data, index, style }) => {
   );
 });
 
-const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_commercial', 'statut_2025', 'statut_2026', 'code_departement', 'code_naf'];
+const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_commercial', 'statut_2025', 'statut_2026', 'code_departement', 'code_naf', 'idcc'];
 const uniqueValuesCache = {};
 
 // Custom hook to fetch distinct filter values for the LEADS 2025 table
@@ -666,6 +698,8 @@ const Rdv2026Table = ({ user, isDarkMode }) => {
   const [error, setError] = useState(null);
   const lastFetchId = useRef(0);
   const listRef = useRef(null);
+  const containerRef = useRef(null);
+  const [containerHeight, setContainerHeight] = useState(550);
 
   const tableTotalWidth = useMemo(() => columns.reduce((acc, col) => acc + col.width, 0), [columns]);
 
@@ -887,6 +921,18 @@ const Rdv2026Table = ({ user, isDarkMode }) => {
     localStorage.setItem('crm_search_leads_2025', search);
   }, [search]);
 
+  // Dynamic height for virtualized list
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => { setPage(0); fetchPage(0, true, search, activeFilters); }, search ? 500 : 0);
     return () => clearTimeout(timer);
@@ -983,7 +1029,7 @@ const Rdv2026Table = ({ user, isDarkMode }) => {
       </div>
 
       {/* Main Grid View */}
-      <div className="rounded-[2rem] border border-navy/5 shadow-2xl bg-card overflow-x-auto custom-scrollbar" style={{ height: 'calc(100vh - 200px)' }}>
+      <div ref={containerRef} className="rounded-[2rem] border border-navy/5 shadow-2xl bg-card overflow-x-auto custom-scrollbar" style={{ height: 'calc(100vh - 200px)' }}>
         <div style={{ width: tableTotalWidth }}>
           {/* Header Row */}
           <div className="sticky top-0 z-[60] flex items-center bg-background border-b border-navy/5 shadow-sm">
@@ -1066,7 +1112,7 @@ const Rdv2026Table = ({ user, isDarkMode }) => {
             ) : (
               <List
                 ref={listRef}
-                height={550}
+                height={Math.max(100, containerHeight - 60)}
                 width={tableTotalWidth}
                 itemCount={leads.length}
                 itemSize={48}

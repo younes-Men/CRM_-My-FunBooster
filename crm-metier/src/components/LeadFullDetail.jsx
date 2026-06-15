@@ -235,6 +235,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
     }
     setLoading(true);
     try {
+      const actualTableName = tableName === 'crm_rdv_2026' ? 'crm_leads_2025' : tableName;
       const isCustom = !nativeKeys.includes(field);
       let finalValue = value === '' ? null : value;
 
@@ -262,7 +263,7 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
       updates.date_modification = new Date().toISOString();
 
       // WORKFLOW: If field is statut_2026 and value is RDV/EN ATTENTE RDV
-      if (tableName === 'crm_leads_2025' && field === 'statut_2026' && (value === 'RDV' || value === 'EN ATTENTE RDV')) {
+      if (actualTableName === 'crm_leads_2025' && field === 'statut_2026' && (value === 'RDV' || value === 'EN ATTENTE RDV')) {
         const cleanSiret = String(lead.siret || '').replace(/\s+/g, '');
         if (cleanSiret) {
           const { data: existingLead } = await supabase
@@ -371,16 +372,16 @@ const LeadFullDetail = ({ leadId, leads = [], columns = [], onClose, user, permi
         }
       } else {
         // Normal update — toujours sauvegarder, même si value est vide (effacement commentaire)
-        if (tableName === 'crm_leads_2025' && field === 'observation') {
+        if (actualTableName === 'crm_leads_2025' && field === 'observation') {
           // Pour crm_leads_2025 : la colonne observation n'existe pas ! On update juste la date
           const { error } = await supabase
-            .from(tableName)
+            .from(actualTableName)
             .update({ date_modification: new Date().toISOString() })
             .eq('id', lead.id);
           if (error) throw error;
         } else {
           const { error } = await supabase
-            .from(tableName)
+            .from(actualTableName)
             .update(updates)
             .eq('id', lead.id);
           if (error) throw error;
