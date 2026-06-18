@@ -98,6 +98,9 @@ const COLUMNS = [
     'BENZAYDOUNE', 'LABIBA', 'MERYEM', 'SOUKAINA', 'WISSAL', 'AMRI', 'KHADIJA', 'WIJDAN', 'GHITA', 'JIHAD'
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
+  { label: 'Forme Juridique', key: 'forme_juridique', width: 160, options: [
+    'Entreprise individuelle', 'Micro entreprise', 'SARL', 'EURL', 'SAS', 'SASU', 'SA', 'SNC', 'SCS', 'SCI', 'SCM', 'Société civile', 'Association', 'Secteur Public'
+  ] },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
   { label: 'Tranche Effectif', key: 'tranche_effectif', width: 190, options: [
     'Non employeur', '0 salarié', '1 à 2 salariés', '3 à 5 salariés', '6 à 9 salariés',
@@ -648,7 +651,7 @@ const TableRow = React.memo(({ data, index, style }) => {
   );
 });
 
-const FILTERABLE_COLUMNS = ['funebooster', 'nom_opco', 'idcc', 'code_naf', 'tel', 'mobile', 'code_departement', 'status', 'client_of', 'date_rdv', 'date_signe', 'tranche_effectif'];
+const FILTERABLE_COLUMNS = ['funebooster', 'nom_opco', 'idcc', 'code_naf', 'tel', 'mobile', 'code_departement', 'status', 'client_of', 'date_rdv', 'date_signe', 'tranche_effectif', 'forme_juridique'];
 const uniqueValuesCache = {};
 
 const useUniqueValues = (field, initialSearch = '') => {
@@ -683,7 +686,7 @@ const useUniqueValues = (field, initialSearch = '') => {
 
         // Helper to match broken data to correct labels
         const getCanonicalLabel = (val) => {
-          const fuzzy = val.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/g, "");
+          const fuzzy = val.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
           
           // Hard fixes for the user's specific errors
           if (fuzzy === "HORSCIBLESALARIS") return "HORS CIBLE SALARIÉS";
@@ -692,7 +695,7 @@ const useUniqueValues = (field, initialSearch = '') => {
           
           // Try to match against predefined options
           for (const opt of options) {
-            const cleanOpt = opt.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/g, "");
+            const cleanOpt = opt.normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
             if (fuzzy === cleanOpt) return opt;
           }
           return val;
@@ -1190,6 +1193,29 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
     '53': '10 000 salariés et plus',
   };
 
+  const FORME_JURIDIQUE_LABELS = {
+    '1000': 'Entreprise individuelle',
+    '3120': 'SNC',
+    '3220': 'SCS',
+    '4110': 'Secteur Public',
+    '5485': 'EURL',
+    '5498': 'EURL',
+    '5499': 'SARL',
+    '5599': 'SA',
+    '5699': 'SA',
+    '5710': 'SAS',
+    '5720': 'SASU',
+    '6534': 'GFA',
+    '6540': 'SCI',
+    '6589': 'SCM',
+    '6599': 'Société civile',
+    '7120': 'Secteur Public',
+    '7210': 'Secteur Public',
+    '7313': 'Secteur Public',
+    '9220': 'Association',
+    '9260': 'Association'
+  };
+
   const enrichLead = useCallback(async (id, siret) => {
     if (!siret || siret === '---') return;
     setEnrichingId(id);
@@ -1226,6 +1252,10 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
                            (result.siege && result.siege.tranche_effectif_salarie);
         const foundTranche = rawTranche ? (TRANCHE_EFFECTIF_LABELS[String(rawTranche)] || rawTranche) : '';
 
+        // Extract nature_juridique from the result
+        const rawForme = result.nature_juridique || (result.siege && result.siege.nature_juridique);
+        const foundForme = rawForme ? (FORME_JURIDIQUE_LABELS[String(rawForme)] || rawForme) : '';
+
         // Fallback to SIREN
         if (!foundIdcc) {
           const sirenResp = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${siren}`);
@@ -1247,6 +1277,9 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
         }
         if (foundTranche && (!lead.tranche_effectif || lead.tranche_effectif === '---' || lead.tranche_effectif === '')) {
           updates.tranche_effectif = foundTranche;
+        }
+        if (foundForme && (!lead.forme_juridique || lead.forme_juridique === '---' || lead.forme_juridique === '')) {
+          updates.forme_juridique = foundForme;
         }
 
         // 3. Match Sector Activity
