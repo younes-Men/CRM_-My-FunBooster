@@ -129,6 +129,19 @@ const isLeadLocked = (lead, user) => {
   return lockedStatuses.includes(status2026);
 };
 
+const RANGE_OPTIONS = [
+  '0 salarié',
+  'De 1 à 5 salariés',
+  'De 6 à 9 salariés',
+  'De 10 à 19 salariés',
+  'De 20 à 49 salariés',
+  'De 50 à 99 salariés',
+  'De 100 à 199 salariés',
+  'De 200 à 249 salariés',
+  'De 250 à 499 salariés',
+  '500 salariés et plus'
+];
+
 const COLUMNS = [
   { label: 'Année Act.',   key: 'annee_act',         width: 130, type: 'number' },
   { label: 'Funbooster',   key: 'funebooster',       width: 220, type: 'select', options: [
@@ -173,8 +186,8 @@ const COLUMNS = [
   { label: 'Statut Gérant',key: 'statut_gerant',     width: 180, type: 'select', options: [
     'TNS::#8e24aa', '2 TNS::#6a1b9a', 'GÉRANT SALARIÉ::#c0ca33', '2 GÉRANTS SALARIÉS::#9e9d24'
   ]},
-  { label: 'Nb Salariés',  key: 'nb_salaries',       width: 120, type: 'number' },
-  { label: 'Nb Apprentis', key: 'nb_apprentis',      width: 120, type: 'number' },
+  { label: 'Nb Salariés',  key: 'nb_salaries',       width: 120, type: 'number', options: RANGE_OPTIONS },
+  { label: 'Nb Apprentis', key: 'nb_apprentis',      width: 120, type: 'number', options: RANGE_OPTIONS },
   { label: 'Libellé Act.', key: 'libelle_activite',  width: 200 },
   { label: 'Code NAF',     key: 'code_naf',          width: 130 },
   { label: 'Pappers',      key: 'pappers',           width: 130, type: 'pappers' },
@@ -490,7 +503,7 @@ const TableRow = React.memo(({ data, index, style }) => {
   );
 });
 
-const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_commercial', 'statut_2025', 'statut_2026', 'code_departement', 'code_naf', 'idcc'];
+const FILTERABLE_COLUMNS = ['annee_act', 'funebooster', 'nom_opco', 'client_of', 'statut_commercial', 'statut_2025', 'statut_2026', 'code_departement', 'code_naf', 'idcc', 'nb_salaries', 'nb_apprentis'];
 const uniqueValuesCache = {};
 
 // Custom hook to fetch distinct filter values for the LEADS 2025 table
@@ -536,7 +549,10 @@ const useUniqueValues = (field) => {
 
       if (!error && data) {
         const rawUnique = [...new Set(data.map(item => String(item[field]).toUpperCase().trim()))].filter(Boolean);
-        const sorted = rawUnique.sort((a, b) => a.localeCompare(b));
+        const sorted = rawUnique.sort((a, b) => {
+          if (!isNaN(a) && !isNaN(b)) return Number(a) - Number(b);
+          return a.localeCompare(b);
+        });
         uniqueValuesCache[field] = sorted;
         setValues(sorted);
       }
@@ -663,6 +679,25 @@ const Leads2025Table = ({ user, isDarkMode }) => {
     } catch { return {}; }
   });
 
+  // Pre-fetch unique values for numeric columns that use ranges
+  useEffect(() => {
+    const fetchNumericStats = async () => {
+      try {
+        if (!uniqueValuesCache['nb_salaries']) {
+          const { data } = await supabase.from('crm_leads_2025').select('nb_salaries').not('nb_salaries', 'is', null);
+          if (data) uniqueValuesCache['nb_salaries'] = [...new Set(data.map(d => String(d.nb_salaries).toUpperCase().trim()))].filter(Boolean);
+        }
+        if (!uniqueValuesCache['nb_apprentis']) {
+          const { data } = await supabase.from('crm_leads_2025').select('nb_apprentis').not('nb_apprentis', 'is', null);
+          if (data) uniqueValuesCache['nb_apprentis'] = [...new Set(data.map(d => String(d.nb_apprentis).toUpperCase().trim()))].filter(Boolean);
+        }
+      } catch (err) {
+        console.error("Error pre-fetching numeric stats:", err);
+      }
+    };
+    fetchNumericStats();
+  }, []);
+
   const [columns, setColumns] = useState(COLUMNS);
   const [statusModalConfig, setStatusModalConfig] = useState(null);
   const [clickedRowId, setClickedRowId] = useState(null);
@@ -696,7 +731,49 @@ const Leads2025Table = ({ user, isDarkMode }) => {
       // Column Filters
       Object.entries(filters).forEach(([field, values]) => {
         if (values && values.length > 0) {
-          if (field === 'annee_act') {
+          if (field === 'nb_salaries' || field === 'nb_apprentis') {
+            const allStrings = uniqueValuesCache[field];
+            const applyRange = (cache) => {
+              const matchingStrings = (cache || []).filter(strVal => {
+                const num = Number(strVal);
+                if (isNaN(num)) return false;
+                return values.some(v => {
+                  if (v === '0 salarié') return num === 0;
+                  if (v === 'De 1 à 5 salariés') return num >= 1 && num <= 5;
+                  if (v === 'De 6 à 9 salariés') return num >= 6 && num <= 9;
+                  if (v === 'De 10 à 19 salariés') return num >= 10 && num <= 19;
+                  if (v === 'De 20 à 49 salariés') return num >= 20 && num <= 49;
+                  if (v === 'De 50 à 99 salariés') return num >= 50 && num <= 99;
+                  if (v === 'De 100 à 199 salariés') return num >= 100 && num <= 199;
+                  if (v === 'De 200 à 249 salariés') return num >= 200 && num <= 249;
+                  if (v === 'De 250 à 499 salariés') return num >= 250 && num <= 499;
+                  if (v === '500 salariés et plus') return num >= 500;
+                  return false;
+                });
+              });
+              return matchingStrings;
+            };
+
+            let matchingStrings = [];
+            if (!allStrings) {
+              // synchronous fallback logic: just generate numbers up to 500 to not block the await
+              // wait, we can't await inside forEach safely without changing it to a for-of loop.
+              // So instead of fetching, we just generate strings:
+              for (let i = 0; i <= 500; i++) {
+                matchingStrings.push(String(i));
+              }
+              matchingStrings = applyRange(matchingStrings);
+              // For '500 salariés et plus' without cache, it only checks 500. It's a fallback.
+            } else {
+              matchingStrings = applyRange(allStrings);
+            }
+
+            if (matchingStrings.length > 0) {
+              query = query.in(field, matchingStrings);
+            } else {
+              query = query.eq(field, 'NO_MATCH_IMPOSSIBLE');
+            }
+          } else if (field === 'annee_act') {
             query = query.in(field, values);
           } else if (field === 'code_departement') {
             // code_departement n'existe pas dans crm_leads_2025 → filtre via adresse
@@ -753,7 +830,7 @@ const Leads2025Table = ({ user, isDarkMode }) => {
         const newCols = COLUMNS.map(baseCol => {
           const config = data.find(c => c.key === baseCol.key);
           if (config) {
-            let loadedOptions = config.options || baseCol.options;
+            let loadedOptions = (config.options && config.options.length > 0) ? config.options : baseCol.options;
             if (loadedOptions && baseCol.key === 'statut_2026') {
               loadedOptions = loadedOptions.filter(opt => {
                 const label = typeof opt === 'string' ? opt.split('::')[0].trim() : opt;

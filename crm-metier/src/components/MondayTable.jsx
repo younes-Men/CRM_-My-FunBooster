@@ -99,6 +99,12 @@ const COLUMNS = [
   ]},
   { label: 'Entreprise',   key: 'nom_entreprise',    width: 240, bold: true },
   { label: 'Nº Siret',     key: 'siret',             width: 200, mono: true },
+  { label: 'Tranche Effectif', key: 'tranche_effectif', width: 190, options: [
+    'Non employeur', '0 salarié', '1 à 2 salariés', '3 à 5 salariés', '6 à 9 salariés',
+    '10 à 19 salariés', '20 à 49 salariés', '50 à 99 salariés', '100 à 199 salariés',
+    '200 à 249 salariés', '250 à 499 salariés', '500 à 999 salariés',
+    '1 000 à 1 999 salariés', '2 000 à 4 999 salariés', '5 000 à 9 999 salariés', '10 000 salariés et plus'
+  ] },
   { label: 'Téléphone',    key: 'tel',               width: 250, type: 'editable' },
   { label: 'Statut',       key: 'status',            width: 200, type: 'select', options: [
     'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
@@ -131,6 +137,7 @@ const COLUMNS = [
   { label: 'Statut Gérant', key: 'statut_gerant',     width: 200, type: 'select', options: ['TNS', '2 TNS', 'GÉRANT SALARIÉ', '2 GÉRANTS SALARIÉS'] },
   { label: 'Nb Salariés',  key: 'nb_salaries',       width: 100, type: 'number' },
   { label: 'Nb Apprentis', key: 'nb_apprentis',      width: 110, type: 'number' },
+
   { label: 'Date Modif',   key: 'date_modification', width: 150, type: 'date' },
   { label: 'Budget Opco',  key: 'budget_opco',       width: 120, type: 'currency' },
   { label: 'Année Budget', key: 'annee_budget',      width: 110, type: 'number' },
@@ -641,7 +648,7 @@ const TableRow = React.memo(({ data, index, style }) => {
   );
 });
 
-const FILTERABLE_COLUMNS = ['funebooster', 'nom_opco', 'idcc', 'code_naf', 'tel', 'mobile', 'code_departement', 'status', 'client_of', 'date_rdv', 'date_signe'];
+const FILTERABLE_COLUMNS = ['funebooster', 'nom_opco', 'idcc', 'code_naf', 'tel', 'mobile', 'code_departement', 'status', 'client_of', 'date_rdv', 'date_signe', 'tranche_effectif'];
 const uniqueValuesCache = {};
 
 const useUniqueValues = (field, initialSearch = '') => {
@@ -735,7 +742,12 @@ const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anch
     const fromDB = allValues || [];
     const fromDef = (colDef?.options || []).map(o => String(o).toUpperCase().trim());
     const fromSelected = (selected || []).map(s => String(s).toUpperCase().trim());
-    return [...new Set([...fromDB, ...fromDef, ...fromSelected])].sort((a, b) => a.localeCompare(b));
+    // If column has predefined options, use that order and only append DB/selected values not already in the list
+    if (fromDef.length > 0) {
+      const extra = [...new Set([...fromDB, ...fromSelected])].filter(v => !fromDef.includes(v));
+      return [...fromDef, ...extra];
+    }
+    return [...new Set([...fromDB, ...fromSelected])].sort((a, b) => a.localeCompare(b));
   }, [allValues, colDef, selected]);
 
   useEffect(() => {
@@ -1046,7 +1058,7 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
               width: c.key === 'mobile' ? 180 : (c.key === 'gerant' ? 300 : Math.max(c.width || 0, baseCol?.width || 150)),
               label: baseCol?.label || c.label,
               type: c.type || baseCol?.type || 'text',
-              options: c.options || baseCol?.options
+              options: (c.options && c.options.length > 0) ? c.options : baseCol?.options
             };
           })
           .filter(Boolean);
@@ -1159,6 +1171,25 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
 
   const [enrichingId, setEnrichingId] = useState(null);
 
+  const TRANCHE_EFFECTIF_LABELS = {
+    'NN': 'Non employeur',
+    '00': '0 salarié',
+    '01': '1 à 2 salariés',
+    '02': '3 à 5 salariés',
+    '03': '6 à 9 salariés',
+    '11': '10 à 19 salariés',
+    '12': '20 à 49 salariés',
+    '21': '50 à 99 salariés',
+    '22': '100 à 199 salariés',
+    '31': '200 à 249 salariés',
+    '32': '250 à 499 salariés',
+    '41': '500 à 999 salariés',
+    '42': '1 000 à 1 999 salariés',
+    '51': '2 000 à 4 999 salariés',
+    '52': '5 000 à 9 999 salariés',
+    '53': '10 000 salariés et plus',
+  };
+
   const enrichLead = useCallback(async (id, siret) => {
     if (!siret || siret === '---') return;
     setEnrichingId(id);
@@ -1190,6 +1221,11 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
           foundIdcc = String(idccList[0]).trim();
         }
 
+        // Extract tranche_effectif from the result
+        const rawTranche = result.tranche_effectif_salarie ||
+                           (result.siege && result.siege.tranche_effectif_salarie);
+        const foundTranche = rawTranche ? (TRANCHE_EFFECTIF_LABELS[String(rawTranche)] || rawTranche) : '';
+
         // Fallback to SIREN
         if (!foundIdcc) {
           const sirenResp = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${siren}`);
@@ -1208,6 +1244,9 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
         if (foundIdcc && (!lead.idcc || lead.idcc === '' || lead.idcc === '---')) {
           updates.idcc = foundIdcc;
           updates.custom_fields = { ...(lead.custom_fields || {}), idcc: foundIdcc };
+        }
+        if (foundTranche && (!lead.tranche_effectif || lead.tranche_effectif === '---' || lead.tranche_effectif === '')) {
+          updates.tranche_effectif = foundTranche;
         }
 
         // 3. Match Sector Activity
@@ -1239,7 +1278,7 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
   }, [leads]);
 
   const bulkEnrich = async () => {
-    const targets = leads.filter(l => l.siret && l.siret !== '---' && (!l.gerant || (!l.idcc || l.idcc === '---')));
+    const targets = leads.filter(l => l.siret && l.siret !== '---' && (!l.gerant || (!l.idcc || l.idcc === '---') || !l.tranche_effectif || l.tranche_effectif === '---'));
     if (targets.length === 0) return alert("Aucun lead à enrichir sur cette page.");
     
     const count = targets.length;
