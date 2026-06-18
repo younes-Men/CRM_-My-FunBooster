@@ -145,15 +145,15 @@ const COLUMNS = [
   { label: 'Statut 2026',  key: 'statut_2026',       width: 200, type: 'select', options: [
     'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM',
-    'PROPOSITION', 'RDV ANNULÉ', 'NON SIGNÉ', 'À RELANCER', 'À RELANCER N+1', 'RDV CONFIRMÉ', 'MAIL ENVOYÉ', 'RAP',
-    'RAP POUR CONF', 'TEL CONFIRMÉ', 'RDV VISIO', 'PAS DE RETOUR', 'SIGN ANNULÉ', 'PAS ASSEZ DE BUDGET',
+    'PROPOSITION', 'RDV ANNULÉ', 'NON SIGNÉ', 'À RELANCER', 'À RELANCER N+1', 'RDV CONFIRMÉ', 'MAIL ENVOYÉ', 
+    'TEL CONFIRMÉ', 'RDV VISIO', 'PAS DE RETOUR', 'SIGN ANNULÉ', 'PAS ASSEZ DE BUDGET',
     'VISIO CONFIRMÉE', 'RDV À CONFIRMER', 'TNS', 'PLUS DE BUDGET OPCO'
   ]},
   { label: 'Statut 2025',  key: 'statut_2025',       width: 200, type: 'select', options: [
     'A TRAITER', 'BLOQUÉ ARCHIVE', 'RDV ANNULÉ', 'NON SIGNÉ', 'À RELANCER', 'À RELANCER N+1', 
-    'PROPOSITION', 'RDV CONFIRMÉ', 'MAIL ENVOYÉ', 'RAP', 'PLUS DE BUDGET OPCO', 
-    'RAP POUR CONF', 'TEL CONFIRMÉ', 'RDV VISIO', 'PAS DE RETOUR', 'SIGN ANNULÉ', 
-    'PAS ASSEZ DE BUDGET', 'VISIO CONFIRMÉE', 'RDV À CONFIRMER', 'TNS', 'REPONDEUR', 'NRP', 'OCCUPÉ'
+    'PROPOSITION', 'RDV CONFIRMÉ', 'MAIL ENVOYÉ', 'PLUS DE BUDGET OPCO', 
+    'RAP', 'RAP POUR CONF', 'TEL CONFIRMÉ', 'RDV VISIO', 'PAS DE RETOUR', 'SIGN ANNULÉ', 
+    'PAS ASSEZ DE BUDGET', 'VISIO CONFIRMÉE', 'RDV À CONFIRMER', 'TNS', 'REPONDEUR', 'NRP', 'OCCUPÉ', 'RAPPEL'
   ]},
   { label: 'PEC',          key: 'pec',               width: 160, type: 'select', options: ['OUI', 'NON'] },
   { label: 'Opco',         key: 'nom_opco',          width: 200, type: 'select', options: [
@@ -587,16 +587,26 @@ const useUniqueValues = (field) => {
   return { values, loading, fetchValues };
 };
 
-const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anchorRect }) => {
-  const { values, loading, fetchValues } = useUniqueValues(field);
+const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anchorRect, options }) => {
+  const { values: dbValues, loading: dbLoading, fetchValues } = useUniqueValues(field);
   const [searchTerm, setSearchTerm] = useState('');
   const [selected, setSelected] = useState(activeValues || []);
 
   useEffect(() => {
-    fetchValues();
-  }, [fetchValues]);
+    if (!options) {
+      fetchValues();
+    }
+  }, [fetchValues, options]);
 
-  const filtered = values.filter(v => 
+  const cleanOptions = useMemo(() => {
+    if (!options) return null;
+    return options.map(opt => typeof opt === 'string' ? opt.split('::')[0] : opt);
+  }, [options]);
+
+  const finalValues = cleanOptions || dbValues;
+  const isLoading = !options && dbLoading;
+
+  const filtered = finalValues.filter(v => 
     String(v).toLowerCase().includes(searchTerm.toLowerCase())
   );
   
@@ -609,7 +619,7 @@ const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anch
         <div className="flex items-center justify-between mb-3 text-[10px] font-black text-navy/40 uppercase tracking-widest">
           <span>Filtrer {label}</span>
           <div className="flex gap-3">
-            <button onClick={() => setSelected(values)} className="text-primary hover:text-primary-dark transition-colors">Tous</button>
+            <button onClick={() => setSelected(finalValues)} className="text-primary hover:text-primary-dark transition-colors">Tous</button>
             <button onClick={() => setSelected([])} className="text-secondary hover:text-secondary-dark transition-colors">Aucun</button>
           </div>
         </div>
@@ -619,7 +629,7 @@ const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anch
         </div>
       </div>
       <div className="flex-1 max-h-64 overflow-y-auto custom-scrollbar p-2">
-        {loading ? (
+        {isLoading ? (
           <div className="py-8 flex flex-col items-center justify-center text-navy/30"><RefreshCw className="w-5 h-5 animate-spin mb-2" /><span className="text-[10px] uppercase tracking-wider font-bold">Chargement...</span></div>
         ) : filtered.length === 0 ? (
           <div className="py-8 text-center text-navy/30 text-[10px] uppercase font-bold tracking-widest">Aucun résultat</div>
@@ -780,9 +790,16 @@ const Rdv2026Table = ({ user, isDarkMode }) => {
         const newCols = COLUMNS.map(baseCol => {
           const config = data.find(c => c.key === baseCol.key);
           if (config) {
+            let loadedOptions = config.options || baseCol.options;
+            if (loadedOptions && baseCol.key === 'statut_2026') {
+              loadedOptions = loadedOptions.filter(opt => {
+                const label = typeof opt === 'string' ? opt.split('::')[0].trim() : opt;
+                return label !== 'RAP' && label !== 'RAP POUR CONF';
+              });
+            }
             return {
               ...baseCol,
-              options: config.options || baseCol.options
+              options: loadedOptions
             };
           }
           return baseCol;
@@ -1058,7 +1075,7 @@ const Rdv2026Table = ({ user, isDarkMode }) => {
                     <button 
                       onClick={(e) => { 
                         const rect = e.currentTarget.getBoundingClientRect(); 
-                        setFilterMenu({ field: col.key, label: col.label, anchorRect: rect }); 
+                        setFilterMenu({ field: col.key, label: col.label, anchorRect: rect, options: col.options }); 
                       }} 
                       className={`p-1.5 rounded-lg transition-all ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-navy/20 hover:bg-navy/5 hover:text-navy/40'}`}
                     >
