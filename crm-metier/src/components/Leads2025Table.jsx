@@ -572,18 +572,22 @@ const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anch
   const [selected, setSelected] = useState(activeValues || []);
 
   useEffect(() => {
-    if (!options) {
-      fetchValues();
+    fetchValues();
+  }, [fetchValues]);
+
+  const finalValues = useMemo(() => {
+    const fromDB = dbValues || [];
+    const fromDef = options ? options.map(opt => typeof opt === 'string' ? opt.split('::')[0] : opt) : [];
+    const fromSelected = selected || [];
+    
+    if (fromDef.length > 0) {
+      const extra = [...new Set([...fromDB, ...fromSelected])].filter(v => !fromDef.includes(v));
+      return [...fromDef, ...extra];
     }
-  }, [fetchValues, options]);
+    return [...new Set([...fromDB, ...fromSelected])].sort((a, b) => String(a).localeCompare(String(b)));
+  }, [dbValues, options, selected]);
 
-  const cleanOptions = useMemo(() => {
-    if (!options) return null;
-    return options.map(opt => typeof opt === 'string' ? opt.split('::')[0] : opt);
-  }, [options]);
-
-  const finalValues = cleanOptions || dbValues;
-  const isLoading = !options && dbLoading;
+  const isLoading = dbLoading;
 
   const filtered = finalValues.filter(v => 
     String(v).toLowerCase().includes(searchTerm.toLowerCase())

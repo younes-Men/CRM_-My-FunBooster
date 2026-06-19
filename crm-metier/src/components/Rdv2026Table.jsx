@@ -593,18 +593,22 @@ const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anch
   const [selected, setSelected] = useState(activeValues || []);
 
   useEffect(() => {
-    if (!options) {
-      fetchValues();
+    fetchValues();
+  }, [fetchValues]);
+
+  const finalValues = useMemo(() => {
+    const fromDB = dbValues || [];
+    const fromDef = options ? options.map(opt => typeof opt === 'string' ? opt.split('::')[0] : opt) : [];
+    const fromSelected = selected || [];
+    
+    if (fromDef.length > 0) {
+      const extra = [...new Set([...fromDB, ...fromSelected])].filter(v => !fromDef.includes(v));
+      return [...fromDef, ...extra];
     }
-  }, [fetchValues, options]);
+    return [...new Set([...fromDB, ...fromSelected])].sort((a, b) => String(a).localeCompare(String(b)));
+  }, [dbValues, options, selected]);
 
-  const cleanOptions = useMemo(() => {
-    if (!options) return null;
-    return options.map(opt => typeof opt === 'string' ? opt.split('::')[0] : opt);
-  }, [options]);
-
-  const finalValues = cleanOptions || dbValues;
-  const isLoading = !options && dbLoading;
+  const isLoading = dbLoading;
 
   const filtered = finalValues.filter(v => 
     String(v).toLowerCase().includes(searchTerm.toLowerCase())
@@ -1020,7 +1024,7 @@ const Rdv2026Table = ({ user, isDarkMode }) => {
             <Building2 className="w-5 h-5 text-primary" />
           </div>
           <div className="flex flex-col">
-            <span className="text-2xl font-black tracking-tight text-navy leading-none mb-1">Leads Archives 2025</span>
+            <span className="text-2xl font-black tracking-tight text-navy leading-none mb-1">Leads Archives 2026</span>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-navy/40 uppercase tracking-widest">{leads.length.toLocaleString()} chargés</span>
               <div className="w-1 h-1 rounded-full bg-navy/20" />
