@@ -4,9 +4,11 @@ import { FixedSizeList as List } from 'react-window';
 import { 
   Search, Filter, ChevronDown, ChevronUp, RefreshCw, AlertCircle, 
   ExternalLink, Copy, Check, Clock, Phone, MapPin, Building2, User,
-  Pencil, Trash2, Sparkles, Settings
+  Pencil, Trash2, Sparkles, Settings, Download, Upload
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { exportToExcel } from '../lib/excelExport';
+import { importFromExcel } from '../lib/excelImport';
 import LeadFullDetail from './LeadFullDetail';
 import StatusConfigModal from './StatusConfigModal';
 
@@ -691,6 +693,49 @@ const SearchInput = React.memo(({ value, onSearch }) => {
 const Rdv2026Table = ({ user, isDarkMode }) => {
   const [leads, setLeads] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportToExcel({
+        tableName: 'crm_leads_2025',
+        activeFilters,
+        searchQuery: search,
+        customQueryBuilder: (query) => query.eq('statut_2026', 'RDV VALIDE'),
+        fileName: 'Export_RDV_2026.xlsx'
+      });
+    } catch (e) {
+      alert("Erreur lors de l'export.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      await importFromExcel({
+        file,
+        tableName: 'crm_leads_2025',
+        customRowFormatter: (row) => {
+          // Force statut_2026 to 'RDV VALIDE' as requested
+          return { ...row, statut_2026: 'RDV VALIDE' };
+        }
+      });
+      setPage(0);
+      fetchPage(0, true);
+    } catch (err) {
+      // Error handled inside
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(0);
@@ -1036,6 +1081,37 @@ const Rdv2026Table = ({ user, isDarkMode }) => {
         <div className="flex items-center gap-3">
           <SearchInput value={search} onSearch={setSearch} />
           
+          {user?.role === 'admin' && (
+            <>
+              <button 
+                onClick={handleExport}
+                disabled={exporting}
+                className={`flex items-center gap-2 px-6 py-3.5 bg-green-500/10 text-green-600 hover:bg-green-500 hover:text-white rounded-2xl text-sm font-bold transition-all shadow-lg group disabled:opacity-50 disabled:cursor-not-allowed`}
+                title="Exporter les données (selon les filtres actuels)"
+              >
+                <Download className={`w-4 h-4 ${exporting ? 'animate-bounce' : 'group-hover:scale-110 transition-transform'}`} />
+                <span>{exporting ? 'EXPORT' : 'EXPORT'}</span>
+              </button>
+              
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className={`flex items-center gap-2 px-6 py-3.5 bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white rounded-2xl text-sm font-bold transition-all shadow-lg group disabled:opacity-50 disabled:cursor-not-allowed`}
+                title="Importer des données depuis un fichier Excel"
+              >
+                <Upload className={`w-4 h-4 ${importing ? 'animate-bounce' : 'group-hover:scale-110 transition-transform'}`} />
+                <span>{importing ? 'IMPORT' : 'IMPORT'}</span>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleImport} 
+                  accept=".xlsx, .xls" 
+                  className="hidden" 
+                />
+              </button>
+            </>
+          )}
+
           <button 
             onClick={() => {
               fetchPage(0, true);

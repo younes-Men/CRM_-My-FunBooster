@@ -902,11 +902,11 @@ const getStatusStyle = (raw, isDarkMode, dynamicOptions = []) => {
     'default':              { bg: isDarkMode ? '#1a1a1a' : '#f1f5f9', text: isDarkMode ? '#cbd5e1' : '#0f172a' }
   };
   if (!raw) return STATUS_COLORS['default'];
-  const key = raw.toLowerCase().trim();
+  const key = String(raw).toLowerCase().trim();
 
   // Check dynamic options (format: "LABEL::COLOR" or "LABEL::COLOR::VISIBILITY")
   if (dynamicOptions && dynamicOptions.length > 0) {
-    const match = dynamicOptions.find(opt => opt.split('::')[0].toLowerCase().trim() === key);
+    const match = dynamicOptions.find(opt => String(opt).split('::')[0].toLowerCase().trim() === key);
     if (match && match.includes('::')) {
       const parts = match.split('::');
       const color = parts[1] || '';
@@ -943,7 +943,7 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "â€” CHOISIR â
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentStyle = getStatusStyle(value, false); // Temporarily used to detect if it's a known status
+  const currentStyle = getStatusStyle(value, false); 
 
   return (
     <div className="relative" ref={containerRef}>
@@ -957,7 +957,7 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "â€” CHOISIR â
         }}
       >
         <span className="truncate mr-2">
-          {(value || placeholder).split('::')[0]}
+          {String(value || placeholder).split('::')[0]}
         </span>
         <ChevronDown 
           className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -981,12 +981,12 @@ const CustomDropdown = ({ value, options, onChange, placeholder = "â€” CHOISIR â
                 {placeholder}
               </button>
               {options.filter(opt => {
-                const parts = opt.split('::');
+                const parts = String(opt).split('::');
                 const label = parts[0];
                 const isHidden = parts[2] === 'h';
                 return !isHidden || label === value;
               }).map(opt => {
-                const label = opt.split('::')[0];
+                const label = String(opt).split('::')[0];
                 const cfg = getStatusStyle(label, isDarkMode, options);
                 return (
                   <button

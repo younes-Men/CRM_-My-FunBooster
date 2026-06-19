@@ -5,9 +5,11 @@ import {
   Search, Filter, ChevronDown, ChevronUp, Download, Eye, Plus, 
   Trash2, X, Check, Save, Calendar, Phone, Mail, User, 
   AlertCircle, MoreVertical, LayoutGrid, RefreshCw, Settings, Pencil,
-  MapPin, Hash, Briefcase, FileText, ArrowRight, ArrowLeft, Clock, ExternalLink, Copy, Sparkles, Wand2
+  MapPin, Hash, Briefcase, FileText, ArrowRight, ArrowLeft, Clock, ExternalLink, Copy, Sparkles, Wand2, Upload
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { exportToExcel } from '../lib/excelExport';
+import { importFromExcel } from '../lib/excelImport';
 import LeadFullDetail from './LeadFullDetail';
 import ColumnManagerModal from './ColumnManagerModal';
 import opcoMapping from '../data/opco_mapping.json';
@@ -1310,6 +1312,45 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
     setEnrichingId(null);
   }, [leads]);
 
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportToExcel({
+        tableName: 'crm_leads',
+        activeFilters,
+        searchQuery: search,
+        fileName: 'Export_Gestion_Leads.xlsx'
+      });
+    } catch (e) {
+      alert("Erreur lors de l'export.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      await importFromExcel({
+        file,
+        tableName: 'crm_leads'
+      });
+      setPage(0);
+      fetchPage(0, true);
+    } catch (err) {
+      // Error handled inside
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const bulkEnrich = async () => {
     const targets = leads.filter(l => l.siret && l.siret !== '---' && (!l.gerant || (!l.idcc || l.idcc === '---') || !l.tranche_effectif || l.tranche_effectif === '---'));
     if (targets.length === 0) return alert("Aucun lead à enrichir sur cette page.");
@@ -1688,13 +1729,42 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
           <a href="https://quel-est-mon-opco.francecompetences.fr/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3.5 bg-active text-white rounded-2xl text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-active/10 group">Vérif OPCO<ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" /></a>
           
           {user?.role === 'admin' && (
-            <button 
-              onClick={() => setIsColumnModalOpen(true)} 
-              className="p-3.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-2xl transition-all shadow-lg shadow-primary/5 hover:scale-105 active:scale-95"
-              title="Gérer les colonnes"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
+            <>
+              <button 
+                onClick={handleExport}
+                disabled={exporting}
+                className={`flex items-center gap-2 px-6 py-3.5 bg-green-500/10 text-green-600 hover:bg-green-500 hover:text-white rounded-2xl text-sm font-bold transition-all shadow-lg group disabled:opacity-50 disabled:cursor-not-allowed`}
+                title="Exporter les données (selon les filtres actuels)"
+              >
+                <Download className={`w-4 h-4 ${exporting ? 'animate-bounce' : 'group-hover:scale-110 transition-transform'}`} />
+                <span>{exporting ? 'EXPORT' : 'EXPORT'}</span>
+              </button>
+              
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className={`flex items-center gap-2 px-6 py-3.5 bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white rounded-2xl text-sm font-bold transition-all shadow-lg group disabled:opacity-50 disabled:cursor-not-allowed`}
+                title="Importer des données depuis un fichier Excel"
+              >
+                <Upload className={`w-4 h-4 ${importing ? 'animate-bounce' : 'group-hover:scale-110 transition-transform'}`} />
+                <span>{importing ? 'IMPORT' : 'IMPORT'}</span>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleImport} 
+                  accept=".xlsx, .xls" 
+                  className="hidden" 
+                />
+              </button>
+
+              <button 
+                onClick={() => setIsColumnModalOpen(true)} 
+                className="p-3.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-2xl transition-all shadow-lg shadow-primary/5 hover:scale-105 active:scale-95"
+                title="Gérer les colonnes"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            </>
           )}
           
           <button 
