@@ -779,7 +779,7 @@ const ColumnFilterPortal = ({ field, label, activeValues, onApply, onClose, anch
         <div className="flex items-center justify-between mb-3 text-[10px] font-black text-navy/40 uppercase tracking-widest">
           <span>Filtrer {label}</span>
           <div className="flex gap-3">
-            <button onClick={() => setSelected(combinedValues)} className="text-primary hover:text-primary-dark transition-colors">Tous</button>
+            <button onClick={() => setSelected(filtered)} className="text-primary hover:text-primary-dark transition-colors">Tous</button>
             <button onClick={() => setSelected([])} className="text-secondary hover:text-secondary-dark transition-colors">Aucun</button>
           </div>
         </div>
