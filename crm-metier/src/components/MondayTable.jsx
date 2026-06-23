@@ -127,7 +127,8 @@ const COLUMNS = [
   { label: 'Gérant',       key: 'gerant',            width: 300, type: 'editable' },
   { label: 'Secteur Act.',  key: 'secteur_activite',  width: 180, type: 'editable' },
   { label: 'Libellé Act.',  key: 'libelle_activite',  width: 200, type: 'editable' },
-  { label: 'IDCC',         key: 'idcc',              width: 100, type: 'editable' },
+  { label: 'IDCC',         key: 'idcc',              width: 140, type: 'editable' },
+  { label: 'IDCC 2',       key: 'idcc_2',            width: 140, type: 'editable' },
   { label: 'Code NAF',     key: 'code_naf',          width: 130, type: 'editable' },
   { label: 'Pappers',      key: 'pappers',           width: 130, type: 'pappers' },
   { label: 'Mobile',       key: 'mobile',            width: 180, type: 'editable' },
@@ -653,7 +654,7 @@ const TableRow = React.memo(({ data, index, style }) => {
   );
 });
 
-const FILTERABLE_COLUMNS = ['funebooster', 'nom_opco', 'idcc', 'code_naf', 'tel', 'mobile', 'code_departement', 'status', 'client_of', 'date_rdv', 'date_signe', 'tranche_effectif', 'forme_juridique'];
+const FILTERABLE_COLUMNS = ['funebooster', 'nom_opco', 'idcc', 'idcc_2', 'code_naf', 'tel', 'mobile', 'code_departement', 'status', 'client_of', 'date_rdv', 'date_signe', 'tranche_effectif', 'forme_juridique'];
 const uniqueValuesCache = {};
 
 const useUniqueValues = (field, initialSearch = '') => {
@@ -1067,6 +1068,25 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
             };
           })
           .filter(Boolean);
+          
+        // Ajouter les nouvelles colonnes qui sont dans le code mais pas encore dans la base de données
+        const existingKeys = new Set(finalCols.map(c => c.key));
+        COLUMNS.forEach((baseCol, index) => {
+          if (!existingKeys.has(baseCol.key)) {
+            // Trouver la colonne précédente pour insérer au bon endroit
+            let insertIndex = finalCols.length;
+            for (let i = index - 1; i >= 0; i--) {
+              const prevKey = COLUMNS[i].key;
+              const prevIndexInFinal = finalCols.findIndex(c => c.key === prevKey);
+              if (prevIndexInFinal !== -1) {
+                insertIndex = prevIndexInFinal + 1;
+                break;
+              }
+            }
+            finalCols.splice(insertIndex, 0, { ...baseCol, is_visible: true });
+            existingKeys.add(baseCol.key); // Pour garder l'ordre si plusieurs colonnes sont ajoutées
+          }
+        });
       } else {
         const seedData = COLUMNS.map((c, i) => ({
           key: c.key,
@@ -1659,6 +1679,20 @@ const MondayTable = React.memo(({ activeTab, user, isDarkMode }) => {
             observation_text: value, 
             created_by: user?.name || 'Inconnu' 
           });
+        }
+
+        if (field === 'siret' && dbValue) {
+          const cleanSiret = String(dbValue).replace(/[^0-9]/g, '');
+          if (cleanSiret.length === 14) {
+            supabase.from('siret_opco').select('opco, idcc').eq('siret', cleanSiret).single().then(({data}) => {
+               if (data) {
+                 const updatesSiro = { nom_opco: data.opco || null, idcc_2: data.idcc || null };
+                 supabase.from('crm_leads').update(updatesSiro).eq('id', id).then(() => {
+                   setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, ...updatesSiro} : l));
+                 });
+               }
+            }).catch(e => console.error("SIRO Lookup Error:", e));
+          }
         }
       }
     }

@@ -13,6 +13,7 @@ export const ALL_COLUMNS = [
   { label: 'Libellé Act.',  key: 'libelle_activite' },
   { label: 'Opco',          key: 'nom_opco' },
   { label: 'IDCC',          key: 'idcc' },
+  { label: 'IDCC 2',        key: 'idcc_2' },
   { label: 'Code NAF',      key: 'code_naf' },
   { label: 'Pappers',       key: 'pappers' },
   { label: 'Téléphone',     key: 'tel' },
