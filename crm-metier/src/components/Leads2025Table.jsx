@@ -155,13 +155,13 @@ const COLUMNS = [
   { label: 'Téléphone',    key: 'tel',               width: 250, type: 'editable' },
   { label: 'Mobile',       key: 'mobile',            width: 180, type: 'editable' },
   { label: 'Statut Commercial', key: 'statut_commercial', width: 210, type: 'select', options: [
-    'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ',
+    'A TRAITER', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ',
     'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP',
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE',
     'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM'
   ]},
   { label: 'Statut 2026',  key: 'statut_2026',       width: 200, type: 'select', options: [
-    'A TRAITER', 'BLOQUÉ ARCHIVE', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
+    'A TRAITER', 'PAS DE NUM', 'REPONDEUR', 'OCCUPÉ', 'EN ATTENTE RDV', 'RDV', 'SIGNE', 'RAPPEL', 'NRP', 
     'HORS CIBLE OPCO', 'HORS CIBLE SALARIÉS', 'HORS CIBLE SIÈGE', 'DEJA PEC', 'ABSENT', 'PI', 'FAUX NUM',
     'PROPOSITION', 'RDV ANNULÉ', 'NON SIGNÉ', 'À RELANCER', 'À RELANCER N+1', 'RDV CONFIRMÉ', 'MAIL ENVOYÉ', 
     'TEL CONFIRMÉ', 'RDV VISIO', 'PAS DE RETOUR', 'SIGN ANNULÉ', 'PAS ASSEZ DE BUDGET',
@@ -673,6 +673,7 @@ const Leads2025Table = ({ user, isDarkMode }) => {
   const [leads, setLeads] = useState([]);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [resettingBloque, setResettingBloque] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleExport = async () => {
@@ -708,6 +709,43 @@ const Leads2025Table = ({ user, isDarkMode }) => {
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleResetBloqueArchive = async () => {
+    const confirmed = window.confirm(
+      '⚠️ Confirmation requise\n\nVoulez-vous vraiment passer TOUS les leads avec statut RDV 2026 "BLOQUÉ ARCHIVE" vers "A TRAITER" ?\n\nCette action est irréversible.'
+    );
+    if (!confirmed) return;
+
+    setResettingBloque(true);
+    try {
+      const { error, count } = await supabase
+        .from('crm_leads_2025')
+        .update({ statut_2026: 'A TRAITER', date_modification: new Date().toISOString() })
+        .eq('statut_2026', 'BLOQUÉ ARCHIVE');
+
+      if (error) throw error;
+
+      // Mettre à jour l'état local
+      setLeads(prev =>
+        prev.map(l =>
+          String(l.statut_2026 || '').toUpperCase().trim() === 'BLOQUÉ ARCHIVE'
+            ? { ...l, statut_2026: 'A TRAITER', date_modification: new Date().toISOString() }
+            : l
+        )
+      );
+
+      alert('✅ Réinitialisation effectuée !\nTous les leads "BLOQUÉ ARCHIVE" sont maintenant "A TRAITER".');
+
+      // Rafraîchir la page
+      setPage(0);
+      fetchPage(0, true);
+    } catch (err) {
+      console.error('Erreur reset BLOQUÉ ARCHIVE:', err);
+      alert('❌ Erreur lors de la réinitialisation : ' + err.message);
+    } finally {
+      setResettingBloque(false);
     }
   };
   const [totalCount, setTotalCount] = useState(0);
@@ -765,8 +803,16 @@ const Leads2025Table = ({ user, isDarkMode }) => {
     const from = pageIndex * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
+    const userRole = String(user?.role || '').toLowerCase().trim();
+    const isFunbooster = userRole === 'funbooster' || userRole === 'funebooster';
+
     try {
       let query = supabase.from('crm_leads_2025').select('*', { count: pageIndex === 0 ? 'exact' : 'estimated' }).neq('statut_2026', 'RDV VALIDE');
+
+      // Pour les funboosters : masquer complètement les leads BLOQUÉ ARCHIVE
+      if (isFunbooster) {
+        query = query.neq('statut_2026', 'BLOQUÉ ARCHIVE');
+      }
 
       // Search Query filter
       if (searchQuery) {
@@ -863,7 +909,7 @@ const Leads2025Table = ({ user, isDarkMode }) => {
         setLoadingMore(false);
       }
     }
-  }, [activeFilters]);
+  }, [activeFilters, user?.role]);
 
   const loadConfigs = useCallback(async () => {
     try {
@@ -899,6 +945,37 @@ const Leads2025Table = ({ user, isDarkMode }) => {
   useEffect(() => {
     loadConfigs();
   }, [loadConfigs]);
+
+  // Pour commercial ET admin : reset automatique BLOQUÉ ARCHIVE → A TRAITER au chargement
+  useEffect(() => {
+    const role = String(user?.role || '').toLowerCase().trim();
+    const shouldReset = role === 'commercial' || role === 'admin';
+    if (!shouldReset || !supabase) return;
+
+    const autoResetBloqueArchive = async () => {
+      try {
+        const { error } = await supabase
+          .from('crm_leads_2025')
+          .update({ statut_2026: 'A TRAITER', date_modification: new Date().toISOString() })
+          .eq('statut_2026', 'BLOQUÉ ARCHIVE');
+        if (error) console.error('Auto-reset BLOQUÉ ARCHIVE error:', error);
+        else {
+          // Mettre à jour l'état local aussi
+          setLeads(prev =>
+            prev.map(l =>
+              String(l.statut_2026 || '').toUpperCase().trim() === 'BLOQUÉ ARCHIVE'
+                ? { ...l, statut_2026: 'A TRAITER', date_modification: new Date().toISOString() }
+                : l
+            )
+          );
+        }
+      } catch (err) {
+        console.error('Auto-reset BLOQUÉ ARCHIVE error:', err);
+      }
+    };
+
+    autoResetBloqueArchive();
+  }, [user?.role]);
 
   const handleUpdate = useCallback(async (id, field, value, isCustom) => {
     const idStr = String(id).toLowerCase();
@@ -1107,6 +1184,8 @@ const Leads2025Table = ({ user, isDarkMode }) => {
         
         <div className="flex items-center gap-3">
           <SearchInput value={search} onSearch={setSearch} />
+
+          {/* Bouton RESET BLOQUÉ supprimé - reset automatique au chargement */}
           
           {user?.role === 'admin' && (
             <>
