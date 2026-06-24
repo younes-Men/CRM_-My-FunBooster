@@ -60,10 +60,28 @@ export const importFromExcel = async ({
         const INSERT_CHUNK = 500;
         let importedCount = 0;
         
-        // Remove `id` if it's in the data to allow DB to auto-generate it
+        // Allowed columns in the database schema
+        const VALID_COLUMNS = new Set([
+          'funebooster', 'nom_entreprise', 'forme_juridique', 'siret', 'tranche_effectif', 
+          'tel', 'status', 'nom_opco', 'client_of', 'opcosign', 'lead_id', 'gerant', 
+          'secteur_activite', 'libelle_activite', 'idcc', 'idcc_2', 'code_naf', 'pappers', 
+          'mobile', 'adresse', 'code_postal', 'code_departement', 'status_rdv', 'email', 
+          'site_web', 'statut_gerant', 'nb_salaries', 'nb_apprentis', 'date_modification', 
+          'budget_opco', 'annee_budget', 'date_rdv', 'heure_rdv', 'type_rdv', 'rdv_honore', 
+          'proposition', 'signe', 'date_signe', 'ca_signe_ht', 'nb_heures_formation', 
+          'tx_horaire_ca', 'campagne_act', 'pec', 'echeances_pec', 'suivi_formation', 
+          'observation', 'projet', 'created_at', 'statut_commercial'
+        ]);
+
+        // Remove `id` and any invalid columns to allow DB to auto-generate and prevent schema errors
         const cleanDataToInsert = toInsert.map(row => {
-          const { id, ...rest } = row;
-          return rest;
+          const newRow = {};
+          for (const key in row) {
+            if (key !== 'id' && VALID_COLUMNS.has(key)) {
+              newRow[key] = row[key];
+            }
+          }
+          return newRow;
         });
 
         for (let i = 0; i < cleanDataToInsert.length; i += INSERT_CHUNK) {
@@ -80,7 +98,8 @@ export const importFromExcel = async ({
         resolve({ imported: importedCount, duplicates: duplicatesCount });
       } catch (err) {
         console.error("Import process error:", err);
-        alert("Une erreur s'est produite lors de l'importation.");
+        const errorMsg = err.message || err.details || JSON.stringify(err);
+        alert(`Une erreur s'est produite lors de l'importation.\n\nDétails de l'erreur :\n${errorMsg}`);
         reject(err);
       }
     };

@@ -8,6 +8,7 @@ import CalendarView from './components/CalendarView';
 import Pipeline from './components/Pipeline';
 import Leads2025Table from './components/Leads2025Table';
 import Rdv2026Table from './components/Rdv2026Table';
+import GestionLeadsBDD from './components/GestionLeadsBDD';
 import { getUser } from './lib/authConfig';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -172,11 +173,13 @@ function App() {
                   {activeTab === 'users' ? 'Équipe' : 
                    activeTab === 'leads-2025' ? 'Archives ' :
                    activeTab === 'rdv-2026' ? 'Archives ' :
+                   activeTab === 'gestion-leads-bdd' ? 'Base de données ' :
                    activeTab === 'mes-rdv' ? 'Liste des ' : 'Gestion des '}
                   {activeTab !== 'users' && (
                     <span className="text-primary">
                       {activeTab === 'leads-2025' ? 'LEADS 2025' :
                        activeTab === 'rdv-2026' ? 'RDV 2026' :
+                       activeTab === 'gestion-leads-bdd' ? 'LEADS BDD' :
                        activeTab === 'mes-rdv' ? 'RDV' : 'Leads'}
                     </span>
                   )}
@@ -207,6 +210,8 @@ function App() {
               <Leads2025Table user={user} isDarkMode={isDarkMode} />
             ) : activeTab === 'rdv-2026' ? (
               <Rdv2026Table user={user} isDarkMode={isDarkMode} />
+            ) : activeTab === 'gestion-leads-bdd' ? (
+              <GestionLeadsBDD activeTab={activeTab} user={user} isDarkMode={isDarkMode} />
             ) : (
               <MondayTable activeTab={activeTab} user={user} isDarkMode={isDarkMode} />
             )}

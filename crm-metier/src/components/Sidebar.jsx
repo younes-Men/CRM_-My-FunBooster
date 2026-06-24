@@ -75,6 +75,10 @@ const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsEx
     menuItems.push({ id: 'rdv-2026', icon: ClipboardList, label: 'RDV 2026' });
   }
 
+  if (isAdmin) {
+    menuItems.push({ id: 'gestion-leads-bdd', icon: Layers, label: 'Gestion Leads BDD' });
+  }
+
   return (
     <div 
       className="fixed left-0 top-0 bottom-0 z-[60] flex items-center px-4 pointer-events-none"
