@@ -6,7 +6,7 @@ import {
   Settings2, UserCheck, UserX, Briefcase, ChevronRight,
   Plus, X, Save, AlertCircle, Check, RefreshCw,
   Search, Layout, Calendar, Bell, ListChecks, Lock,
-  Phone, Users, CreditCard, Building2, Eye, EyeOff, Grid
+  Phone, Users, CreditCard, Building2, Eye, EyeOff, Grid, Database
 } from 'lucide-react';
 
 const ROLES = [
@@ -25,6 +25,7 @@ const PERMISSION_KEYS = [
   { id: 'view_leads_2025',  label: 'Accès Leads 2025', icon: ListChecks,   hasClients: false },
   { id: 'view_rdv_2026',    label: 'Accès RDV 2026',   icon: ListChecks,   hasClients: false },
   { id: 'view_pipeline',    label: 'Accès Pipeline',  icon: Layout,       hasClients: true },
+  { id: 'view_gestion_leads_bdd', label: 'Gestion Leads BDD', icon: Database, hasClients: false },
 ];
 
 const TeamList = ({ currentUser }) => {
@@ -294,6 +295,7 @@ const TeamList = ({ currentUser }) => {
         view_leads_2025: true,
         view_rdv_2026: true,
         view_pipeline: role === 'commercial',
+        view_gestion_leads_bdd: false,
         leads_columns: ["all"],
         assigned_commercials: []
       }

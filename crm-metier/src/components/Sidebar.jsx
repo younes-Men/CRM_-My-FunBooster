@@ -75,7 +75,7 @@ const Sidebar = React.memo(({ user, activeTab, setActiveTab, isExpanded, setIsEx
     menuItems.push({ id: 'rdv-2026', icon: ClipboardList, label: 'RDV 2026' });
   }
 
-  if (isAdmin) {
+  if (isAdmin || perms.view_gestion_leads_bdd) {
     menuItems.push({ id: 'gestion-leads-bdd', icon: Layers, label: 'Gestion Leads BDD' });
   }
 
