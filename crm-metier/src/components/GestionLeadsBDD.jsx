@@ -7,7 +7,7 @@ import {
   AlertCircle, MoreVertical, LayoutGrid, RefreshCw, Settings, Pencil,
   MapPin, Hash, Briefcase, FileText, ArrowRight, ArrowLeft, Clock, ExternalLink, Copy, Sparkles, Wand2, Upload
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 import { exportToExcel } from '../lib/excelExport';
 import { importFromExcel } from '../lib/excelImport';
 import LeadFullDetail from './LeadFullDetail';
@@ -670,7 +670,7 @@ const useUniqueValues = (field, initialSearch = '') => {
 
     setLoading(true);
     try {
-      let query = supabase
+      let query = supabaseAdmin
         .from('crm_leads_bdd')
         .select(field)
         .not(field, 'is', null);
@@ -1044,9 +1044,9 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
 
   const fetchColumnConfigs = useCallback(async () => {
-    if (!supabase) return;
+    if (!supabaseAdmin) return;
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('crm_column_configs')
         .select('*')
         .order('display_order', { ascending: true });
@@ -1097,12 +1097,12 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
           display_order: i,
           is_visible: true
         }));
-        await supabase.from('crm_column_configs').insert(seedData);
+        await supabaseAdmin.from('crm_column_configs').insert(seedData);
         finalCols = COLUMNS;
       }
 
       // Handle Permissions and Dynamic Options
-      const teamRes = await supabase.from('team_members').select('name, role').eq('is_active', true);
+      const teamRes = await supabaseAdmin.from('team_members').select('name, role').eq('is_active', true);
       const perms = user?.permissions;
       
       let filteredCols = [...finalCols];
@@ -1320,7 +1320,7 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
         }
 
         if (Object.keys(updates).length > 0) {
-          const { error } = await supabase.from('crm_leads_bdd').update(updates).eq('id', id);
+          const { error } = await supabaseAdmin.from('crm_leads_bdd').update(updates).eq('id', id);
           if (!error) {
             setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
           }
@@ -1359,7 +1359,12 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
     try {
       await importFromExcel({
         file,
-        tableName: 'crm_leads_bdd'
+        tableName: 'crm_leads_bdd',
+        customRowFormatter: (row) => {
+          if (!row.funebooster && user?.name) row.funebooster = user.name;
+          if (!row.created_by && user?.name) row.created_by = user.name;
+          return row;
+        }
       });
       setPage(0);
       fetchPage(0, true);
@@ -1390,13 +1395,13 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
 
 
   const fetchPage = useCallback(async (pageIndex, replace = false, searchQuery = '', filters = activeFilters) => {
-    if (!supabase) return;
+    if (!supabaseAdmin) return;
     const fetchId = ++lastFetchId.current;
     setError(null);
     if (pageIndex === 0) setLoading(true); else setLoadingMore(true);
     const from = pageIndex * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-    let query = supabase.from('crm_leads_bdd').select('*', { count: pageIndex === 0 ? 'exact' : 'estimated' });
+    let query = supabaseAdmin.from('crm_leads_bdd').select('*', { count: pageIndex === 0 ? 'exact' : 'estimated' });
     if (searchQuery) query = query.or(`nom_entreprise.ilike.%${searchQuery}%,siret.ilike.%${searchQuery}%,projet.ilike.%${searchQuery}%`);
     // Column Filters - Case-Insensitive + Wildcard matching to handle broken accents
     Object.entries(filters).forEach(([field, values]) => {
@@ -1467,7 +1472,7 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
             const existingIds = new Set(data.map(l => l.id));
             const missingIds = storedIds.filter(id => !existingIds.has(id));
             if (missingIds.length > 0) {
-              const { data: recentLeads } = await supabase
+              const { data: recentLeads } = await supabaseAdmin
                 .from('crm_leads_bdd')
                 .select('*')
                 .in('id', missingIds);
@@ -1621,7 +1626,7 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
       };
 
       if (supabase) {
-        const { data: insertedData, error: insertError } = await supabase
+        const { data: insertedData, error: insertError } = await supabaseAdmin
           .from('crm_leads_bdd')
           .insert([insertData])
           .select();
@@ -1647,7 +1652,7 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
           } catch (e) { console.warn('Erreur stockage ID lead API:', e); }
 
           if (field === 'observation' && value) {
-            await supabase.from('crm_observations_history').insert({ 
+            await supabaseAdmin.from('crm_observations_history').insert({ 
               lead_id: newRealLead.id, 
               observation_text: value, 
               created_by: user?.name || 'Inconnu' 
@@ -1659,14 +1664,14 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
       const updatedLead = { ...lead, ...updates };
       setLeads(prev => { const newList = [...prev]; newList[leadIndex] = updatedLead; return newList; });
       
-      if (supabase) {
-        await supabase.from('crm_leads_bdd').update(updates).eq('id', id);
+      if (supabaseAdmin) {
+        await supabaseAdmin.from('crm_leads_bdd').update(updates).eq('id', id);
 
         if (field === 'status' && dbValue) {
           const cleanSiret = String(lead.siret || '').replace(/\s+/g, '');
           if (cleanSiret) {
             // Mettre à jour "statut_commercial" dans crm_leads_2025 (visible dans RDV 2026)
-            await supabase
+            await supabaseAdmin
               .from('crm_leads_2025')
               .update({ statut_commercial: dbValue })
               .eq('siret', lead.siret);
@@ -1674,7 +1679,7 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
         }
 
         if (field === 'observation' && value) {
-          await supabase.from('crm_observations_history').insert({ 
+          await supabaseAdmin.from('crm_observations_history').insert({ 
             lead_id: id, 
             observation_text: value, 
             created_by: user?.name || 'Inconnu' 
@@ -1684,10 +1689,10 @@ const GestionLeadsBDD = React.memo(({ activeTab, user, isDarkMode }) => {
         if (field === 'siret' && dbValue) {
           const cleanSiret = String(dbValue).replace(/[^0-9]/g, '');
           if (cleanSiret.length === 14) {
-            supabase.from('siret_opco').select('opco, idcc').eq('siret', cleanSiret).single().then(({data}) => {
-               if (data) {
-                 const updatesSiro = { nom_opco: data.opco || null, idcc_2: data.idcc || null };
-                 supabase.from('crm_leads_bdd').update(updatesSiro).eq('id', id).then(() => {
+            supabaseAdmin.from('siret_opco').select('opco, idcc').eq('siret', cleanSiret).single().then(({data: siroData}) => {
+               if (siroData) {
+                 const updatesSiro = { nom_opco: siroData.opco || null, idcc_2: siroData.idcc || null };
+                 supabaseAdmin.from('crm_leads_bdd').update(updatesSiro).eq('id', id).then(() => {
                    setLeads(currentLeads => currentLeads.map(l => l.id === id ? {...l, ...updatesSiro} : l));
                  });
                }
