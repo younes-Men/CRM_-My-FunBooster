@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, supabaseAdmin } from './supabase';
 import * as XLSX from 'xlsx';
 
 export const exportToExcel = async ({
@@ -12,8 +12,10 @@ export const exportToExcel = async ({
   let from = 0;
   const step = 1000;
   
+  const client = supabaseAdmin || supabase;
+  
   while (true) {
-    let query = supabase.from(tableName).select('*');
+    let query = client.from(tableName).select('*');
     
     // Apply search query
     if (searchQuery) {
